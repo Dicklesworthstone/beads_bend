@@ -1,0 +1,11 @@
+# seed 20260920 over single-step cases with stdout < 2500 bytes (pool 183 of 235)
+error_reopen_missing	["@fx=basic", "reopen", "proj-zzz"]
+error_dep_add_missing	["@fx=basic", "dep", "add", "proj-mta", "proj-zzz"]
+version_plain	["version"]
+show_json	["@fx=basic", "show", "proj-170", "--json"]
+where_json	["@fx=basic", "where", "--json"]
+comments_list_empty	["@fx=basic", "comments", "list", "proj-mta"]
+dep_tree	["@fx=basic", "dep", "tree", "proj-uly"]
+search_none	["@fx=basic", "search", "zzzz"]
+ready_limit	["@fx=basic", "ready", "--limit", "1"]
+label_list_all_json	["@fx=basic", "label", "list-all", "--json"]

@@ -67,7 +67,7 @@ through `port/LAWS.bend`) keeps the plain verdict `All terms check.` (OQ-009).
 | `Failure.*` constructors, `Failure.exit` | S9.6–S9.38 | spec | | the error table as data: code, message, hint, retryable, context, exit |
 | `Run.dispatch`, `Run.command`, `Run.outcome` (`core/run.bend`) | S1, S4, S5, S9 | spec (dispatcher) | consumes `Inputs` | the single entry the shell calls |
 | `main`, `Shell.args`, `Shell.env`, `Shell.cwd`, `Shell.probe`, `Shell.read_all`, `Shell.now`, `Shell.write`, `Shell.remove`, `Shell.emit`, `Shell.exit` (`main.bend`) | S8.1–S8.44 | shell | | one def per effect; `Shell.read_all` loops `File.read` with fuel from `File.size` |
-| `Clock.wall`, `Sys.cwd`, `Sys.remove`, `Sys.rename` (`main.bend` + `effs/*.c`, `effs/*.js`) | S8.12, S8.24–S8.26, S8.30–S8.31 | shell | | custom effects (OQ-009 shows they load on the interpreter, C and JS engines). `Sys.rename` makes the write-back a temp file plus rename |
+| `Clock.wall`, `Sys.cwd`, `Sys.remove`, `Sys.rename`, `Sys.exit` (`main.bend` + `effs/*.c`, `effs/*.js`) | S8.12, S8.24–S8.26, S8.30–S8.31, S8.34–S8.36 | shell | | custom effects (OQ-009 shows they load on the interpreter, C and JS engines). `Sys.rename` makes the write-back a temp file plus rename. `Sys.exit` is the only exit path: `IO.die` always writes a line to stderr, which the original's `--json` errors do not (probe `port/probes/exit/`) |
 
 ## 3. State threading and failure
 
