@@ -662,3 +662,64 @@ def created_by_of(i: Issue) -> Maybe<&2, String>:
   match i:
     case Issue{_, _, People{_, _, created_by, _}, _, _, _, _, _, _, _, _, _, _}:
       created_by
+
+# ---------------------------------------------------------------- the record as it is written (S5.13–S5.15)
+
+# S5.14 (spec twin) a member that is not set takes the write-back's default
+def or_default(value: Maybe<&2, String>, fallback: String) -> Maybe<&2, String>:
+  match value:
+    case None{}:
+      Some{fallback}
+    case Some{v}:
+      Some{v}
+
+# S5.14 (spec twin) a written edge always carries its last three members: a missing `created_by` is `import`, a
+# missing `metadata` is `{}`, a missing `thread_id` is the empty string
+def dep_written(d: Dependency) -> Dependency:
+  match d:
+    case Dependency{issue_id, depends_on_id, dep_type, created_at, created_by, metadata, thread_id}:
+      Dependency{issue_id, depends_on_id, dep_type, created_at, or_default(created_by, "import"), or_default(metadata, "{}"), or_default(thread_id, "")}
+
+# S5.14 (spec twin) every edge with its defaults
+def deps_written(ds: List<&2, Dependency>) -> List<&2, Dependency>:
+  match ds:
+    case Nil{}:
+      Nil{}
+    case Con{d, rest}:
+      dep_written(d) <> deps_written(rest)
+
+# S5.14 S5.15 (spec twin) one step of a lexicographic less-or-equal: strictly less here, or equal here and `later`
+def le_then(lt: Bool, eq: Bool, later: Bool) -> Bool:
+  (lt || (eq && later))
+
+# S5.14 (spec twin) a text that may be absent, for ordering: "not set" sorts first
+def text_or_empty(value: Maybe<&2, String>) -> String:
+  match value:
+    case None{}:
+      ""
+    case Some{v}:
+      v
+
+# S5.14 (spec twin) the order of written edges: `issue_id`, `depends_on_id`, the type, `created_at`, `created_by`,
+# `metadata`, `thread_id`, all ascending
+def dep_le(x: Dependency, y: Dependency) -> Bool:
+  match x y:
+    case Dependency{+xi, +xd, +xk, +xa, +xb, +xm, xt} Dependency{+yi, +yd, +yk, +ya, +yb, +ym, yt}:
+      le_then(String.is_lt(xi, yi), String.eq(xi, yi), le_then(String.is_lt(xd, yd), String.eq(xd, yd), le_then(String.is_lt(xk, yk), String.eq(xk, yk), le_then(Bool.not(Time.le(ya, xa)), Time.eq(xa, ya), le_then(String.is_lt(text_or_empty(xb), text_or_empty(yb)), String.eq(text_or_empty(xb), text_or_empty(yb)), le_then(String.is_lt(text_or_empty(xm), text_or_empty(ym)), String.eq(text_or_empty(xm), text_or_empty(ym)), String.is_le(text_or_empty(xt), text_or_empty(yt))))))))
+
+# S5.15 (spec twin) comment ids are digit strings: a shorter one is smaller, equal lengths compare as text
+def id_le(+x: String, +y: String) -> Bool:
+  (Nat.is_lt(String.length(x), String.length(y)) || (Nat.is_eq(String.length(x), String.length(y)) && String.is_le(x, y)))
+
+# S5.15 (spec twin) the order of written comments: `issue_id`, `created_at`, the author, the text, the id, all ascending
+def comment_le(x: Comment, y: Comment) -> Bool:
+  match x y:
+    case Comment{xn, +xi, +xa, +xt, +xc} Comment{yn, +yi, +ya, +yt, +yc}:
+      le_then(String.is_lt(xi, yi), String.eq(xi, yi), le_then(Bool.not(Time.le(yc, xc)), Time.eq(xc, yc), le_then(String.is_lt(xa, ya), String.eq(xa, ya), le_then(String.is_lt(xt, yt), String.eq(xt, yt), id_le(xn, yn)))))
+
+# S5.13–S5.15 (spec twin) the record as the write-back spells it: labels sorted and de-duplicated, edges with their
+# defaults and in their order, comments in their order
+def written(i: Issue) -> Issue:
+  match i:
+    case Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, dependencies, comments}:
+      Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels_repaired(labels), List.sort(~Dependency, ~dep_le, deps_written(dependencies)), List.sort(~Comment, ~comment_le, comments)}

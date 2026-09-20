@@ -15,6 +15,7 @@ import ./core/query.bend as Query
 import ./core/render.bend as Render
 import ./core/resolve.bend as Resolve
 import ./core/run.bend as Run
+import ./fixtures.bend as Fixtures
 import ./LAWS.bend as Laws
 
 # S0.1 both twins are the identity; the checker sees it by computation
@@ -192,4 +193,8 @@ def Laws.resolve_steps():
 
 # S4.157–S4.169 the checker builds the BLOCKED relation of three records and renders `blocked`
 def Laws.run_blocked_three():
+  {==}
+
+# S5.1–S5.15 the checker loads, repairs and re-renders the eight records of fixture `basic`
+def Laws.store_text_fixpoint_basic():
   {==}

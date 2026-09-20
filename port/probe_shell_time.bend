@@ -20,7 +20,7 @@ def Sys.exit(code: U32) -> IO(Unit):
 
 def show(o: Run.Outcome) -> String:
   match o:
-    case Run.Outcome{out, err, code}:
+    case Run.Outcome{out, err, code, writes}:
       out
 
 def main() -> IO(Unit):

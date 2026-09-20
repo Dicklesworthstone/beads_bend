@@ -132,11 +132,53 @@ def leave(+code: U32, zero: Bool) -> IO(Unit):
     case False{}:
       Sys.exit(code)
 
-# S8.34 S8.36 (shell) perform the outcome: stdout, then stderr, then the exit code
+# S5.17 S8.30 (shell) remove one file, best effort; Base has no effect for it
+def Sys.remove(path: String) -> IO(Unit):
+  import "./effs/sys_remove.c"
+  import "./effs/sys_remove.js"
+
+# S8.30 (shell) the result of one write is not inspected (S5.17: a failed sidecar write never fails the command); close what opened
+def written(got: File & Result<&1, &1, U32 & String, Unit>) -> IO(Unit):
+  match got:
+    case (file, result):
+      File.close(file)
+
+# S8.30 (shell) write a whole text into an opened file; a file that did not open is passed over
+def write_opened(r: Result<&1, &1, U32 & String, File>, text: String) -> IO(Unit):
+  match r:
+    case Fail{error}:
+      IO.pure(Unit, Unit{})
+    case Done{file}:
+      do IO<Unit>:
+        got : File & Result<&1, &1, U32 & String, Unit> <- File.write(file, text)
+        written(got)
+
+# S5.1 S5.17 S8.30 (shell) one file change: the whole new text (the file is created or truncated), or a removal
+def change(w: Run.Write) -> IO(Unit):
+  match w:
+    case Run.Write{path, None{}}:
+      Sys.remove(path)
+    case Run.Write{path, Some{text}}:
+      do IO<Unit>:
+        r : Result<&1, &1, U32 & String, File> <- File.open(path, "w")
+        write_opened(r, text)
+
+# S5.18 S8.30 (shell) the file changes in the order the core gave them: the store before the sidecar
+def change_all(ws: List<&2, Run.Write>) -> IO(Unit):
+  match ws:
+    case Nil{}:
+      IO.pure(Unit, Unit{})
+    case Con{w, rest}:
+      do IO<Unit>:
+        change(w)
+        change_all(rest)
+
+# S8.30 S8.34 S8.36 (shell) perform the outcome: the files, then stdout, then stderr, then the exit code
 def perform(o: Run.Outcome) -> IO(Unit):
   match o:
-    case Run.Outcome{out, +err, +code}:
+    case Run.Outcome{out, +err, +code, writes}:
       do IO<Unit>:
+        change_all(writes)
         IO.write(out)
         emit_err(err, String.is_empty(err))
         leave(code, U32.is_eq(code, 0))

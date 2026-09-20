@@ -40,18 +40,24 @@ def env_of(env: List<&2, Var>, +name: String) -> String:
     case Con{Var{n, v}, rest}:
       Bool.pick(String, String.eq(n, name), v, env_of(rest, name))
 
-# S8.34 S8.36 (data) what the shell must do: the bytes for stdout, the bytes for stderr, the exit code
+# S5.1 S5.17 S8.30 (data) one file the shell must change, by its path relative to the workspace: the whole new
+# text of the file, or no text at all, which means "remove the file" (`delete` and `.beads/last-touched`, S4.210)
+type Write is Data:
+  Write{path: String, text: Maybe<&2, String>}
+
+# S8.30 S8.34 S8.36 (data) what the shell must do, in this order: change the files (the store before the sidecar,
+# S5.18), write the bytes for stdout, write the bytes for stderr, leave with the exit code
 type Outcome is Data:
-  Outcome{out: String, err: String, code: U32}
+  Outcome{out: String, err: String, code: U32, writes: List<&2, Write>}
 
 # S9.1 S9.2 (spec twin) a failure as an outcome: JSON mode writes the envelope to
 # STDOUT and nothing to stderr; plain mode writes `Error:` / `Hint:` to STDERR
 def failed(+f: Failure.Failure, json: Bool) -> Outcome:
   match json:
     case True{}:
-      Outcome{Failure.json_text(f), "", Failure.exit_of(f)}
+      Outcome{Failure.json_text(f), "", Failure.exit_of(f), Nil{}}
     case False{}:
-      Outcome{"", Failure.plain_text(f), Failure.exit_of(f)}
+      Outcome{"", Failure.plain_text(f), Failure.exit_of(f), Nil{}}
 
 # S9.6 (spec twin) a surface of the contract the port does not implement yet. Exit 1 is the
 # contract's internal-error code; the message is the port's own, so every such case FAILS
@@ -79,9 +85,9 @@ def wants_json(c: Call) -> Bool:
 def printed(out: String, note: String, quiet: Bool) -> Outcome:
   match quiet:
     case True{}:
-      Outcome{"", "", 0}
+      Outcome{"", "", 0, Nil{}}
     case False{}:
-      Outcome{out, note, 0}
+      Outcome{out, note, 0, Nil{}}
 
 # S4.133 S5.124 (spec twin) did a filter that runs outside the query take part: only then does the truncation note know the total
 def outside_query(+opts: List<&2, Cli.Occ>) -> Bool:
@@ -455,22 +461,22 @@ def helped(text: String) -> Outcome:
     case SNil{}:
       failed(unported(), False{})
     case SCon{h, t}:
-      Outcome{SCon{h, t}, "", 0}
+      Outcome{SCon{h, t}, "", 0, Nil{}}
 
 # S1.16 (spec twin) a command of the original that is outside the port's `--no-db` surface (PLAN §3): the port's own words, exit 1
 def outside(word: String) -> Outcome:
-  Outcome{"", "Error: `" ++ word ++ "` is outside beads_bend's --no-db surface (docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md §3)\n", 1}
+  Outcome{"", "Error: `" ++ word ++ "` is outside beads_bend's --no-db surface (docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md §3)\n", 1, Nil{}}
 
 # S1.30 S1.6 (spec twin) the argument parser's answer decides first: its refusals never reach the
 # workspace (exit 2, stderr only, whatever the output mode). JSON mode is `--json` or a command's `--robot`
 def ran(p: Cli.Parsed, workspace: Bool, +cwd: String, store: List<&2, U32>, touched: List<&2, U32>, env: List<&2, Var>) -> Outcome:
   match p:
     case Cli.Refused{err}:
-      Outcome{"", err, 2}
+      Outcome{"", err, 2, Nil{}}
     case Cli.Helped{path, long}:
       helped(Help.text(path, long))
     case Cli.GroupHelp{path}:
-      Outcome{"", Help.text(path, True{}), 2}
+      Outcome{"", Help.text(path, True{}), 2, Nil{}}
     case Cli.Versioned{}:
       failed(unported(), False{})
     case Cli.Outside{word}:

@@ -195,3 +195,45 @@ def model(issues: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
       Nil{}
     case Con{i, rest}:
       model_one(Model.repaired(i), model(rest))
+
+# S5.3 (spec twin) the order of the written lines: ascending BYTE order of the id
+def id_le(x: Model.Issue, y: Model.Issue) -> Bool:
+  String.is_le(Model.id_of(x), Model.id_of(y))
+
+# S5.2 (spec twin) one line per record, each ended by one newline; the pieces are collected and concatenated once
+def text_lines(issues: List<&2, Model.Issue>) -> List<&2, String>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{i, rest}:
+      Model.line(Model.written(i)) <> "\n" <> text_lines(rest)
+
+# S5.16 (spec twin) keep a record the file holds: not ephemeral, and no `-wisp-` in its id
+def text_put(i: Model.Issue, keep: Bool, rest: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match keep:
+    case True{}:
+      i <> rest
+    case False{}:
+      rest
+
+# S5.16 (spec twin) the records the file holds
+def text_kept(issues: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      text_put(i, (Bool.not(Model.is_ephemeral(i)) && Bool.not(String.contains(Model.id_of(i), "-wisp-"))), text_kept(rest))
+
+# S5.1–S5.3 S5.16 (spec twin) the whole text of `.beads/issues.jsonl` for a model: every kept record re-rendered
+# (so records a command never named are normalized too), ascending by id bytes; zero records are zero bytes
+def text(issues: List<&2, Model.Issue>) -> String:
+  String.concat(text_lines(List.sort(~Model.Issue, ~id_le, text_kept(issues))))
+
+# S5.1 (spec twin) what a write-back that changes no record leaves in the file: the loaded store rendered again; a
+# refused load renders nothing
+def rewritten(st: Loaded) -> String:
+  match st:
+    case LoadBad{f}:
+      ""
+    case LoadOk{issues}:
+      text(model(issues))
