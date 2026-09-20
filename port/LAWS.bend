@@ -17,6 +17,7 @@ import ./core/sha256.bend as Sha
 import ./core/id.bend as Id
 import ./core/time.bend as Time
 import ./core/model.bend as Model
+import ./core/store.bend as Store
 
 # S0.1 the fast twin equals the spec twin, for every input. One `for` per
 # line, the goal last; `+x` when the proof needs x more than once.
@@ -128,3 +129,9 @@ law time_offset_suffix:
 # (the pinned instant 2026-01-02T03:04:05Z is day 739923 from 0000-03-01, second 11045 of the day)
 law store_line_create_min:
   {Model.line(Model.fresh("proj-fyw", "First issue", "tester", Time.Instant{739923, 11045, 0}, "proj", "/mnt/proj")) == "{\"id\":\"proj-fyw\",\"title\":\"First issue\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-02T03:04:05Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-02T03:04:05Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0}" : String}
+
+# S2.24 S2.27 closed golden: the bytes of goldens/fixtures/malformed.jsonl load to the refusal that
+# goldens/error_malformed_jsonl.err holds: the FIRST line is a good record and is not reported, the
+# second is refused with its 1-based line number and serde_json's message and byte column
+law store_refuses_malformed:
+  {Store.refusal(Store.load(Time.codes("{\"id\":\"proj-aaa\",\"title\":\"before the conflict\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:05Z\",\"updated_at\":\"2026-01-01T10:00:05Z\"}\n{\"id\":\"proj-aab\",\"title\":\"truncated line\n"), "/mnt/proj/.beads/issues.jsonl")) == "Error: Configuration error: Invalid JSON at line 2: EOF while parsing a string at line 1 column 40\n" : String}

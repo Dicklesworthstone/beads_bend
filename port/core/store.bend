@@ -163,3 +163,12 @@ def load_lines(+ls: List<&2, List<&2, U32>>, +path: String) -> Loaded:
 # S2.24 S2.26 S2.27 (spec twin) the store from the file's code points; `path` is the absolute store path the messages quote
 def load(cs: List<&2, U32>, path: String) -> Loaded:
   load_lines(lines_go(cs, Nil{}, Nil{}), path)
+
+# S2.26 S2.27 S9.2 (spec twin) what a load prints on stderr in plain mode: the refusal, or nothing
+def refusal(st: Loaded) -> String:
+  match st:
+    case LoadBad{f}:
+      Failure.plain_text(f)
+    case LoadOk{issues}:
+      ""
+
