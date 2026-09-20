@@ -42,8 +42,10 @@ def ch(+e: U32, f: U32, g: U32) -> U32:
 def maj(+a: U32, +b: U32, +c: U32) -> U32:
   ((a .&. b : U32) .^. (a .&. c : U32) .^. (b .&. c : U32) : U32)
 
-# S4.4 (spec twin) the 64 round constants; the list is the rounds' measure
-def k() -> List<U32>:
+# S4.4 (spec twin) the 64 round constants; the list is the rounds' measure.
+# Named so that no pattern binder shares its name: imported as a module, a
+# binder `k` would otherwise resolve to this def and be refused.
+def round_constants() -> List<U32>:
   [1116352408, 1899447441, 3049323471, 3921009573, 961987163, 1508970993, 2453635748, 2870763221,
    3624381080, 310598401, 607225278, 1426881987, 1925078388, 2162078206, 2614888103, 3248222580,
    3835390401, 4022224774, 264347078, 604807628, 770255983, 1249150122, 1555081692, 1996064986,
@@ -94,7 +96,7 @@ def add8(x: H8, y: H8) -> H8:
 
 # S4.4 (spec twin) one 512-bit block
 def compress(+st: H8, w: W16) -> H8:
-  add8(st, rounds(k(), st, w))
+  add8(st, rounds(round_constants(), st, w))
 
 # S4.4 (spec twin) sixteen words per block; a shorter tail cannot occur after padding
 def blocks(ws: List<U32>, st: H8) -> H8:
