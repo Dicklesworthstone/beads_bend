@@ -30,6 +30,7 @@ to change the contract. Keep the historical entry and its original evidence.
 - Affected cases: none change; the variable is what makes the mutating cases comparable on every lane (`scripts/ws_inner.py` sets it from the case's `@time`).
 - Impact measured: 0 of 231 goldens differ because of it; without it no mutating case is reproducible.
 - Approver: pending (repository owner)
+- Amendment 2026-09-20 (same day, after OQ-004 and OQ-009): "the real clock" above cannot mean Bend's `IO.now`, which is a monotonic millisecond ticker on every engine. With the variable unset the port reads a custom effect, `Clock.wall` (`port/probes/clock/`), which delivers nanoseconds on the C lane and milliseconds on the interpreter and JS lanes. An unpinned timestamp therefore prints 9 fraction digits from the native binary and 3 from the JS engines: a separate `Platform` DISC is registered when the clock lands in the port. Counts in DISC-001…DISC-004 were measured on the 231-case corpus that existed when they were written; the corpus has 235 cases since DISC-005.
 
 ### DISC-002 — single-writer: no cross-process write locks   [2026-09-20 | Excluded | OPEN]
 - Spec clause: S8 (lock sidecars), PLAN §3 exclusion "cross-process write locks"

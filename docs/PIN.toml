@@ -9,26 +9,26 @@ schema = "p2b.pin.v1"
 
 [original]
 name = "BEADS_RUST"
-path = "legacy/BEADS_RUST"                  # gitignored; an oracle to run, never a template to read
-vcs = "<git | none>"
-commit = "<sha, or none when the original has no VCS>"
-version_cmd = "<python3 legacy/BEADS_RUST/x.py --version | go version | ./bin --version; empty when the original has no --version>"
-version_expect = "<substring the version output must contain, e.g. ledgerstat 1.4.2 or Python 3.14>"
-run_cmd = ["<executable>", "<arg>"]  # exactly MANIFEST.txt original_argv; preserves spaces and empty args
+path = "legacy/BEADS_RUST_v0.6.0"           # the tag snapshot (gitignored). NOT legacy/BEADS_RUST, a live tree 271 commits past the pin. The oracle that is RUN is the release binary ~/.local/bin/br (sha256 21b967c1ae68df1a2e8eb2256d13b8e57d293d89e331933919076104832ddbc0)
+vcs = "none"                                # the snapshot is a `git archive` of tag v0.6.0 (tree 45cc06f56529d614d2602a327f469a8478fea17e); the commit below is what `br version --json` reports
+commit = "b1cfebe05437463e91a353cf2bedafac27266f5b"
+version_cmd = "br --version"
+version_expect = "br 0.6.0"
+run_cmd = ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]  # exactly MANIFEST.txt original_argv
 # A shell-quoted string is also accepted, e.g. 'python3 "legacy/tool name.py"'.
 # No shell is invoked for run_cmd. The legacy `original:` display is lossy.
-build_cmd = "<the strongest build, LANGUAGE-GUIDES last table; empty for an interpreted original>"
+build_cmd = ""                               # not rebuilt: the published release binary is the strong build (PLAN §2)
 threads = 1
 
 [bend]
-version = "<2.0.16>"                 # bend --version at capture and proof time (VERSION-DRIFT)
-checkout_sha = "<sha, or empty>"     # when the CLI is a checkout run as bun <dir>/bend2/main.ts (--version is a constant; the sha is the pin)
-cli = ""                             # BEND_CLI when bend is not on PATH; the environment's BEND_CLI wins over this line
+version = "2.0.20"                   # `bend version` (2.0.17 removed --version; scripts/bend-cli.sh translates it)
+checkout_sha = ""                    # release binary, not a checkout (sha256 fab9e564c578a0a15880d5fea561ac1612dba01265a5a219906b5888f3381d8c). Was: when the CLI is a checkout run as bun <dir>/bend2/main.ts (--version is a constant; the sha is the pin)
+cli = "/data/projects/beads_bend/scripts/bend-cli.sh"  # the environment's BEND_CLI wins over this line
 clang_min = "14"                     # >= 19 for the device toolchain
 
 [lanes]
 required = ["interpreter", "c-1t", "c-Nt", "js"]   # add "gpu" only with a bang in the program and a device host below
-gpu_host = ""                        # hostname where the gpu lane runs, or "" (the lane is then recorded MISSING with that reason)
+gpu_host = ""                        # no device on this host (no CUDA): the gpu lane is MISSING with that reason; the program has no bang
 
 [approver]
-disc = "<name>"                      # who approves DISC entries; never the agent that implemented the divergence
+disc = "Jeffrey Emanuel (repository owner)"   # approves DISC entries; never the agent that implemented the divergence

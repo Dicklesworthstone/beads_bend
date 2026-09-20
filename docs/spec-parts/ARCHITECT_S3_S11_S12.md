@@ -1,0 +1,39 @@
+# S3, S11, S12 — the architect's sections (reconciled last, from every part's handover notes)
+
+<!-- Phase 1 spec part. Owner: the architect. S3 is written after the
+     extractors because every section discovers types (SPEC-EXTRACTION
+     "Parallel extraction"). Provenance is `src/<path>.rs:<line>` relative to
+     legacy/BEADS_RUST_v0.6.0/. Where a fact is another section's, the clause
+     points at it instead of restating it. -->
+
+## S3. Data model
+
+Types and their invariants as the outputs reveal them. Numeric widths feed
+`docs/NUMERIC_PLAN.md`; the exact bytes of each record are S5's.
+
+| S3.n | clause | provenance | cases |
+|---|---|---|---|
+| S3.1 | An **issue** is a record of 44 serialized members, always in this order: `id`, `title`, `description`, `design`, `acceptance_criteria`, `prerequisites`, `notes`, `status`, `priority`, `issue_type`, `assignee`, `owner`, `estimated_minutes`, `created_at`, `created_by`, `updated_at`, `closed_at`, `close_reason`, `closed_by_session`, `bypassed_policy`, `bypass_reason`, `policy_gates_fired`, `due_at`, `defer_until`, `external_ref`, `source_system`, `source_repo`, `source_repo_path`, `agent_context`, `deleted_at`, `deleted_by`, `delete_reason`, `original_type`, `compaction_level`, `compacted_at`, `compacted_at_commit`, `original_size`, `sender`, `ephemeral`, `pinned`, `is_template`, `labels`, `dependencies`, `comments`. A 45th member, `content_hash`, exists on the record and is never serialized (its arithmetic: S4.51) | `src/model/mod.rs:462-650` (`content_hash` at `:468`) | `create_full_json`, `show_json`, `list_json` |
+| S3.2 | Seven members are present in every serialized issue: `id`, `title`, `status`, `priority`, `issue_type`, `created_at`, `updated_at`. `compaction_level` is also always present, as an integer, with an absent value written as `0`. Every other scalar member is omitted when it has no value. After a store rewrite `source_repo` and `original_size` are present on every record as well (the rule and its bytes: S5, OQ-002) | `src/model/mod.rs:464-526`, `:623-624`, `:26` | `create_min_json`, `edge_precision_rewrite` |
+| S3.3 | The three flags `ephemeral`, `pinned`, `is_template` are booleans that are omitted when false and absent means false everywhere | `src/model/mod.rs:20`, `:636-642` | `create_ephemeral`, `list_json` |
+| S3.4 | `labels` is a collection of strings, `dependencies` of dependency records, `comments` of comment records; each is omitted when empty. Their order inside a record is S5's and S6's | `src/model/mod.rs:646-650` | `show_json`, `show_comments_json`, `list_label` |
+| S3.5 | A **dependency** is a record of 7 members in this order: `issue_id`, `depends_on_id`, `type`, `created_at`, `created_by`, `metadata`, `thread_id`; the last three are optional. `depends_on_id` may name something that is not a stored issue (an `external:` reference or a missing id) | `src/model/mod.rs:896` | `dep_add_json`, `show_json`, `dep_add_external` |
+| S3.6 | A **comment** is a record of 5 members in this order, all always present: `id` (a signed 64-bit integer; how it is assigned without a database is S4c's), `issue_id`, `author`, `text`, `created_at`. `text` may hold interior newlines and tabs | `src/model/mod.rs:933` | `comments_list_json`, `comments_add_json`, `show_comments_json` |
+| S3.7 | `status` is an **open set** of lower-case strings. The named members are `open`, `in_progress`, `blocked`, `deferred`, `draft`, `closed`, `tombstone`, `pinned`; any other string is a custom status and is carried as written. Terminal statuses are `closed` and `tombstone` | `src/model/mod.rs:60` | `create_status_in_progress`, `update_status_closed`, `list_all_json` |
+| S3.8 | `issue_type` is an **open set**: `task`, `bug`, `feature`, `epic`, `chore`, `docs`, `question`, and any other string as a custom type | `src/model/mod.rs:196` | `create_custom_type`, `list_type_bug` |
+| S3.9 | A dependency `type` is an **open set** of kebab-case strings: `blocks`, `parent-child`, `conditional-blocks`, `waits-for`, `related`, `discovered-from`, `replies-to`, `relates-to`, `duplicates`, `supersedes`, `caused-by`, and any other string as a custom type. The model names the first four as blocking; how each takes part in the BLOCKED relation is S4's "The BLOCKED relation" | `src/model/mod.rs:272`, `:337` | `dep_add_custom_type`, `dep_add_related`, `blocked_json` |
+| S3.10 | `priority` is an integer from 0 (critical) to 4 (backlog), default 2, serialized as a bare number and rendered `P{n}` in text | `src/model/mod.rs:152` | `create_priority_p_form`, `error_create_bad_priority`, `list_plain` |
+| S3.11 | Every timestamp member (`created_at`, `updated_at`, `closed_at`, `due_at`, `defer_until`, `deleted_at`, `compacted_at`, and the `created_at` of dependencies and comments) is an instant in UTC with nanosecond resolution; parsing, ordering and printing are S4's time clauses | `src/model/mod.rs:519-626` | `edge_precision_list_json`, `edge_precision_ready` |
+| S3.12 | Events (the audit trail of a database workspace) are not members of an issue record and are not in `issues.jsonl`: no in-scope output carries them | `src/model/mod.rs:962` | `show_json` |
+| S3.13 | An **error** is a five-member record `code`, `message`, `hint`, `retryable`, `context` inside `{"error": …}`; its bytes and every instance are S9's | `src/error/structured.rs` (S9.1) | `error_show_missing_json`, `error_show_ambiguous_json` |
+| S3.14 | An issue `id` is `<prefix>-<hash>` with optional `.<n>` child segments; its generation, validation, length limits and partial resolution are S4's identifier clauses. Ids are unique within a store, and the store's line order is by id | `src/util/id.rs` (S4.1 and following) | `create_min`, `scn_child_ids`, `scn_dup_title` |
+| S3.15 | A **store** is the sequence of issue records of `.beads/issues.jsonl`, one per line, plus the sidecar `.beads/last-touched` holding one issue id. Nothing else under `.beads/` is read or written by the in-scope surface of the port (the original's other sidecars: S8, DISC-002, DISC-004) | `src/sync/mod.rs` (S5.A), `src/cli/commands/mod.rs` | `create_min`, `update_last_touched`, `scn_last_touched` |
+
+## S11. Performance characteristics of the original
+
+| S11.n | clause | provenance | cases |
+|---|---|---|---|
+| S11.1 | In `--no-db` mode every invocation opens a private in-memory SQLite database and imports the whole of `issues.jsonl` into it before answering, so the cost of every command, reads included, grows with the size of the store | `src/config/mod.rs` (the `--no-db` open path; S2.A) | `list_json`, `ready_json` |
+| S11.2 | Every mutating invocation rewrites the whole store, normalizing every record, whatever the number of records it changed (OQ-002) | `src/sync/mod.rs` (export; S5.A) | `edge_precision_rewrite`, `update_priority` |
+| S11.3 | The hot computations of the in-scope surface are: JSON decoding and encoding of every record; SHA-256 for each id candidate; the sort of `list`, `ready` and `blocked`; the BLOCKED relation's propagation over parent-child edges. These are the Phase 5 hotspot candidates; none is measured in Phase 1 | S4 (identifiers, the BLOCKED relation), S5.A | `list_json`, `blocked_json`, `create_min` |
+| S11.4 | No timing of the original is recorded in Phase 1. The measured baseline is produced in Phase 5 by `scripts/incumbent-bench.sh --pin`, against the pinned binary inside the same sandbox, at thread parity (PLAN §5) | PLAN §5 | `list_json` |
