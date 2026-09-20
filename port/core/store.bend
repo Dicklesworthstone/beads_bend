@@ -93,12 +93,13 @@ def marker_line(m: Marker, path: String, n: U32) -> String:
       path ++ ":" ++ U32.show(n) ++ " End (" ++ text_in_order(label) ++ ")\n"
 
 # S2.26 (spec twin) the report lines of every marker in the file, in file order; n is the 1-based line number
-def markers_go(ls: List<&2, List<&2, U32>>, +path: String, +n: U32, acc: String) -> String:
+# The report lines are collected REVERSED and concatenated once (appending to a growing string re-walks it).
+def markers_go(ls: List<&2, List<&2, U32>>, +path: String, +n: U32, acc: List<&2, String>) -> String:
   match ls:
     case Nil{}:
-      acc
+      String.concat(List.reverse(&2, String, acc))
     case Con{l, rest}:
-      markers_go(rest, path, (n + 1 : U32), acc ++ marker_line(marker_of(trim(l)), path, n))
+      markers_go(rest, path, (n + 1 : U32), marker_line(marker_of(trim(l)), path, n) <> acc)
 
 # S2.26 S9 (spec twin) the refusal for conflict markers: CONFIG_ERROR, exit 7, no hint, no context
 def conflict(path: String, report: String) -> Failure.Failure:
@@ -157,7 +158,7 @@ def guarded(+ls: List<&2, List<&2, U32>>, path: String, report: String) -> Loade
 
 # S2.26 (spec twin) the lines are split once and read twice: by the marker scan, then by the record loop
 def load_lines(+ls: List<&2, List<&2, U32>>, +path: String) -> Loaded:
-  guarded(ls, path, markers_go(ls, path, 1, ""))
+  guarded(ls, path, markers_go(ls, path, 1, Nil{}))
 
 # S2.24 S2.26 S2.27 (spec twin) the store from the file's code points; `path` is the absolute store path the messages quote
 def load(cs: List<&2, U32>, path: String) -> Loaded:
