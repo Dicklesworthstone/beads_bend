@@ -165,6 +165,41 @@ def list_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Boo
     case False{}:
       list_built(Query.build(opts, issues, True{}, False{}), opts, issues, json, quiet)
 
+# S4.141 S4.142 S5.34 S5.156–S5.159 (spec twin) `search` once its rows are ordered: the page, the `has_more` verdict,
+# the hidden closed matches, as JSON or as plain text
+def search_page(+rows: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, query: String, +hidden: Nat, +limit: Nat, +offset: Nat, json: Bool, quiet: Bool) -> Outcome:
+  match json:
+    case True{}:
+      printed(Render.search_json(Query.page(rows, offset, limit), all, hidden, limit, offset, Query.has_more(List.length(&2, Model.Issue, rows), offset, limit)), "", quiet)
+    case False{}:
+      printed(Render.search_plain(Query.page(rows, offset, limit), query, Query.has_more(List.length(&2, Model.Issue, rows), offset, limit), offset, limit, hidden), "", quiet)
+
+# S4.139 S4.140 (spec twin) `search` once its filter is built: the matches of the kept records, ordered as `list` orders
+def search_built(b: Query.Built, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +query: String, json: Bool, quiet: Bool) -> Outcome:
+  match b:
+    case Query.BuildBad{f}:
+      failed(f, json)
+    case Query.BuildOk{+f}:
+      search_page(Query.ordered(Query.matching(Query.kept(issues, f), Query.folded(query)), Query.sort_key(Cli.value(opts, "sort")), Cli.given(opts, "reverse")), issues, query, Query.hidden_closed(issues, f, Query.folded(query)), Query.search_limit(Cli.value(opts, "limit")), Query.count_of(Cli.value(opts, "offset")), json, quiet)
+
+# S4.118 S4.143 (spec twin) `search`: an empty query is refused, then an unknown sort key, then the filter is built
+def search_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +query: String, json: Bool, quiet: Bool, empty: Bool, bad_sort: Bool) -> Outcome:
+  match empty bad_sort:
+    case True{} _:
+      failed(Query.empty_query(), json)
+    case False{} True{}:
+      failed(Query.bad_sort(Maybe.default(&2, String, Cli.value(opts, "sort"), "")), json)
+    case False{} False{}:
+      search_built(Query.build(opts, issues, True{}, False{}), opts, issues, query, json, quiet)
+
+# S1.34 (spec twin) the one positional of `search`, trimmed
+def first_word(words: List<&2, String>) -> String:
+  match words:
+    case Nil{}:
+      ""
+    case Con{w, rest}:
+      String.trim(w)
+
 # S1.55 S8.13 (spec twin) the one id in `.beads/last-touched`: its text, trimmed; "" when the file is absent, empty or not UTF-8
 def touched_text(d: Bytes.Decoded) -> String:
   match d:
@@ -188,15 +223,17 @@ def shown(s: Show.Shown, json: Bool, quiet: Bool) -> Outcome:
 
 # S1 S4 S5 (spec twin) route on the command's words. `list` and `count` read the loaded model (Store.model);
 # `show` reads the file's records as they are (S2.38, S2.39)
-def command_pick(is_list: Bool, is_count: Bool, is_show: Bool, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
-  match is_list is_count is_show c:
-    case True{} _ _ Call{path, +opts, words, json, quiet, touched, env, cwd}:
+def command_pick(is_list: Bool, is_count: Bool, is_show: Bool, is_search: Bool, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
+  match is_list is_count is_show is_search c:
+    case True{} _ _ _ Call{path, +opts, words, json, quiet, touched, env, cwd}:
       list_cmd(opts, Store.model(issues), json, quiet, (Cli.given(opts, "overdue") || Cli.given(opts, "tree") || Cli.given(opts, "pretty")))
-    case False{} True{} _ Call{path, +opts, words, json, quiet, touched, env, cwd}:
+    case False{} True{} _ _ Call{path, +opts, words, json, quiet, touched, env, cwd}:
       count_cmd(opts, Store.model(issues), json, quiet, Nat.is_gt(List.length(&2, String, selectors(opts)), 1n))
-    case False{} False{} True{} Call{path, opts, words, +json, quiet, touched, +env, cwd}:
+    case False{} False{} True{} _ Call{path, opts, words, +json, quiet, touched, +env, cwd}:
       shown(Show.run(words, issues, touched_text(Bytes.decode(touched)), env_of(env, "USER"), env_of(env, "BEADS_BEND_NOW"), prefix_of(cwd), json), json, quiet)
-    case False{} False{} False{} Call{path, opts, words, json, quiet, touched, env, cwd}:
+    case False{} False{} False{} True{} Call{path, +opts, +words, json, quiet, touched, env, cwd}:
+      search_cmd(opts, Store.model(issues), first_word(words), json, quiet, String.is_empty(first_word(words)), U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9))
+    case False{} False{} False{} False{} Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 
 # S1 S4 S5 (spec twin) the words that name the command
@@ -207,7 +244,7 @@ def path_of(c: Call) -> String:
 
 # S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches; a command that is not ported answers the port's own failure
 def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:
-  command_pick(String.eq(path_of(c), "list"), String.eq(path_of(c), "count"), String.eq(path_of(c), "show"), c, issues)
+  command_pick(String.eq(path_of(c), "list"), String.eq(path_of(c), "count"), String.eq(path_of(c), "show"), String.eq(path_of(c), "search"), c, issues)
 
 # S2.26 S2.27 (spec twin) a loaded store: a refusal is the outcome; a good store reaches the command
 def loaded(st: Store.Loaded, +c: Call) -> Outcome:

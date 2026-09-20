@@ -161,3 +161,24 @@ def count_text(total: Nat, groups: List<&2, Query.Group>, by_group: Bool, json: 
       "Total: " ++ Nat.show(total) ++ "\n" ++ String.concat(group_lines(groups))
     case True{} True{}:
       "{\"total\":" ++ Nat.show(total) ++ ",\"groups\":[" ++ String.concat(group_objects(groups, True{})) ++ "]}\n"
+
+# S4.141 (spec twin) the line that follows a cut page of search results, on STDOUT
+def more_note(more: Bool, shown: Nat, offset: Nat, limit: Nat) -> String:
+  match more:
+    case False{}:
+      ""
+    case True{}:
+      "note: showing " ++ Nat.show(shown) ++ " search result(s) from offset " ++ Nat.show(offset) ++ "; more matches exist. Use --limit 0 for all results (current limit: " ++ Nat.show(limit) ++ ")\n"
+
+# S4.142 S5.159 (spec twin) the line that tells of closed matches the default exclusion hid, on STDOUT
+def hidden_note(+hidden: Nat) -> String:
+  Bool.pick(String, Nat.is_eq(hidden, 0n), "", "note: " ++ Nat.show(hidden) ++ " closed match(es) hidden; rerun with --all to include them\n")
+
+# S5.156–S5.159 (spec twin) plain `search`: the header (`Showing` when the page was cut, `Found` otherwise) with the
+# number of rows shown and the query between single quotes, the rows, then the notes
+def search_plain(+page: List<&2, Model.Issue>, query: String, +more: Bool, offset: Nat, limit: Nat, hidden: Nat) -> String:
+  String.concat([Bool.pick(String, more, "Showing ", "Found "), Nat.show(List.length(&2, Model.Issue, page)), " issue(s) matching '", inline(query), "'\n", String.concat(lines(page)), more_note(more, List.length(&2, Model.Issue, page), offset, limit), hidden_note(hidden)])
+
+# S5.34 (spec twin) the envelope of `search --json`: no `total`, and `hidden_closed_count` in its place
+def search_json(page: List<&2, Model.Issue>, all: List<&2, Model.Issue>, hidden: Nat, limit: Nat, offset: Nat, more: Bool) -> String:
+  String.concat(["{\"issues\":[", String.concat(elements(page, all, True{})), "],\"hidden_closed_count\":", Nat.show(hidden), ",\"limit\":", Nat.show(limit), ",\"offset\":", Nat.show(offset), ",\"has_more\":", Failure.bool_text(more), "}\n"])

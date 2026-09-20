@@ -634,3 +634,70 @@ def grouped(issues: List<&2, Model.Issue>, +by: U32, groups: List<&2, Group>) ->
       groups
     case Con{i, rest}:
       grouped(rest, by, tally_keys(group_keys(i, by), groups))
+
+# ---------------------------------------------------------------- search (S4.137–S4.143)
+
+# S4.143 (spec twin) the refusal of a query that is empty after trimming
+def empty_query() -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: query: search query cannot be empty", None{}, True{}, [Failure.CtxMember{"field", Failure.CStr{"query"}}, Failure.CtxMember{"reason", Failure.CStr{"search query cannot be empty"}}], 4}
+
+# S4.137 (spec twin) does any comment's text hold the needle (both with ASCII capitals folded)
+def comments_hold(comments: List<&2, Model.Comment>, +needle: String) -> Bool:
+  match comments:
+    case Nil{}:
+      False{}
+    case Con{Model.Comment{id, issue_id, author, text, created_at}, rest}:
+      (String.contains(folded(text), needle) || comments_hold(rest, needle))
+
+# S4.137 (spec twin) an absent description never matches
+def text_holds(hay: Maybe<&2, String>, needle: String) -> Bool:
+  match hay:
+    case None{}:
+      False{}
+    case Some{h}:
+      String.contains(folded(h), needle)
+
+# S4.137 S4.138 (spec twin) a record matches when the needle is a SUBSTRING of its title, its description, its id or
+# the text of one of its comments; `needle` is already trimmed and folded
+def matches(+i: Model.Issue, +needle: String) -> Bool:
+  (String.contains(folded(Model.title_of(i)), needle) || text_holds(Model.description_of(i), needle) || String.contains(folded(Model.id_of(i)), needle) || comments_hold(Model.comments_of(i), needle))
+
+# S4.140 (spec twin) keep a record that matches
+def matching_put(i: Model.Issue, keep: Bool, rest: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match keep:
+    case True{}:
+      i <> rest
+    case False{}:
+      rest
+
+# S4.140 (spec twin) the records that match the needle, in the given order
+def matching(issues: List<&2, Model.Issue>, +needle: String) -> List<&2, Model.Issue>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      matching_put(i, matches(i, needle), matching(rest, needle))
+
+# S4.142 (spec twin) does the filter hide closed records
+def hides_closed(f: Filter) -> Bool:
+  match f:
+    case Filter{statuses, drop_closed, drop_tombstone, drop_deferred, types, priorities, assignee, unassigned, ids, labels_all, labels_any, pmin, pmax, title_has, desc_has, notes_has, templates}:
+      drop_closed
+
+# S4.142 (spec twin) the same filter asking for exactly the closed records it hid
+def closed_only(f: Filter) -> Filter:
+  match f:
+    case Filter{statuses, drop_closed, drop_tombstone, drop_deferred, types, priorities, assignee, unassigned, ids, labels_all, labels_any, pmin, pmax, title_has, desc_has, notes_has, templates}:
+      Filter{"closed" <> Nil{}, False{}, drop_tombstone, drop_deferred, types, priorities, assignee, unassigned, ids, labels_all, labels_any, pmin, pmax, title_has, desc_has, notes_has, templates}
+
+# S4.142 (spec twin) `hidden_closed_count`: the closed matches the default exclusion hid, under the same other filters; 0 when nothing is hidden
+def hidden_closed(+issues: List<&2, Model.Issue>, +f: Filter, needle: String) -> Nat:
+  Bool.pick(Nat, hides_closed(f), List.length(&2, Model.Issue, matching(kept(issues, closed_only(f)), needle)), 0n)
+
+# S4.141 (spec twin) `search` keeps 50 rows unless told otherwise
+def search_limit(given: Maybe<&2, String>) -> Nat:
+  match given:
+    case None{}:
+      50n
+    case Some{text}:
+      count_of(Some{text})
