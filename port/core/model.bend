@@ -162,35 +162,35 @@ def o_optlist(key: String, value: Maybe<&2, List<&2, String>>) -> String:
     case Some{items}:
       Failure.quoted(key) ++ ":[" ++ strings_text(items) ++ "]"
 
-# S5.2 (spec twin) a separator: nothing before the first part, `,` before every later one
-def sep(first: Bool) -> String:
-  match first:
-    case True{}:
-      ""
-    case False{}:
-      ","
-
-# S5.2 (spec twin) the non-empty parts joined by `,`: an absent member leaves no comma behind
-def joined(parts: List<&2, String>, acc: String, first: Bool) -> String:
-  match parts:
-    case Nil{}:
+# S5.2 (spec twin) the non-empty parts with a `,` pushed before every part but the first, onto a
+# REVERSED list of chunks: an absent member leaves no comma behind, and nothing is re-walked
+# (appending to a growing string would walk a long description once per later member)
+def chunks(parts: List<&2, String>, acc: List<&2, String>, first: Bool) -> List<&2, String>:
+  match parts first:
+    case Nil{} _:
       acc
-    case Con{SNil{}, rest}:
-      joined(rest, acc, first)
-    case Con{SCon{h, t}, rest}:
-      joined(rest, acc ++ sep(first) ++ SCon{h, t}, False{})
+    case Con{SNil{}, rest} still:
+      chunks(rest, acc, still)
+    case Con{SCon{h, t}, rest} True{}:
+      chunks(rest, SCon{h, t} <> acc, False{})
+    case Con{SCon{h, t}, rest} False{}:
+      chunks(rest, SCon{h, t} <> ("," <> acc), False{})
+
+# S5.2 (spec twin) the non-empty parts joined by `,` (compact: no space), concatenated once
+def joined(parts: List<&2, String>) -> String:
+  String.concat(List.reverse(&2, String, chunks(parts, Nil{}, True{})))
 
 # S3.5 S5.7 (spec twin) one dependency, seven members in order, the optional ones only when set
 def dep_text(d: Dependency) -> String:
   match d:
     case Dependency{issue_id, depends_on_id, dep_type, created_at, created_by, metadata, thread_id}:
-      "{" ++ joined([m_str("issue_id", issue_id), m_str("depends_on_id", depends_on_id), m_str("type", dep_type), m_time("created_at", created_at), o_str("created_by", created_by), o_str("metadata", metadata), o_str("thread_id", thread_id)], "", True{}) ++ "}"
+      "{" ++ joined([m_str("issue_id", issue_id), m_str("depends_on_id", depends_on_id), m_str("type", dep_type), m_time("created_at", created_at), o_str("created_by", created_by), o_str("metadata", metadata), o_str("thread_id", thread_id)]) ++ "}"
 
 # S3.6 S5.9 (spec twin) one comment, five members in order, all always present
 def comment_text(c: Comment) -> String:
   match c:
     case Comment{id, issue_id, author, text, created_at}:
-      "{" ++ joined([m_int("id", id), m_str("issue_id", issue_id), m_str("author", author), m_str("text", text), m_time("created_at", created_at)], "", True{}) ++ "}"
+      "{" ++ joined([m_int("id", id), m_str("issue_id", issue_id), m_str("author", author), m_str("text", text), m_time("created_at", created_at)]) ++ "}"
 
 # S5.2 (spec twin) dependencies joined by `,`
 def deps_text(items: List<&2, Dependency>) -> String:
@@ -234,7 +234,7 @@ def o_comments(items: List<&2, Comment>) -> String:
 def line(i: Issue) -> String:
   match i:
     case Issue{Head{id, title, status, priority, issue_type}, Texts{description, design, acceptance_criteria, prerequisites, notes}, People{assignee, owner, created_by, sender}, Times{created_at, updated_at, closed_at, due_at, defer_until, deleted_at, compacted_at}, Closing{close_reason, closed_by_session, bypassed_policy, bypass_reason, policy_gates_fired}, Source{external_ref, source_system, source_repo, source_repo_path, agent_context}, Deletion{deleted_by, delete_reason, original_type}, Compaction{compaction_level, compacted_at_commit, original_size}, Meta{estimated_minutes}, Flags{ephemeral, pinned, is_template}, labels, dependencies, comments}:
-      "{" ++ joined([m_str("id", id), m_str("title", title), o_str("description", description), o_str("design", design), o_str("acceptance_criteria", acceptance_criteria), o_str("prerequisites", prerequisites), o_str("notes", notes), m_str("status", status), m_int("priority", priority), m_str("issue_type", issue_type), o_str("assignee", assignee), o_str("owner", owner), o_int("estimated_minutes", estimated_minutes), m_time("created_at", created_at), o_str("created_by", created_by), m_time("updated_at", updated_at), o_time("closed_at", closed_at), o_str("close_reason", close_reason), o_str("closed_by_session", closed_by_session), o_optflag("bypassed_policy", bypassed_policy), o_str("bypass_reason", bypass_reason), o_optlist("policy_gates_fired", policy_gates_fired), o_time("due_at", due_at), o_time("defer_until", defer_until), o_str("external_ref", external_ref), o_str("source_system", source_system), d_str("source_repo", source_repo, "."), o_str("source_repo_path", source_repo_path), o_str("agent_context", agent_context), o_time("deleted_at", deleted_at), o_str("deleted_by", deleted_by), o_str("delete_reason", delete_reason), o_str("original_type", original_type), d_int("compaction_level", compaction_level, "0"), o_time("compacted_at", compacted_at), o_str("compacted_at_commit", compacted_at_commit), d_int("original_size", original_size, "0"), o_str("sender", sender), o_flag("ephemeral", ephemeral), o_flag("pinned", pinned), o_flag("is_template", is_template), o_strings("labels", labels), o_deps(dependencies), o_comments(comments)], "", True{}) ++ "}"
+      "{" ++ joined([m_str("id", id), m_str("title", title), o_str("description", description), o_str("design", design), o_str("acceptance_criteria", acceptance_criteria), o_str("prerequisites", prerequisites), o_str("notes", notes), m_str("status", status), m_int("priority", priority), m_str("issue_type", issue_type), o_str("assignee", assignee), o_str("owner", owner), o_int("estimated_minutes", estimated_minutes), m_time("created_at", created_at), o_str("created_by", created_by), m_time("updated_at", updated_at), o_time("closed_at", closed_at), o_str("close_reason", close_reason), o_str("closed_by_session", closed_by_session), o_optflag("bypassed_policy", bypassed_policy), o_str("bypass_reason", bypass_reason), o_optlist("policy_gates_fired", policy_gates_fired), o_time("due_at", due_at), o_time("defer_until", defer_until), o_str("external_ref", external_ref), o_str("source_system", source_system), d_str("source_repo", source_repo, "."), o_str("source_repo_path", source_repo_path), o_str("agent_context", agent_context), o_time("deleted_at", deleted_at), o_str("deleted_by", deleted_by), o_str("delete_reason", delete_reason), o_str("original_type", original_type), d_int("compaction_level", compaction_level, "0"), o_time("compacted_at", compacted_at), o_str("compacted_at_commit", compacted_at_commit), d_int("original_size", original_size, "0"), o_str("sender", sender), o_flag("ephemeral", ephemeral), o_flag("pinned", pinned), o_flag("is_template", is_template), o_strings("labels", labels), o_deps(dependencies), o_comments(comments)]) ++ "}"
 
 # S4.220 S5.5 (spec twin) the record `create` makes when no flag is given: status `open`, priority `2`,
 # type `task`, the creator, one instant for created_at and updated_at (S4.52), and the workspace's
