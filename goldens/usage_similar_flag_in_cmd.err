@@ -1,0 +1,7 @@
+error: unexpected argument '--jsno' found
+
+  tip: a similar argument exists: '--json'
+
+Usage: br list --json
+
+For more information, try '--help'.

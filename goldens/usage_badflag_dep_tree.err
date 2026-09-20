@@ -1,0 +1,7 @@
+error: unexpected argument '--zzqq' found
+
+  tip: to pass '--zzqq' as a value, use '-- --zzqq'
+
+Usage: br dep tree [OPTIONS] <ISSUE>
+
+For more information, try '--help'.

@@ -1,0 +1,5 @@
+error: unexpected argument '--zzqq' found
+
+Usage: br list [OPTIONS]
+
+For more information, try '--help'.
