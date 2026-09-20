@@ -14,6 +14,8 @@ import ./resolve.bend as Resolve
 import ./show.bend as Show
 import ./work.bend as Work
 import ./views.bend as Views
+import ./time.bend as Time
+import ./create.bend as Create
 
 # S8.5 (data) one environment variable as the shell read it: its name and its value ("" when it is not set)
 type Var is Data:
@@ -332,6 +334,117 @@ def shown(s: Show.Shown, json: Bool, quiet: Bool) -> Outcome:
     case Show.ShowOk{out}:
       printed(out, "", quiet)
 
+# DISC-001 (spec twin) a mutation without a pinned instant: the port has no wall-clock effect yet, and says so (exit 1)
+def no_clock() -> Failure.Failure:
+  Failure.Failure{"INTERNAL_ERROR", "beads_bend: no wall clock yet: set BEADS_BEND_NOW=<epoch seconds> (DISC-001, backlog E6)", None{}, False{}, Nil{}, 1}
+
+# S4.200 S4.220 (spec twin) what a mutation knows of the world, once the invocation instant is known; the id seed's
+# instant is its nanoseconds since the epoch, which for whole pinned seconds is the digits followed by nine zeros
+def world_of(now: Time.Instant, digits: String, +opts: List<&2, Cli.Occ>, raw: List<&2, Model.Issue>, env: List<&2, Var>, +cwd: String) -> Create.World:
+  Create.World{Show.ids_of(raw), actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), now, String.trim(digits) ++ "000000000", prefix_of(cwd), cwd}
+
+# S5.1 S5.17 S5.18 (spec twin) the file changes of a mutation that acted on `id`: the whole store re-rendered (unless
+# the store is to be left alone), then the sidecar
+def changes(store: Maybe<&2, String>, id: String) -> List<&2, Write>:
+  match store:
+    case None{}:
+      Write{".beads/last-touched", Some{id ++ "\n"}} <> Nil{}
+    case Some{text}:
+      Write{".beads/issues.jsonl", Some{text}} <> Write{".beads/last-touched", Some{id ++ "\n"}} <> Nil{}
+
+# S4.235 (spec twin) an optional line of the dry-run preview
+def preview_line(label: String, value: String, shown: Bool) -> String:
+  match shown:
+    case False{}:
+      ""
+    case True{}:
+      label ++ value ++ "\n"
+
+# S4.235 (spec twin) the plain preview of `create --dry-run`: four lines, then `Labels`, `Parent` and `Dependencies` when they were given
+def preview(+built: Model.Issue, +opts: List<&2, Cli.Occ>) -> String:
+  String.concat(["Dry run: would create issue ", Render.inline(Model.id_of(built)), "\nTitle: ", Render.inline(Model.title_of(built)), "\nType: ", Render.inline(Model.type_of(built)), "\nPriority: P", Model.priority_of(built), "\n", preview_line("Labels: ", Render.inline(String.join(Model.labels_of(built), ", ")), Cli.given(opts, "labels")), preview_line("Parent: ", Render.inline(Maybe.default(&2, String, Cli.value(opts, "parent"), "")), Cli.given(opts, "parent")), preview_line("Dependencies: ", Render.inline(String.join(Cli.values(opts, "deps"), ", ")), Cli.given(opts, "deps"))])
+
+# S4.235 S4.236 S5.37 S5.38 S5.203 (spec twin) what `create` prints: the bare id under `--silent` (which beats
+# `--json`); the record as the store spells it under `--json`; else one `✓ Created` line
+def created_text(+issue: Model.Issue, silent: Bool, json: Bool) -> String:
+  match silent json:
+    case True{} _:
+      Model.id_of(issue) ++ "\n"
+    case False{} True{}:
+      Model.line(Model.written(issue)) ++ "\n"
+    case False{} False{}:
+      "✓ Created " ++ Render.inline(Model.id_of(issue)) ++ ": " ++ Render.inline(Model.title_of(issue)) ++ "\n"
+
+# S5.1 S5.106 (spec twin) a successful mutation: its file changes always happen; Quiet suppresses only the report
+def wrote(out: String, writes: List<&2, Write>, quiet: Bool) -> Outcome:
+  match quiet:
+    case True{}:
+      Outcome{"", "", 0, writes}
+    case False{}:
+      Outcome{out, "", 0, writes}
+
+# S4.234 S4.235 S5.1 (spec twin) a made issue as an outcome. `--dry-run` writes nothing and prints the preview (JSON:
+# the record as built, which has no `original_size`); `--ephemeral` leaves the store alone and still writes the
+# sidecar; anything else re-renders the whole model with the new record in it
+def created(m: Create.Made, +opts: List<&2, Cli.Occ>, model: List<&2, Model.Issue>, +json: Bool, quiet: Bool, dry: Bool, ephemeral: Bool) -> Outcome:
+  match m dry ephemeral:
+    case Create.MadeBad{f} _ _:
+      failed(f, json)
+    case Create.MadeOk{issue, +built} True{} _:
+      printed(Bool.pick(String, json, "{" ++ Model.members_raw(built) ++ "}\n", preview(built, opts)), "", quiet)
+    case Create.MadeOk{+issue, built} False{} True{}:
+      wrote(created_text(issue, Cli.given(opts, "silent"), json), changes(None{}, Model.id_of(issue)), quiet)
+    case Create.MadeOk{+issue, built} False{} False{}:
+      wrote(created_text(issue, Cli.given(opts, "silent"), json), changes(Some{Store.text(List.append(&2, Model.Issue, model, issue <> Nil{}))}, Model.id_of(issue)), quiet)
+
+# S4.222 (spec twin) the title of `create`: the positional, else `--title`, else nothing (which validation refuses)
+def create_title(words: List<&2, String>, flag: Maybe<&2, String>) -> String:
+  match words:
+    case Con{w, rest}:
+      w
+    case Nil{}:
+      Maybe.default(&2, String, flag, "")
+
+# S4.15 S4.220–S4.234 (spec twin) the request of `create`: the id seed takes the RAW title, the raw description and the actor
+def create_request(+opts: List<&2, Cli.Occ>, +title: String, actor: String) -> Create.Request:
+  Create.Request{title, Maybe.default(&2, String, Cli.value(opts, "description"), ""), actor, Cli.value(opts, "description"), Cli.value(opts, "type"), Cli.value(opts, "priority"), Cli.value(opts, "status"), Cli.value(opts, "assignee"), Cli.value(opts, "owner"), Cli.values(opts, "labels"), Cli.value(opts, "parent"), Cli.values(opts, "deps"), Cli.value(opts, "estimate"), Cli.value(opts, "due"), Cli.value(opts, "defer"), Cli.value(opts, "external-ref"), Cli.value(opts, "acceptance-criteria"), Cli.value(opts, "prerequisites"), Cli.value(opts, "slug"), Cli.given(opts, "ephemeral"), False{}}
+
+# S4.16 S1.38 (spec twin) the request of `q`: the title is the words joined by one space and trimmed; the id seed's
+# description and creator parts are EMPTY
+def q_request(+opts: List<&2, Cli.Occ>, words: List<&2, String>) -> Create.Request:
+  Create.Request{String.trim(String.join(words, " ")), "", "", Cli.value(opts, "description"), Cli.value(opts, "type"), Cli.value(opts, "priority"), None{}, None{}, None{}, Cli.values(opts, "labels"), Cli.value(opts, "parent"), Nil{}, Cli.value(opts, "estimate"), None{}, None{}, None{}, None{}, None{}, None{}, False{}, True{}}
+
+# S4.200 (spec twin) the actor a world names
+def world_actor(w: Create.World) -> String:
+  match w:
+    case Create.World{ids, actor, now, nanos, prefix, repo_path}:
+      actor
+
+# S4.220–S4.239 (spec twin) `create` with the world known
+def create_in(+w: Create.World, +opts: List<&2, Cli.Occ>, words: List<&2, String>, raw: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
+  created(Create.make(create_request(opts, create_title(words, Cli.value(opts, "title")), world_actor(w)), w), opts, Store.model(raw), json, quiet, Cli.given(opts, "dry-run"), Cli.given(opts, "ephemeral"))
+
+# S5.38 (spec twin) what `q` answered: the bare id and a newline, whatever the output mode
+def quick(m: Create.Made, model: List<&2, Model.Issue>, json: Bool, quiet: Bool) -> Outcome:
+  match m:
+    case Create.MadeBad{f}:
+      failed(f, json)
+    case Create.MadeOk{+issue, built}:
+      wrote(Model.id_of(issue) ++ "\n", changes(Some{Store.text(List.append(&2, Model.Issue, model, issue <> Nil{}))}, Model.id_of(issue)), quiet)
+
+# S4.237 S4.225 S4.232 (spec twin) `create` and `q` once the pinned instant was read: without one the port refuses
+# (no clock effect yet); `--file`, `--description-file` and `--agent-context` are not ported yet
+def create_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, +env: List<&2, Var>, cwd: String, +json: Bool, quiet: Bool, later: Bool, is_q: Bool) -> Outcome:
+  match now later is_q:
+    case None{} _ _:
+      failed(no_clock(), json)
+    case Some{at} True{} _:
+      failed(unported(), json)
+    case Some{at} False{} False{}:
+      create_in(world_of(at, env_of(env, "BEADS_BEND_NOW"), opts, raw, env, cwd), opts, words, raw, json, quiet)
+    case Some{at} False{} True{}:
+      quick(Create.make(q_request(opts, words), world_of(at, env_of(env, "BEADS_BEND_NOW"), opts, raw, env, cwd)), Store.model(raw), json, quiet)
+
 # S5.20 S5.105 (spec twin) what a small view answered, as an outcome; a form that is not ported answers the port's own failure
 def viewed(v: Views.View, json: Bool, quiet: Bool) -> Outcome:
   match v:
@@ -413,6 +526,10 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
       viewed(Views.epic_status(Store.model(issues), Cli.given(opts, "eligible-only"), json), json, quiet)
     case 15 Call{path, opts, words, +json, quiet, touched, env, +cwd}:
       viewed(Views.whereabouts(cwd, prefix_of(cwd), json), json, quiet)
+    case 16 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      create_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, env, cwd, json, quiet, (Cli.given(opts, "file") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context")), False{})
+    case 17 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      create_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, env, cwd, json, quiet, False{}, True{})
     case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 
@@ -424,7 +541,7 @@ def path_of(c: Call) -> String:
 
 # S1.16 (spec twin) the number `command_at` routes on: 0 for a command that is not ported yet
 def command_number(+path: String) -> U32:
-  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, 0)))))))))))))))
+  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, 0)))))))))))))))))
 
 # S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches
 def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:

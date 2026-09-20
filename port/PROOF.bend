@@ -195,6 +195,10 @@ def Laws.resolve_steps():
 def Laws.run_blocked_three():
   {==}
 
+# S4.7–S4.11 S4.220 S5.2 S5.17 the checker runs `create` end to end: the seed, SHA-256, base 36, the record, the store text
+def Laws.run_create_min():
+  {==}
+
 # S5.1–S5.15 the checker loads, repairs and re-renders the eight records of fixture `basic`
 def Laws.store_text_fixpoint_basic():
   {==}
