@@ -237,12 +237,16 @@ def ready_json(page: List<&2, Model.Issue>) -> String:
 # ---------------------------------------------------------------- blocked (S5.35, S5.137–S5.142)
 
 # S5.139–S5.141 (spec twin) the two lines of one blocked issue; `dependencies` is never singular
+def blocked_line(+issue: Model.Issue, +blockers: List<&2, String>) -> String:
+  String.concat(["[● P", Model.priority_of(issue), "] ", inline(Model.id_of(issue)), ": ", inline(Model.title_of(issue)), "\n  Blocked by ", Nat.show(List.length(&2, String, blockers)), " open dependencies: [", inline(String.join(blockers, ", ")), "]\n"])
+
+# S5.139 (spec twin) every blocked issue, in the command's order
 def blocked_lines(rows: List<&2, Work.Row>) -> List<&2, String>:
   match rows:
     case Nil{}:
       Nil{}
-    case Con{Work.Row{+issue, +blockers}, rest}:
-      String.concat(["[● P", Model.priority_of(issue), "] ", inline(Model.id_of(issue)), ": ", inline(Model.title_of(issue)), "\n  Blocked by ", Nat.show(List.length(&2, String, blockers)), " open dependencies: [", inline(String.join(blockers, ", ")), "]\n"]) <> blocked_lines(rest)
+    case Con{Work.Row{issue, blockers}, rest}:
+      blocked_line(issue, blockers) <> blocked_lines(rest)
 
 # S5.137 S5.138 S5.142 (spec twin) plain `blocked`: a blank line, the header with the TOTAL before any limit, a blank line, the rows
 def blocked_plain(page: List<&2, Work.Row>, total: Nat) -> String:

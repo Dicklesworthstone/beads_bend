@@ -13,6 +13,7 @@ import ./render.bend as Render
 import ./resolve.bend as Resolve
 import ./show.bend as Show
 import ./work.bend as Work
+import ./views.bend as Views
 
 # S8.5 (data) one environment variable as the shell read it: its name and its value ("" when it is not set)
 type Var is Data:
@@ -325,6 +326,52 @@ def shown(s: Show.Shown, json: Bool, quiet: Bool) -> Outcome:
     case Show.ShowOk{out}:
       printed(out, "", quiet)
 
+# S5.20 S5.105 (spec twin) what a small view answered, as an outcome; a form that is not ported answers the port's own failure
+def viewed(v: Views.View, json: Bool, quiet: Bool) -> Outcome:
+  match v:
+    case Views.ViewBad{f}:
+      failed(f, json)
+    case Views.ViewOk{out}:
+      printed(out, "", quiet)
+    case Views.ViewLater{}:
+      failed(unported(), json)
+
+# S4.179 (spec twin) the `--type` filter of `dep list` as the model spells edge types; "" when it is not given
+def kind_of(given: Maybe<&2, String>) -> String:
+  match given:
+    case None{}:
+      ""
+    case Some{word}:
+      Model.dep_type_repaired(word)
+
+# S4.179–S4.181 (spec twin) `dep list <issue>`
+def dep_list_cmd(+opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, word: String, prefix: String, +json: Bool, quiet: Bool) -> Outcome:
+  viewed(Views.dep_list(Views.hit(model, word, prefix), model, Views.direction_of(Cli.value(opts, "direction")), kind_of(Cli.value(opts, "type")), json), json, quiet)
+
+# S4.182–S4.185 (spec twin) `dep tree <issue>`
+def dep_tree_cmd(+opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, word: String, prefix: String, +json: Bool, quiet: Bool) -> Outcome:
+  viewed(Views.dep_tree(Views.hit(model, word, prefix), model, Views.direction_of(Cli.value(opts, "direction")), json), json, quiet)
+
+# S5.185–S5.188 (spec twin) `label list [issue]`: without an issue it lists every label of the project
+def label_list_cmd(+model: List<&2, Model.Issue>, words: List<&2, String>, prefix: String, +json: Bool, quiet: Bool) -> Outcome:
+  match words:
+    case Nil{}:
+      viewed(Views.label_list_all(model, json), json, quiet)
+    case Con{word, rest}:
+      viewed(Views.label_list(Views.hit(model, word, prefix), json), json, quiet)
+
+# S1.86 (spec twin) `comments` with neither a subcommand nor an id
+def no_comment_id() -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: id: missing issue id", None{}, True{}, [Failure.CtxMember{"field", Failure.CStr{"id"}}, Failure.CtxMember{"reason", Failure.CStr{"missing issue id"}}], 4}
+
+# S1.53 S5.192–S5.194 (spec twin) `comments list <id>` and its shorthand `comments <id>`
+def comments_list_cmd(+model: List<&2, Model.Issue>, words: List<&2, String>, prefix: String, +json: Bool, quiet: Bool) -> Outcome:
+  match words:
+    case Nil{}:
+      failed(no_comment_id(), json)
+    case Con{word, rest}:
+      viewed(Views.comments_list(Views.hit(model, word, prefix), json), json, quiet)
+
 # S1 S4 S5 (spec twin) one ported command on a loaded store. `show` reads the file's records as they are
 # (S2.38, S2.39); every other command reads the loaded model (Store.model). `n` is the command's number
 # (`command_number`); 0 is a command that is not ported, which answers the port's own failure
@@ -344,6 +391,22 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
       blocked_cmd(opts, Store.model(issues), json, quiet, Cli.given(opts, "detailed"))
     case 7 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       stats_cmd(opts, Store.model(issues), env, json, quiet, (Cli.given(opts, "by-type") || Cli.given(opts, "by-priority") || Cli.given(opts, "by-assignee") || Cli.given(opts, "by-label") || Cli.given(opts, "activity")))
+    case 8 Call{path, opts, words, json, quiet, touched, env, cwd}:
+      dep_list_cmd(opts, Store.model(issues), first_word(words), prefix_of(cwd), json, quiet)
+    case 9 Call{path, opts, words, json, quiet, touched, env, cwd}:
+      dep_tree_cmd(opts, Store.model(issues), first_word(words), prefix_of(cwd), json, quiet)
+    case 10 Call{path, +opts, words, +json, quiet, touched, env, cwd}:
+      viewed(Views.dep_cycles(Store.model(issues), Cli.given(opts, "blocking-only"), Cli.given(opts, "include-closed"), json), json, quiet)
+    case 11 Call{path, opts, words, json, quiet, touched, env, cwd}:
+      label_list_cmd(Store.model(issues), words, prefix_of(cwd), json, quiet)
+    case 12 Call{path, opts, words, +json, quiet, touched, env, cwd}:
+      viewed(Views.label_list_all(Store.model(issues), json), json, quiet)
+    case 13 Call{path, opts, words, json, quiet, touched, env, cwd}:
+      comments_list_cmd(Store.model(issues), words, prefix_of(cwd), json, quiet)
+    case 14 Call{path, opts, words, +json, quiet, touched, env, cwd}:
+      viewed(Views.epic_status(Store.model(issues), Cli.given(opts, "eligible-only"), json), json, quiet)
+    case 15 Call{path, opts, words, +json, quiet, touched, env, +cwd}:
+      viewed(Views.whereabouts(cwd, prefix_of(cwd), json), json, quiet)
     case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 
@@ -355,7 +418,7 @@ def path_of(c: Call) -> String:
 
 # S1.16 (spec twin) the number `command_at` routes on: 0 for a command that is not ported yet
 def command_number(+path: String) -> U32:
-  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, 0)))))))
+  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, 0)))))))))))))))
 
 # S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches
 def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:

@@ -94,9 +94,13 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [x] E5.1 visibility, filters (statuses, types, priorities with ranges and comma lists, assignee, ids, labels, bounds, the three `--*-contains`), `--limit/--offset`, `total/has_more`; six `le` comparators over precomputed sort keys (`Query.Row`)
   - [ ] E5.1a `--overdue` (needs the clock: E6), `--tree`, `--pretty`, `--format json|csv`
 - [x] E5.2a `list` plain / `--long` / JSON (`Model.listed`), `count` and every `--by-*`: all 38 `list_*`/`count_*` cases pass on c-1t and js
-- [ ] E5.2b `search`; `stats`
-- [ ] E5.3 the BLOCKED relation (three ordered steps), `ready` (three sort policies), `blocked`
-- [ ] E5.4 `show` (raw-record path, S2.39), `dep list` (two orders), `dep tree`, `dep cycles`, `epic status`, `label list`, `label list-all`, `comments list`
+- [x] E5.2b `search` (hidden closed matches, the 50-row page); `stats` (every figure; an average lead time that is not a whole number of tenths stays refused: OQ-078)
+  - [ ] E5.2c the `stats` breakdowns (`--by-*`); `list --overdue/--tree/--pretty`
+- [x] E5.3 the BLOCKED relation (three ordered steps, the external overlay, fuel-bounded propagation) in `core/blocked.bend`; `ready` (three sort policies, the defer gate against the pinned instant) and `blocked` in `core/work.bend`
+  - [ ] E5.3a `ready --parent/--recursive/--epic`; `blocked --detailed`
+- [x] E5.4 `show` (raw-record path, S2.39; partial ids in `core/resolve.bend`), `dep list` (two orders), `epic status`, `label list`, `label list-all`, `comments list`, `where` in `core/views.bend`
+  - [ ] E5.4a `dep tree` with children (the traversal of S4.182–S4.185) and `dep cycles` with a cycle (the witness search of S4.187): both answer the port's own failure today; capture cases with a real tree and a real cycle first
+  - [ ] E5.4b `show`: 100-column wrapping (S5.115), `Rollup:`; cases for the plain deferred/estimate/due/ref fields (OQ-120)
 - [ ] E5.5 laws: `counts_sum_to_total`; order laws for the comparators
 
 ### E6. Mutations — `core/mutate.bend`
