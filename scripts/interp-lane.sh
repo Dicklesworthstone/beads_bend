@@ -34,7 +34,19 @@ for arg in "$@"; do
   elif [[ -z "$file" ]]; then cli+=("$arg"); fi
 done
 note=""
+# The note belongs to the BOOK, not to the case: without a cache every case of a
+# lane run recomputes the same text with a full type-check (19 s for this port
+# under bend 2.0.20). The key is the CLI words plus the name, size and mtime of
+# every source file below the program's directory, so any edit to the book makes
+# a new key. An empty cache file means "this book prints no note".
+cache=""
 if [[ -n "$file" && $emit -eq 0 && ${#cli[@]} -gt 0 ]]; then
+  key="$( { printf '%s\n' "${cli[@]}" "$file"; cd "$(dirname "$file")" && find . -type f \( -name '*.bend' -o -name '*.c' -o -name '*.js' \) -printf '%p %s %T@\n' | LC_ALL=C sort; } 2>/dev/null | cksum | cut -d' ' -f1)"
+  cache="${TMPDIR:-/tmp}/interp-note.$(id -u).$key"
+fi
+if [[ -n "$cache" && -f "$cache" ]]; then
+  note="$(cat "$cache")"; lines="$(wc -l < "$cache")"
+elif [[ -n "$file" && $emit -eq 0 && ${#cli[@]} -gt 0 ]]; then
   if "${cli[@]}" "$file" -o "$TMP/check.js" >"$TMP/check.out" 2>"$TMP/check.err"; then
     first="$(head -1 "$TMP/check.err")"
     # 2.0.16: one line, "All terms check, with N unsafe annotation(s)."
@@ -47,6 +59,8 @@ if [[ -n "$file" && $emit -eq 0 && ${#cli[@]} -gt 0 ]]; then
     elif [[ "$first" =~ ^All\ terms\ check,\ but\ [1-9][0-9]*\ defs?\ rel(y|ies)\ on\ unsafe\ or\ foreign\ code:$ ]]; then
       note="$(cat "$TMP/check.err")"; lines="$(wc -l < "$TMP/check.err")"
     fi
+    # remember the verdict for this exact book (an empty file when it printed no note)
+    if [[ -n "$note" ]]; then printf '%s\n' "$note" >> "$cache"; else : >> "$cache"; fi
   fi
 fi
 "$@" 2>"$TMP/err"; ec=$?

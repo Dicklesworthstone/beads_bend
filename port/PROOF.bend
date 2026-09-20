@@ -3,7 +3,7 @@
 # first use. Gate:  bend PROOF.bend  →  "All terms check." (state the
 # unsafe count from the same output beside every parity claim).
 import Base
-import ./main.bend as L
+import ./core/scaffold.bend as L
 import ./core/bytes.bend as Bytes
 import ./core/sha256.bend as Sha
 import ./core/id.bend as Id

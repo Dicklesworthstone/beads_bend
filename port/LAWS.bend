@@ -11,7 +11,7 @@
 # a large Peano Nat (U32.to_nat of a big word, Nat.read of long digit
 # strings, whole-report renders); those stay in goldens/ and conform.sh.
 import Base
-import ./main.bend as L
+import ./core/scaffold.bend as L
 import ./core/bytes.bend as Bytes
 import ./core/sha256.bend as Sha
 import ./core/id.bend as Id

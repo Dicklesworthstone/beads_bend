@@ -1,8 +1,8 @@
 # BEADS_RUST — Bend 2 port: the IO SHELL. It gathers the inputs with one effect
 # each, calls the pure core once (core/run.bend: Inputs -> Outcome) and performs
 # the outcome. No decision about data is made here. This is the only file that
-# reaches a foreign def, so PROOF.bend (which imports the core through LAWS.bend)
-# keeps the plain verdict. Nothing here consults the original: the spec is
+# reaches a foreign def, and PROOF.bend never imports it (the laws import the core
+# only), so the proof book keeps the plain verdict and stays cheap to check. Nothing here consults the original: the spec is
 # docs/EXISTING_BEADS_RUST_STRUCTURE.md, the oracle is goldens/.
 #
 # Check:  bend PROOF.bend                  (laws)   — must print "All terms check."
@@ -10,18 +10,6 @@
 # Build:  bend main.bend -o beads_rust     (C lanes);  bend main.bend -o x.js  (JS lane)
 import Base
 import ./core/run.bend as Run
-
-# ---------------------------------------------------------------- core (pure)
-
-# S0.1 the scaffold's placeholder twins, kept because LAWS.bend is human-owned and
-# its law `fast_is_spec` names them; the first real fast twin arrives in Phase 5.
-# S0.1 (spec twin)
-def core_spec(x: Nat) -> Nat:
-  x
-
-# S0.1 (fast twin; law fast_is_spec binds it)
-def core_fast(x: Nat) -> Nat:
-  x
 
 # ---------------------------------------------------------------- shell (IO)
 
@@ -65,8 +53,10 @@ def probe(path: String) -> IO(Bool):
 def joined_bytes(chunks: List<&2, List<&2, U32>>) -> List<&2, U32>:
   List.concat(&2, U32, List.reverse(&2, List<&2, U32>, chunks))
 
-# S8.13 (shell) read a file to its end in 65536-byte chunks. The loop takes the PREVIOUS read's answer
-# as a parameter and recurses on itself (no mutual recursion); fuel bounds it at 65536 chunks (4 GiB).
+# S8.13 (shell) read a file to its end in 1 MiB chunks. The loop takes the PREVIOUS read's answer
+# as a parameter and recurses on itself (no mutual recursion); fuel bounds it at 1024 chunks of 1 MiB
+# (1 GiB). The fuel literal is kept SMALL on purpose: a Nat literal is a Peano numeral to the checker, and
+# `65536n` here cost 15 s of every type-check (and so of every interpreter-lane case and every proof run).
 # An unreadable file, or one past the budget, answers the empty byte string after closing the handle.
 def read_chunks(fuel: Nat, got: File & Result<&1, &1, U32 & String, List<&2, U32>>, chunks: List<&2, List<&2, U32>>) -> IO(List<&2, U32>):
   match fuel:
@@ -88,7 +78,7 @@ def read_chunks(fuel: Nat, got: File & Result<&1, &1, U32 & String, List<&2, U32
             return joined_bytes(chunks)
         case (f, Done{c <> rest}):
           do IO<List<&2, U32>>:
-            got2 : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, 65536)
+            got2 : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, 1048576)
             read_chunks(g, got2, (c <> rest) <> chunks)
 
 # S8.13 (shell) the bytes of an opened file, or nothing when it did not open
@@ -98,8 +88,8 @@ def read_opened(r: Result<&1, &1, U32 & String, File>) -> IO(List<&2, U32>):
       IO.pure(List<&2, U32>, Nil{})
     case Done{file}:
       do IO<List<&2, U32>>:
-        got : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(file, 65536)
-        read_chunks(65536n, got, Nil{})
+        got : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(file, 1048576)
+        read_chunks(1024n, got, Nil{})
 
 # S8.13 (shell) the bytes of a file
 def read_all(path: String) -> IO(List<&2, U32>):
