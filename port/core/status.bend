@@ -320,3 +320,18 @@ def skip_objects(skips: List<&2, Skip>, first: Bool) -> List<&2, String>:
       Nil{}
     case Con{Skip{id, reason}, rest} lead:
       String.concat([Bool.pick(String, lead, "", ","), "{\"id\":", Failure.quoted(id), ",\"reason\":", Failure.quoted(reason), "}"]) <> skip_objects(rest, False{})
+
+# ---------------------------------------------------------------- epic close-eligible (S4.390, S4.391)
+
+# S4.391 (spec twin) an eligible epic as `epic close-eligible` closes it: the close reason is the hard-coded
+# literal `All children completed`, never a `--reason` (the subcommand has none)
+def epic_closed(+i: Model.Issue, +now: Time.Instant) -> Model.Issue:
+  moved(i, "closed", now, Some{now}, Some{"All children completed"}, Model.defer_of(i), True{})
+
+# S4.391 (spec twin) every named epic closed in ONE batch, with one shared instant
+def epics_closed(issues: List<&2, Model.Issue>, +ids: List<&2, String>, +now: Time.Instant) -> List<&2, Model.Issue>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      Bool.pick(Model.Issue, Blocked.among(ids, Model.id_of(i)), epic_closed(i, now), i) <> epics_closed(rest, ids, now)

@@ -108,7 +108,7 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [x] E6.2 `update` (every flag, `--claim`, last-touched fallback), `close` (+`--suggest-next`, blocked refusal, partial batches exit 3), `reopen`, `defer`/`undefer` (date forms S4.56–S4.62)
 - [x] E6.3 `delete` (tombstone, dependents, `--force`, `--cascade`, `--dry-run`, removes `last-touched`) — `core/remove.bend`; `--hard` and `--from-file` answer the port's own failure (OQ-128), as do a `--json` preview or dry run and `--dry-run` with `--force`/`--cascade` (OQ-127)
 - [x] E6.4 `dep add/remove` (cycle refusal exit 5, no-op duplicates) in `core/edges.bend`; `label add/remove/rename` and `comments add` (id = store-wide max + 1) in `core/labels.bend`. Left refused with the port's own failure: a tombstoned endpoint and a `parent-child` edge to an `external:` target (OQ-124), the split of more than two label positionals (OQ-122), a label positional that resolves to nothing (OQ-123), `comments add -f`
-  - [ ] E6.4a `epic close-eligible` (S4.390–S4.393): no case is captured, so no golden can judge it; capture `epic_close_eligible` and `epic_close_eligible_dry_run` first
+  - [x] E6.4a `epic close-eligible` (S4.390–S4.393): six cases captured first (`epic_close_eligible_none`, `…_none_json`, `…_dry_run`, `…_dry_run_json`, `scn_epic_close_eligible`, `scn_epic_close_eligible_plain`), then implemented in `core/status.bend` and `core/run.bend`; all six pass on the first lane run. `--transition-comment` answers the port's own failure
 - [ ] E6.5 the shell's writes: `Sys.rename` temp-file publication, `Sys.remove`, `last-touched` ordering after the flush
 - [ ] E6.6 `Clock.wall` in the shell + `BEADS_BEND_NOW` pin (DISC-001); the `Platform` DISC for JS-lane millisecond precision
 
@@ -120,7 +120,7 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 ### E8. Phase 3 exit
 - [ ] E8.1 lanes PASS on interpreter, c-1t, c-8t, js (gpu MISSING with reason)
 - [ ] E8.2 every def tagged; `law-coverage.sh` OK; `port-lint.py` no errors
-- [ ] E8.3 stack safety on the JS lane for a 5k-record store (B7)
+- [ ] E8.3 stack safety on the JS lane for a 5k-record store (B7) — MEASURED 2026-09-20 and registered as DISC-008 (OPEN): the JS lane faults above about 30 KB of store (80 records answer `count`, 96 fault); the C lane answers on 5,000 records (1.6 MB). `bun --stack-size` does not move it. Next: the reproducer upstream (G1), or chunked store paths in the core
 
 ## F. Phases 4–6
 
@@ -130,6 +130,6 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 
 ## G. Toolchain and upstream
 
-- [ ] G1. File upstream (bendlang/bend): the foreign-reliance verdict cost (reproducer `port/probe_shell_time.bend`); the `../` import + `( .. : U32)` misresolution; GUIDE.md still saying bare operators default to `Nat`
+- [ ] G1. File upstream (bendlang/bend): the foreign-reliance verdict cost (reproducer `port/probe_shell_time.bend`); the `../` import + `( .. : U32)` misresolution; GUIDE.md still saying bare operators default to `Nat`; the JS backend walking a list on the JavaScript call stack, which faults above ~30 KB of input (DISC-008); and the error a multi-scrutinee `match` out of parameter order gives, which names neither the order nor the scrutinee (PLAN §8)
 - [ ] G2. `scripts/version-drift.sh` between 2.0.16 and 2.0.20 now that the port has gates
 - [ ] G3. CI: `assets/github-workflows/port-gates.yml` filled for this port (compiler + oracle placeholders), once a runner with bubblewrap and the pins exists

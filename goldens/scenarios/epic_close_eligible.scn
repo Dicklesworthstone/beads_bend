@@ -1,0 +1,11 @@
+# epic_close_eligible: an epic becomes eligible when its last open child closes (S4.390-S4.393)
+@fx=basic
+@time=2026-02-01 09:00:00
+["close","proj-mta","--reason","Schema done"]
+@time=2026-02-01 09:30:00
+["close","proj-170","--reason","Auth done"]
+["epic","status"]
+["epic","close-eligible","--dry-run"]
+@time=2026-02-01 10:00:00
+["epic","close-eligible","--json"]
+["epic","status"]

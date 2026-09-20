@@ -341,7 +341,7 @@ def shown(s: Show.Shown, json: Bool, quiet: Bool) -> Outcome:
     case Show.ShowOk{out}:
       printed(out, "", quiet)
 
-# DISC-001 (spec twin) a mutation without a pinned instant: the port has no wall-clock effect yet, and says so (exit 1)
+# S8.5 DISC-001 (spec twin) a mutation without a pinned instant: the port has no wall-clock effect yet, and says so (exit 1)
 def no_clock() -> Failure.Failure:
   Failure.Failure{"INTERNAL_ERROR", "beads_bend: no wall clock yet: set BEADS_BEND_NOW=<epoch seconds> (DISC-001, backlog E6)", None{}, False{}, Nil{}, 1}
 
@@ -962,6 +962,58 @@ def comment_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: L
     case Some{at} Nil{} False{}:
       failed(no_comment_id(), json)
 
+# ---------------------------------------------------------------- epic close-eligible (S4.390–S4.393)
+
+# S4.391 S4.393 (spec twin) one line per epic: a dry run names the title too, a real run the id alone
+def epic_line(+i: Model.Issue, dry: Bool) -> String:
+  Bool.pick(String, dry, "  - " ++ Render.inline(Model.id_of(i)) ++ ": " ++ Render.inline(Model.title_of(i)) ++ "\n", "  - " ++ Render.inline(Model.id_of(i)) ++ "\n")
+
+# S4.391 S4.393 (spec twin) the lines of a batch, in the order `epic status` lists them
+def epic_lines(epics: List<&2, Model.Issue>, +dry: Bool) -> String:
+  match epics:
+    case Nil{}:
+      ""
+    case Con{i, rest}:
+      epic_line(i, dry) ++ epic_lines(rest, dry)
+
+# S4.391 (spec twin) the JSON of a real run: the closed ids and their count
+def epic_json(+ids: List<&2, String>) -> String:
+  String.concat(["{\"closed\":[", String.join(Remove.quoted_all(ids), ","), "],\"count\":", Nat.show(List.length(&2, String, ids)), "}\n"])
+
+# S4.393 (spec twin) `--dry-run` writes nothing: plain names the epics it would close, JSON is the epic-status
+# list of the ELIGIBLE epics alone (`[]` when none, as `epic_close_eligible_dry_run_json` shows)
+def epic_dry(+epics: List<&2, Model.Issue>, model: List<&2, Model.Issue>, json: Bool, +quiet: Bool) -> Outcome:
+  Bool.pick(Outcome, json, viewed(Views.epic_status(model, True{}, True{}), True{}, quiet), printed("Would close " ++ Nat.show(List.length(&2, Model.Issue, epics)) ++ " epic(s):\n" ++ epic_lines(epics, True{}), "", quiet))
+
+# S4.391 S4.392 (spec twin) a real run: nothing eligible prints its own line and writes nothing; otherwise every
+# eligible epic is closed at one instant and the store is rewritten, but never `.beads/last-touched`
+def epic_done(+model: List<&2, Model.Issue>, +epics: List<&2, Model.Issue>, +ids: List<&2, String>, now: Time.Instant, none: Bool, json: Bool, quiet: Bool) -> Outcome:
+  match none json:
+    case True{} True{}:
+      printed("{\"closed\":[],\"count\":0}\n", "", quiet)
+    case True{} False{}:
+      printed("No epics eligible for closure\n", "", quiet)
+    case False{} mode:
+      wrote(Bool.pick(String, mode, epic_json(ids), "✓ Closed " ++ Nat.show(List.length(&2, Model.Issue, epics)) ++ " epic(s)\n" ++ epic_lines(epics, False{})), store_only(Status.epics_closed(model, ids, now), True{}), quiet)
+
+# S4.390 (spec twin) `epic close-eligible` once the eligible epics are known
+def epic_at(+epics: List<&2, Model.Issue>, model: List<&2, Model.Issue>, at: Time.Instant, json: Bool, quiet: Bool, dry: Bool) -> Outcome:
+  match dry:
+    case True{}:
+      epic_dry(epics, model, json, quiet)
+    case False{}:
+      epic_done(model, epics, Show.ids_of(epics), at, Nat.is_eq(List.length(&2, Model.Issue, epics), 0n), json, quiet)
+
+# S4.390–S4.393 (spec twin) `epic close-eligible`; `--transition-comment` is not ported
+def epic_close_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool, later: Bool) -> Outcome:
+  match now later:
+    case _ True{}:
+      failed(unported(), json)
+    case None{} False{}:
+      failed(no_clock(), json)
+    case Some{at} False{}:
+      epic_at(Query.ordered(Views.epics_of(model, model, True{}), 0, False{}), model, at, json, quiet, Cli.given(opts, "dry-run"))
+
 # ---------------------------------------------------------------- delete (S4.330–S4.341)
 
 # S4.340 S9.18 (spec twin) `delete` with no ids at all
@@ -1070,6 +1122,8 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
       rename_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), words, issues, json, quiet)
     case 28 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       comment_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, Cli.given(opts, "file"))
+    case 30 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      epic_close_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, Store.model(issues), json, quiet, Cli.given(opts, "transition-comment"))
     case 29 Call{path, +opts, words, json, quiet, +touched, +env, cwd}:
       delete_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, touched_text(Bytes.decode(touched)), (Cli.given(opts, "hard") || Cli.given(opts, "from-file")))
     case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
@@ -1083,7 +1137,7 @@ def path_of(c: Call) -> String:
 
 # S1.16 (spec twin) the number `command_at` routes on: 0 for a command that is not ported yet
 def command_number(+path: String) -> U32:
-  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, Bool.pick(U32, String.eq(path, "update"), 18, Bool.pick(U32, String.eq(path, "close"), 19, Bool.pick(U32, String.eq(path, "reopen"), 20, Bool.pick(U32, String.eq(path, "defer"), 21, Bool.pick(U32, String.eq(path, "undefer"), 22, Bool.pick(U32, String.eq(path, "dep add"), 23, Bool.pick(U32, String.eq(path, "dep remove"), 24, Bool.pick(U32, String.eq(path, "label add"), 25, Bool.pick(U32, String.eq(path, "label remove"), 26, Bool.pick(U32, String.eq(path, "label rename"), 27, Bool.pick(U32, String.eq(path, "comments add"), 28, Bool.pick(U32, String.eq(path, "delete"), 29, 0)))))))))))))))))))))))))))))
+  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, Bool.pick(U32, String.eq(path, "update"), 18, Bool.pick(U32, String.eq(path, "close"), 19, Bool.pick(U32, String.eq(path, "reopen"), 20, Bool.pick(U32, String.eq(path, "defer"), 21, Bool.pick(U32, String.eq(path, "undefer"), 22, Bool.pick(U32, String.eq(path, "dep add"), 23, Bool.pick(U32, String.eq(path, "dep remove"), 24, Bool.pick(U32, String.eq(path, "label add"), 25, Bool.pick(U32, String.eq(path, "label remove"), 26, Bool.pick(U32, String.eq(path, "label rename"), 27, Bool.pick(U32, String.eq(path, "comments add"), 28, Bool.pick(U32, String.eq(path, "delete"), 29, Bool.pick(U32, String.eq(path, "epic close-eligible"), 30, 0))))))))))))))))))))))))))))))
 
 # S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches
 def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:

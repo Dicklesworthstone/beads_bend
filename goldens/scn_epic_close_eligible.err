@@ -1,0 +1,6 @@
+$ ["close", "proj-mta", "--reason", "Schema done"]
+$ ["close", "proj-170", "--reason", "Auth done"]
+$ ["epic", "status"]
+$ ["epic", "close-eligible", "--dry-run"]
+$ ["epic", "close-eligible", "--json"]
+$ ["epic", "status"]

@@ -1,0 +1,9 @@
+# epic_close_eligible_plain: the plain text of a real `epic close-eligible` (S4.391)
+@fx=basic
+@time=2026-02-01 09:00:00
+["close","proj-mta","--reason","Schema done"]
+@time=2026-02-01 09:30:00
+["close","proj-170","--reason","Auth done"]
+@time=2026-02-01 10:00:00
+["epic","close-eligible"]
+["epic","status"]
