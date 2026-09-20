@@ -228,13 +228,38 @@ def o_comments(items: List<&2, Comment>) -> String:
     case Con{first, rest}:
       "\"comments\":[" ++ comments_text(first <> rest) ++ "]"
 
+# S5.7 S5.30 (spec twin) `source_repo`: the loaded model always carries it (`.` when the file had none);
+# the raw record `show` reads carries it only when the file did
+def repo_member(value: Maybe<&2, String>, raw: Bool) -> String:
+  match raw:
+    case True{}:
+      o_str("source_repo", value)
+    case False{}:
+      d_str("source_repo", value, ".")
+
+# S5.7 S5.30 (spec twin) `original_size`: `0` when the file had none, except in the raw record `show` reads
+def size_member(value: Maybe<&2, String>, raw: Bool) -> String:
+  match raw:
+    case True{}:
+      o_int("original_size", value)
+    case False{}:
+      d_int("original_size", value, "0")
+
 # S5.2 S5.4 S5.5 S5.6 (spec twin) the members of one issue, WITHOUT the braces: the 44 members in
 # S5.4's fixed order; always present: id, title, status, priority, issue_type, created_at, updated_at,
-# compaction_level (0 when unset), source_repo (`.` when unset) and original_size (0 when unset)
-def members(i: Issue) -> String:
+# compaction_level (0 when unset), and, unless `raw`, source_repo (`.` when unset) and original_size (0 when unset)
+def members_as(i: Issue, +raw: Bool) -> String:
   match i:
     case Issue{Head{id, title, status, priority, issue_type}, Texts{description, design, acceptance_criteria, prerequisites, notes}, People{assignee, owner, created_by, sender}, Times{created_at, updated_at, closed_at, due_at, defer_until, deleted_at, compacted_at}, Closing{close_reason, closed_by_session, bypassed_policy, bypass_reason, policy_gates_fired}, Source{external_ref, source_system, source_repo, source_repo_path, agent_context}, Deletion{deleted_by, delete_reason, original_type}, Compaction{compaction_level, compacted_at_commit, original_size}, Meta{estimated_minutes}, Flags{ephemeral, pinned, is_template}, labels, dependencies, comments}:
-      joined([m_str("id", id), m_str("title", title), o_str("description", description), o_str("design", design), o_str("acceptance_criteria", acceptance_criteria), o_str("prerequisites", prerequisites), o_str("notes", notes), m_str("status", status), m_int("priority", priority), m_str("issue_type", issue_type), o_str("assignee", assignee), o_str("owner", owner), o_int("estimated_minutes", estimated_minutes), m_time("created_at", created_at), o_str("created_by", created_by), m_time("updated_at", updated_at), o_time("closed_at", closed_at), o_str("close_reason", close_reason), o_str("closed_by_session", closed_by_session), o_optflag("bypassed_policy", bypassed_policy), o_str("bypass_reason", bypass_reason), o_optlist("policy_gates_fired", policy_gates_fired), o_time("due_at", due_at), o_time("defer_until", defer_until), o_str("external_ref", external_ref), o_str("source_system", source_system), d_str("source_repo", source_repo, "."), o_str("source_repo_path", source_repo_path), o_str("agent_context", agent_context), o_time("deleted_at", deleted_at), o_str("deleted_by", deleted_by), o_str("delete_reason", delete_reason), o_str("original_type", original_type), d_int("compaction_level", compaction_level, "0"), o_time("compacted_at", compacted_at), o_str("compacted_at_commit", compacted_at_commit), d_int("original_size", original_size, "0"), o_str("sender", sender), o_flag("ephemeral", ephemeral), o_flag("pinned", pinned), o_flag("is_template", is_template), o_strings("labels", labels), o_deps(dependencies), o_comments(comments)])
+      joined([m_str("id", id), m_str("title", title), o_str("description", description), o_str("design", design), o_str("acceptance_criteria", acceptance_criteria), o_str("prerequisites", prerequisites), o_str("notes", notes), m_str("status", status), m_int("priority", priority), m_str("issue_type", issue_type), o_str("assignee", assignee), o_str("owner", owner), o_int("estimated_minutes", estimated_minutes), m_time("created_at", created_at), o_str("created_by", created_by), m_time("updated_at", updated_at), o_time("closed_at", closed_at), o_str("close_reason", close_reason), o_str("closed_by_session", closed_by_session), o_optflag("bypassed_policy", bypassed_policy), o_str("bypass_reason", bypass_reason), o_optlist("policy_gates_fired", policy_gates_fired), o_time("due_at", due_at), o_time("defer_until", defer_until), o_str("external_ref", external_ref), o_str("source_system", source_system), repo_member(source_repo, raw), o_str("source_repo_path", source_repo_path), o_str("agent_context", agent_context), o_time("deleted_at", deleted_at), o_str("deleted_by", deleted_by), o_str("delete_reason", delete_reason), o_str("original_type", original_type), d_int("compaction_level", compaction_level, "0"), o_time("compacted_at", compacted_at), o_str("compacted_at_commit", compacted_at_commit), size_member(original_size, raw), o_str("sender", sender), o_flag("ephemeral", ephemeral), o_flag("pinned", pinned), o_flag("is_template", is_template), o_strings("labels", labels), o_deps(dependencies), o_comments(comments)])
+
+# S5.2 S5.4 (spec twin) the members of one issue of the loaded model
+def members(i: Issue) -> String:
+  members_as(i, False{})
+
+# S5.30 (spec twin) the members of one issue as the file spells it, which is what `show` prints
+def members_raw(i: Issue) -> String:
+  members_as(i, True{})
 
 # S5.2 (spec twin) the store line of one issue, WITHOUT its newline
 def line(i: Issue) -> String:
@@ -571,3 +596,57 @@ def is_ephemeral(i: Issue) -> Bool:
   match i:
     case Issue{_, _, _, _, _, _, _, _, _, Flags{ephemeral, _, _}, _, _, _}:
       ephemeral
+
+# S3.1 (spec twin) an issue's design text, when it has one
+def design_of(i: Issue) -> Maybe<&2, String>:
+  match i:
+    case Issue{_, Texts{_, design, _, _, _}, _, _, _, _, _, _, _, _, _, _, _}:
+      design
+
+# S3.1 (spec twin) an issue's acceptance criteria, when it has them
+def acceptance_of(i: Issue) -> Maybe<&2, String>:
+  match i:
+    case Issue{_, Texts{_, _, acceptance_criteria, _, _}, _, _, _, _, _, _, _, _, _, _, _}:
+      acceptance_criteria
+
+# S3.1 (spec twin) an issue's prerequisites, when it has them
+def prerequisites_of(i: Issue) -> Maybe<&2, String>:
+  match i:
+    case Issue{_, Texts{_, _, _, prerequisites, _}, _, _, _, _, _, _, _, _, _, _, _}:
+      prerequisites
+
+# S3.1 (spec twin) when an issue was closed, when it says
+def closed_of(i: Issue) -> Maybe<&2, Time.Instant>:
+  match i:
+    case Issue{_, _, _, Times{_, _, closed_at, _, _, _, _}, _, _, _, _, _, _, _, _, _}:
+      closed_at
+
+# S3.1 (spec twin) why an issue was closed, when it says
+def close_reason_of(i: Issue) -> Maybe<&2, String>:
+  match i:
+    case Issue{_, _, _, _, Closing{close_reason, _, _, _, _}, _, _, _, _, _, _, _, _}:
+      close_reason
+
+# S3.1 (spec twin) an issue's external reference, when it has one
+def external_ref_of(i: Issue) -> Maybe<&2, String>:
+  match i:
+    case Issue{_, _, _, _, _, Source{external_ref, _, _, _, _}, _, _, _, _, _, _, _}:
+      external_ref
+
+# S3.1 (spec twin) an issue's estimate in minutes, as its digits, when it has one
+def estimate_of(i: Issue) -> Maybe<&2, String>:
+  match i:
+    case Issue{_, _, _, _, _, _, _, _, Meta{estimated_minutes}, _, _, _, _}:
+      estimated_minutes
+
+# S3.1 (spec twin) an issue's own comments, in file order
+def comments_of(i: Issue) -> List<&2, Comment>:
+  match i:
+    case Issue{_, _, _, _, _, _, _, _, _, _, _, _, comments}:
+      comments
+
+# S3.5 (spec twin) an edge's type
+def dep_type_of(d: Dependency) -> String:
+  match d:
+    case Dependency{_, _, dep_type, _, _, _, _}:
+      dep_type

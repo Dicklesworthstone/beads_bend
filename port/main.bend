@@ -97,6 +97,25 @@ def read_all(path: String) -> IO(List<&2, U32>):
     r : Result<&1, &1, U32 & String, File> <- File.open(path, "r")
     read_opened(r)
 
+# S8.5 (shell) the value of one environment read; a variable that is not set answers the empty string
+def env_value(r: Result<&1, &1, U32 & String, String>) -> String:
+  match r:
+    case Done{value}:
+      value
+    case Fail{error}:
+      ""
+
+# S8.5 (shell) the environment variables the core names (Run.env_names), each read once, in that order
+def env_all(names: List<&2, String>) -> IO(List<&2, Run.Var>):
+  match names:
+    case Nil{}:
+      IO.pure(List<&2, Run.Var>, Nil{})
+    case Con{+name, rest}:
+      do IO<List<&2, Run.Var>>:
+        r : Result<&1, &1, U32 & String, String> <- IO.get_env(name)
+        more : List<&2, Run.Var> <- env_all(rest)
+        return Run.Var{name, env_value(r)} <> more
+
 # S8.34 (shell) stderr, when there is any: print_err ends the text with one newline, as every error text does
 def emit_err(text: String, empty: Bool) -> IO(Unit):
   match empty:
@@ -129,4 +148,6 @@ def main() -> IO(Unit):
     workspace : Bool <- probe(".beads/issues.jsonl")
     cwd : String <- Sys.cwd()
     store : List<&2, U32> <- read_all(".beads/issues.jsonl")
-    perform(Run.outcome(Run.Inputs{args_list(args), workspace, cwd, store}))
+    touched : List<&2, U32> <- read_all(".beads/last-touched")
+    env : List<&2, Run.Var> <- env_all(Run.env_names())
+    perform(Run.outcome(Run.Inputs{args_list(args), workspace, cwd, store, touched, env}))

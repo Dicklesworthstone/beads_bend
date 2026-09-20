@@ -13,6 +13,7 @@ import ./core/store.bend as Store
 import ./core/cli.bend as Cli
 import ./core/query.bend as Query
 import ./core/render.bend as Render
+import ./core/resolve.bend as Resolve
 import ./core/run.bend as Run
 import ./LAWS.bend as Laws
 
@@ -183,4 +184,8 @@ def Laws.run_count_two():
 
 # S4.107 the checker cuts six tokens and spans their ranges
 def Laws.query_priority_ranges():
+  {==}
+
+# S4.41–S4.47 the checker resolves six inputs against eight ids
+def Laws.resolve_steps():
   {==}

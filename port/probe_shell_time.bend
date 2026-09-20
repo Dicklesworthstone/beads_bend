@@ -25,5 +25,5 @@ def show(o: Run.Outcome) -> String:
 
 def main() -> IO(Unit):
   do IO<Unit>:
-    IO.print(show(Run.outcome(Run.Inputs{Nil{}, False{}, "", Nil{}})))
+    IO.print(show(Run.outcome(Run.Inputs{Nil{}, False{}, "", Nil{}, Nil{}, Nil{}})))
     Sys.exit(3)

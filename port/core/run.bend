@@ -10,11 +10,33 @@ import ./help.bend as Help
 import ./model.bend as Model
 import ./query.bend as Query
 import ./render.bend as Render
+import ./resolve.bend as Resolve
+import ./show.bend as Show
+
+# S8.5 (data) one environment variable as the shell read it: its name and its value ("" when it is not set)
+type Var is Data:
+  Var{name: String, value: String}
 
 # S8.1 S8.12 S8.13 (data) what the shell gathered: argv, whether a `.beads` workspace was found, the
 # working directory, and the BYTES of `.beads/issues.jsonl` (empty when there is no workspace)
 type Inputs is Data:
-  Inputs{argv: List<&2, String>, workspace: Bool, cwd: String, store: List<&2, U32>}
+  Inputs{argv: List<&2, String>, workspace: Bool, cwd: String, store: List<&2, U32>, touched: List<&2, U32>, env: List<&2, Var>}
+
+# S8.13 (data) `touched` above is the BYTES of `.beads/last-touched` (empty when the file is absent, S1.55);
+# `env` is one Var per name of `env_names`, in that order
+
+# S1.57–S1.67 S8.5 (data) the environment variables the core reads, in the order the shell reads them:
+# the actor ladders (S1.64, S1.65), the output format (S1.61), and the pinned instant of DISC-001
+def env_names() -> List<&2, String>:
+  ["USER", "BD_ACTOR", "BEADS_ACTOR", "LOGNAME", "USERNAME", "BR_OUTPUT_FORMAT", "TOON_DEFAULT_FORMAT", "BEADS_BEND_NOW"]
+
+# S8.5 (spec twin) the value of a variable; one that is not set, or was not read, is the empty string
+def env_of(env: List<&2, Var>, +name: String) -> String:
+  match env:
+    case Nil{}:
+      ""
+    case Con{Var{n, v}, rest}:
+      Bool.pick(String, String.eq(n, name), v, env_of(rest, name))
 
 # S8.34 S8.36 (data) what the shell must do: the bytes for stdout, the bytes for stderr, the exit code
 type Outcome is Data:
@@ -43,12 +65,12 @@ def not_utf8() -> Failure.Failure:
 # S1.1 S1.6 (data) an accepted command line: the words that name the command, its option occurrences in argv
 # order, its positionals, and the output mode (JSON beats Quiet, S1.6)
 type Call is Data:
-  Call{path: String, opts: List<&2, Cli.Occ>, words: List<&2, String>, json: Bool, quiet: Bool}
+  Call{path: String, opts: List<&2, Cli.Occ>, words: List<&2, String>, json: Bool, quiet: Bool, touched: List<&2, U32>, env: List<&2, Var>, cwd: String}
 
 # S1.6 (spec twin) the output mode of a call: is it JSON
 def wants_json(c: Call) -> Bool:
   match c:
-    case Call{path, opts, words, json, quiet}:
+    case Call{path, opts, words, json, quiet, touched, env, cwd}:
       json
 
 # S5.23 S5.106 (spec twin) what a successful read prints: nothing at all under Quiet
@@ -143,21 +165,49 @@ def list_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Boo
     case False{}:
       list_built(Query.build(opts, issues, True{}, False{}), opts, issues, json, quiet)
 
-# S1 S4 S5 (spec twin) route on the command's words
-def command_pick(is_list: Bool, is_count: Bool, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool) -> Outcome:
-  match is_list is_count:
-    case True{} _:
-      list_cmd(opts, issues, json, quiet, (Cli.given(opts, "overdue") || Cli.given(opts, "tree") || Cli.given(opts, "pretty")))
-    case False{} True{}:
-      count_cmd(opts, issues, json, quiet, Nat.is_gt(List.length(&2, String, selectors(opts)), 1n))
-    case False{} False{}:
+# S1.55 S8.13 (spec twin) the one id in `.beads/last-touched`: its text, trimmed; "" when the file is absent, empty or not UTF-8
+def touched_text(d: Bytes.Decoded) -> String:
+  match d:
+    case Bytes.NotUtf8{}:
+      ""
+    case Bytes.Utf8{codes}:
+      String.trim(Cli.text(codes))
+
+# S2.10 (spec twin) the workspace's default prefix: the name of the workspace directory. The `issue_prefix` of
+# `.beads/config.yaml` and the directory-name rules of S2.11–S2.15 are not read yet (backlog E3.2)
+def prefix_of(cwd: String) -> String:
+  Resolve.remainder_of(Resolve.cut_last(cwd, 47))
+
+# S5.105 S5.155 (spec twin) what `show` answered, as an outcome
+def shown(s: Show.Shown, json: Bool, quiet: Bool) -> Outcome:
+  match s:
+    case Show.ShowBad{f}:
+      failed(f, json)
+    case Show.ShowOk{out}:
+      printed(out, "", quiet)
+
+# S1 S4 S5 (spec twin) route on the command's words. `list` and `count` read the loaded model (Store.model);
+# `show` reads the file's records as they are (S2.38, S2.39)
+def command_pick(is_list: Bool, is_count: Bool, is_show: Bool, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
+  match is_list is_count is_show c:
+    case True{} _ _ Call{path, +opts, words, json, quiet, touched, env, cwd}:
+      list_cmd(opts, Store.model(issues), json, quiet, (Cli.given(opts, "overdue") || Cli.given(opts, "tree") || Cli.given(opts, "pretty")))
+    case False{} True{} _ Call{path, +opts, words, json, quiet, touched, env, cwd}:
+      count_cmd(opts, Store.model(issues), json, quiet, Nat.is_gt(List.length(&2, String, selectors(opts)), 1n))
+    case False{} False{} True{} Call{path, opts, words, +json, quiet, touched, +env, cwd}:
+      shown(Show.run(words, issues, touched_text(Bytes.decode(touched)), env_of(env, "USER"), env_of(env, "BEADS_BEND_NOW"), prefix_of(cwd), json), json, quiet)
+    case False{} False{} False{} Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 
-# S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches; a command that is not ported answers the port's own failure
-def command(c: Call, +issues: List<&2, Model.Issue>) -> Outcome:
+# S1 S4 S5 (spec twin) the words that name the command
+def path_of(c: Call) -> String:
   match c:
-    case Call{+path, +opts, words, json, quiet}:
-      command_pick(String.eq(path, "list"), String.eq(path, "count"), opts, Store.model(issues), json, quiet)
+    case Call{path, opts, words, json, quiet, touched, env, cwd}:
+      path
+
+# S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches; a command that is not ported answers the port's own failure
+def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:
+  command_pick(String.eq(path_of(c), "list"), String.eq(path_of(c), "count"), String.eq(path_of(c), "show"), c, issues)
 
 # S2.26 S2.27 (spec twin) a loaded store: a refusal is the outcome; a good store reaches the command
 def loaded(st: Store.Loaded, +c: Call) -> Outcome:
@@ -198,7 +248,7 @@ def outside(word: String) -> Outcome:
 
 # S1.30 S1.6 (spec twin) the argument parser's answer decides first: its refusals never reach the
 # workspace (exit 2, stderr only, whatever the output mode). JSON mode is `--json` or a command's `--robot`
-def ran(p: Cli.Parsed, workspace: Bool, cwd: String, store: List<&2, U32>) -> Outcome:
+def ran(p: Cli.Parsed, workspace: Bool, +cwd: String, store: List<&2, U32>, touched: List<&2, U32>, env: List<&2, Var>) -> Outcome:
   match p:
     case Cli.Refused{err}:
       Outcome{"", err, 2}
@@ -211,10 +261,10 @@ def ran(p: Cli.Parsed, workspace: Bool, cwd: String, store: List<&2, U32>) -> Ou
     case Cli.Outside{word}:
       outside(word)
     case Cli.Command{path, +opts, words}:
-      routed(workspace, Call{path, opts, words, (Cli.given(opts, "json") || Cli.given(opts, "robot")), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot"))))}, cwd, store)
+      routed(workspace, Call{path, opts, words, (Cli.given(opts, "json") || Cli.given(opts, "robot")), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot")))), touched, env, cwd}, cwd, store)
 
 # S1 S4 S5 S9 (spec twin, dispatcher) the single entry the shell calls
 def outcome(inputs: Inputs) -> Outcome:
   match inputs:
-    case Inputs{argv, workspace, cwd, store}:
-      ran(Cli.parse(argv), workspace, cwd, store)
+    case Inputs{argv, workspace, cwd, store, touched, env}:
+      ran(Cli.parse(argv), workspace, cwd, store, touched, env)
