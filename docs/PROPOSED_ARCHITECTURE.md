@@ -165,7 +165,9 @@ the line list into balanced halves with a parallel let and concatenate the
 results, each bound to its sequential spec twin by a `fast == spec` law.
 No fast twin exists before Phase 5 and none is listed in the module map. There
 is no bang in the program: this host has no device, and the work is
-string-shaped and divergent, which the guide says stays faster on the CPU.
+string-shaped and divergent, the kind `bend guide` assigns to the CPU lanes
+("divergent work like n-queens"). Whether a fork helps at all is a Phase 5
+measurement, not a claim made here.
 
 ## 8. Law plan (drafts LAWS.bend)
 
