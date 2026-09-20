@@ -10,11 +10,11 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 
 ## A. Owner decisions (delegated 2026-09-20: "You decide on everything. I approve whatever you want to do.")
 
-- [ ] A1. Git remote: create a public GitHub repository under the owner's account, with a description and topics; push `main`
+- [x] A1. Git remote: create a public GitHub repository under the owner's account, with a description and topics; push `main`
   - [x] A1.1 scan tracked files for IPs, key paths, tokens, email addresses (clean, 864 files)
   - [x] A1.2 add a LICENSE (the owner's beads_rust license text, the project this one ports)
   - [x] A1.3 `gh repo create` public, description, topics, homepage-free
-  - [ ] A1.4 push `main`; `git status` shows up to date with origin
+  - [x] A1.4 push `main`; `git status` shows up to date with origin (https://github.com/Dicklesworthstone/beads_bend)
   - [x] A1.5 README: repository URL, clone line, license section; AGENTS.md and PORT_STATE: the remote exists
 - [x] A2. DISC-001…DISC-005: record ACCEPTED with the approver and the authorizing words
 - [x] A3. UBS `python.taint.command` on `scripts/ws_inner.py`: one inline `# ubs:ignore[python.taint.command]` with the reason on the one line; `ubs scripts/ws_inner.py` exits 0
@@ -22,7 +22,7 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 
 ## B. Phase 0 — truth pack (done; maintenance items)
 
-- [x] B1. 235 goldens, floor STABLE, MANIFEST pinned
+- [x] B1. 235 goldens, floor STABLE, MANIFEST pinned (344 since the three parser batches of B12)
 - [ ] B2. ws-run: a mode that dumps EVERY file under `.beads/` (needed by OQ-005 `init`, OQ-008 sidecars)
 - [ ] B3. ws-run: a directive to run from a SUBDIRECTORY of the workspace (upward walk, OQ-103)
 - [ ] B4. ws-run: a directive to set ONE environment variable (`BEADS_DIR`, `BR_OUTPUT_FORMAT`, `BD_ACTOR`; S1/S8 cases)
@@ -33,6 +33,10 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [ ] B9. Fixture with a real dependency cycle; diamonds; external blockers; templates; custom statuses (S4b OQs)
 - [ ] B10. Capture the extractors' ~215 `(case to add …)` proposals in batches with `golden-capture.sh --repin`, re-floor
 - [ ] B11. Full four-lane run at HEAD when the machine has memory (last one was stopped by the harness)
+- [x] B12. The parser's surface as cases, three batches under `--repin`: 43 (every command's usage line, the argument syntax forms), 41 (refusal shapes, value checks, exclusions, aliases, hyphen values), 25 (the questions the first two raised: OQ-104…OQ-113). 344 cases
+  - [x] B12.1 floor over 278: STABLE
+  - [x] B12.2 floor over 344: STABLE
+- [x] B13. `scripts/quick-lanes.sh`: c-1t and js over the whole corpus, the inner loop (the four-lane gate stays `scripts/lanes.sh`)
 
 ## C. Phase 1 — spec (first pass done)
 
@@ -56,14 +60,20 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [x] bytes (UTF-8 encode/decode) · sha256 · id (seed, hash36, length table) · time (RFC 3339) · json (lexer, members) · failure (renderings, escaping) · model (record, store line) · decode (line → record) · store (load, refusals) · run (dispatcher) · scaffold · shell with `Sys.exit`, `Sys.cwd`
 - [x] 29 closed laws proved; 7 of 235 cases pass on c-1t
 
-### E2. Command line (S1.1–S1.67) — `port/core/cli.bend`
-- [ ] E2.1 read S1 in full; list the grammar: global flags, per-command flags, value syntax, aliases, conflicts
-- [ ] E2.2 the token layer: `--flag`, `--flag=value`, `-f`, `-fvalue`, combined shorts, `--`, negative numbers
-- [ ] E2.3 clap's refusals, verbatim, exit 2: unknown subcommand (with the `tip:` suggestions), unexpected argument (with the `tip: to pass '…' as a value, use '-- …'`), missing value, invalid value, used multiple times, missing required arguments, and the `Usage:` / `For more information, try '--help'.` tails
-- [ ] E2.4 the bare `dep` / `label` / `epic` / no-argument help blocks on stderr, exit 2
-- [ ] E2.5 `Command` data type: one constructor per in-scope command form
-- [ ] E2.6 route `Run.outcome` through it: usage refusals come BEFORE any workspace or store access
-- [ ] E2.7 goldens: all 17 `usage_*` cases on c-1t and js
+### E2. Command line (S1.1–S1.30, S1.68–S1.92) — `port/core/surface.bend` (tables), `port/core/cli.bend` (algorithm), `port/core/help.bend` (generated texts)
+- [x] E2.1 read S1 in full; list the grammar: global flags, per-command flags, value syntax, aliases, conflicts → `core/surface.bend`, 36 levels
+- [x] E2.2 the token layer: `--flag`, `--flag=value`, `-f`, `-fvalue`, combined shorts, `--`, negative numbers, `-` alone
+- [x] E2.3 clap's refusals, verbatim, exit 2: unknown subcommand and option (with the similarity tips, Jaro in exact fractions), the `--` advice, missing value, invalid value (unsigned, ranged, enumerated with the similar-value tip), repeated option, unexpected value, exclusions in argv order, missing positionals, the order rule of S1.84
+- [x] E2.4 the bare `dep` / `label` / `epic` help blocks on stderr, exit 2; a group with options only (S1.83)
+- [x] E2.5 the result type: `Cli.Parsed` with `Command{path, opts, words}` (NOT one constructor per command form: PROPOSED_ARCHITECTURE §2 amended)
+- [x] E2.6 route `Run.outcome` through it: usage refusals come BEFORE any workspace or store access
+- [x] E2.7 goldens on c-1t and js: every `usage_*` case that the parser alone decides passes; the rest wait for their command (E5, E6) or for `version` (E3.5)
+- [x] E2.8 help texts: top (`--help`, `help`), `list --help`, `list -h`, `help list`, the three groups; the spec appendix `docs/spec-parts/HELP_TEXTS.md` (clause S1.89) is their single source, `scripts/gen-help-bend.py` builds the module
+- [x] E2.9 eight closed laws (`cli_*`): refusal texts, similarity, exclusions, accepted command lines, help forms
+- [x] E2.10 DISC-007: an explicit top-level `--no-db` is accepted
+- [ ] E2.11 the help text of the other 30 levels, long and short (about 60 cases and 150 KB of text): decide in PLAN §3 whether they stay excluded
+- [ ] E2.12 open parser questions: OQ-106 (threshold in floating point), OQ-107 (equal similarity), OQ-111 (`--assignee` bare against empty)
+- [ ] E2.13 environment reads the parser's callers need (`BR_OUTPUT_FORMAT`, `NO_COLOR`, `USER`, `BD_ACTOR`…): a `Sys.env` custom effect, probed on three engines
 
 ### E3. Workspace (S2.1–S2.23) — `core/discover.bend`
 - [ ] E3.1 upward walk for `.beads/` then `_beads/`; `BEADS_DIR`; `redirect` (fuel 10); probes in the shell, decision in the core

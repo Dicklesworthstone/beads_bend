@@ -1,0 +1,4 @@
+error: invalid value 'bogus' for '--by <BY>'
+  [possible values: status, priority, type, assignee, label]
+
+For more information, try '--help'.

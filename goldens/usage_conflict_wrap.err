@@ -1,0 +1,5 @@
+error: the argument '--wrap' cannot be used with '--no-wrap'
+
+Usage: br show --wrap <IDS>...
+
+For more information, try '--help'.

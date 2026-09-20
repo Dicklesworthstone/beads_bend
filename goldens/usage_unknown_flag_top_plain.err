@@ -1,0 +1,5 @@
+error: unexpected argument '--zzqq' found
+
+Usage: br --no-db <COMMAND>
+
+For more information, try '--help'.

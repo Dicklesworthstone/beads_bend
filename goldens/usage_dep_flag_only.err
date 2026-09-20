@@ -1,0 +1,6 @@
+error: 'br dep' requires a subcommand but one was not provided
+  [subcommands: add, import, remove, rm, list, tree, cycles, help]
+
+Usage: br dep [OPTIONS] <COMMAND>
+
+For more information, try '--help'.

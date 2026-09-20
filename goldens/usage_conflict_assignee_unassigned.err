@@ -1,0 +1,5 @@
+error: the argument '--assignee [<ASSIGNEE>]' cannot be used with '--unassigned'
+
+Usage: br ready --assignee [<ASSIGNEE>]
+
+For more information, try '--help'.

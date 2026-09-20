@@ -1,0 +1,5 @@
+error: the argument '--limit <LIMIT>' cannot be used multiple times
+
+Usage: br list [OPTIONS]
+
+For more information, try '--help'.

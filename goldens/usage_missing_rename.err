@@ -1,0 +1,6 @@
+error: the following required arguments were not provided:
+  <NEW_NAME>
+
+Usage: br label rename <OLD_NAME> <NEW_NAME>
+
+For more information, try '--help'.

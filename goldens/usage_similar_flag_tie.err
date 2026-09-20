@@ -1,0 +1,7 @@
+error: unexpected argument '--lon' found
+
+  tip: a similar argument exists: '--long'
+
+Usage: br list --long
+
+For more information, try '--help'.

@@ -1,0 +1,6 @@
+error: invalid value 'statu' for '--by <BY>'
+  [possible values: status, priority, type, assignee, label]
+
+  tip: a similar value exists: 'status'
+
+For more information, try '--help'.

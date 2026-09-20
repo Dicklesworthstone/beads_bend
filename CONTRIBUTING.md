@@ -7,7 +7,7 @@
 
 > **Outside contributions are not merged.** The owner's policy, stated in `README.md` ("About Contributions"), applies here:
 > issues are welcome, and a PR may illustrate a proposed fix, but it will not be merged. This file is the working
-> agreement for the people and agents who DO change this repository: the owner and the agents working for him.
+> agreement for the people and agents who DO change this repository: the owner and the agents working for them.
 > `AGENTS.md` is the agent-facing version of the same rules.
 
 ## 1. The two equivalences

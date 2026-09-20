@@ -29,7 +29,7 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: unset `BEADS_BEND_NOW` (the default): the port reads the real clock, as the original does.
 - Affected cases: none change; the variable is what makes the mutating cases comparable on every lane (`scripts/ws_inner.py` sets it from the case's `@time`).
 - Impact measured: 0 of 231 goldens differ because of it; without it no mutating case is reproducible.
-- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. Their words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; they can revoke it, which returns the entry to OPEN
 - Amendment 2026-09-20 (same day, after OQ-004 and OQ-009): "the real clock" above cannot mean Bend's `IO.now`, which is a monotonic millisecond ticker on every engine. With the variable unset the port reads a custom effect, `Clock.wall` (`port/probes/clock/`), which delivers nanoseconds on the C lane and milliseconds on the interpreter and JS lanes. An unpinned timestamp therefore prints 9 fraction digits from the native binary and 3 from the JS engines: a separate `Platform` DISC is registered when the clock lands in the port. Counts in DISC-001…DISC-004 were measured on the 231-case corpus that existed when they were written; the corpus has 235 cases since DISC-005.
 
 ### DISC-002 — single-writer: no cross-process write locks   [2026-09-20 | Excluded | ACCEPTED]
@@ -40,7 +40,7 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: none possible inside Bend; serialize writers outside the tool. Repayment: a custom lock effect (C and JS).
 - Affected cases: none of the 231 (the sandbox runs one process at a time; lock sidecars are not part of the dumped state).
 - Impact measured: 0 of 231 cases; the exposure is concurrent agents on one workspace, which the corpus does not exercise.
-- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. Their words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; they can revoke it, which returns the entry to OPEN
 
 ### DISC-003 — write-back is not atomic   [2026-09-20 | Platform | ACCEPTED]
 - Spec clause: S8 (JSONL publication), PLAN §3 exclusion "temp file + RENAME_EXCHANGE"
@@ -50,7 +50,7 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: none inside Bend. Repayment: a custom `file_rename` effect, then the staged publication.
 - Affected cases: none of the 231 (final bytes are equal; crash windows are not observable in the harness).
 - Impact measured: 0 of 231 cases.
-- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. Their words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; they can revoke it, which returns the entry to OPEN
 
 ### DISC-004 — sidecars other than `last-touched` are not produced   [2026-09-20 | Excluded | ACCEPTED]
 - Spec clause: S8
@@ -60,7 +60,7 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: none.
 - Affected cases: none (the harness dumps `issues.jsonl` and `last-touched`, the two files other tools read).
 - Impact measured: 0 of 231 cases.
-- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. Their words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; they can revoke it, which returns the entry to OPEN
 
 ### DISC-005 — candidates of an ambiguous partial id are listed in byte order   [2026-09-20 | OrderLeak | ACCEPTED]
 - Spec clause: S6 (order leaks), S9 (`AMBIGUOUS_ID`, exit 3)
@@ -70,7 +70,7 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: none is meaningful (there is no single original order to restore).
 - Affected cases: `show_partial_ambiguous`, `error_show_ambiguous_json`, `error_update_ambiguous`; captured through the canonicalizer in `scripts/ws_inner.py` (`canon`: sorts only the lists of an `Ambiguous ID` message, applied identically to the original and the port; the exit code is never canonicalized).
 - Impact measured: 1 of 231 cases unstable before the canonicalizer; five repeated runs byte-identical after it, in plain and JSON form; `list_json` unchanged byte for byte.
-- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. Their words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; they can revoke it, which returns the entry to OPEN
 
 ### DISC-006 — the port's `version` output and binary name are its own   [2026-09-20 | Platform | ACCEPTED]
 - Spec clause: S5.200–S5.202, S9.33; OQ-003
@@ -80,4 +80,15 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: none is meaningful: there is no truthful way to restore the original's bytes.
 - Affected cases: `version_plain`, `version_json`. When `version` is ported (backlog item E3.5) the comparison of these two cases goes through a canonicalizer in `scripts/ws_inner.py`, applied identically to both sides and only when the case's command is `version`: plain output is reduced to its shape (`<name> version <version> …`, one line), JSON output to "one object with a string member `version`"; the exit code is never canonicalized. Until then both cases fail on every lane like every other unported command.
 - Impact measured: 2 of 235 cases.
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation (the words quoted under DISC-001); decided by the porting agent under that delegation
+- Amendment 2026-09-20 (DISC-006): the top-level `--version` / `-V` flag is the same divergence: the original prints `br 0.6.0` (`goldens/usage_version_flag.out` line 1), the port prints its own name and version. Affected cases are now `version_plain`, `version_json`, `usage_version_flag` (3 of 344). The port's parser answers `Versioned` for the flag (`port/core/cli.bend`); until backlog item E3.5 lands the three cases fail on every lane.
+
+### DISC-007 — an explicit top-level `--no-db` is accepted   [2026-09-20 | BugFix | ACCEPTED]
+- Spec clause: S1.1, S1.12, S1.91
+- Original behavior (cite the golden): the port's contract is `br --no-db <argv>`. A user of the port who types `--no-db` themselves at the top level is therefore compared with `br --no-db --no-db <command>`, which the original refuses: a once-only option given twice at one level (`goldens/usage_top_json_twice.err` line 1 shows the rule for `--json`: `error: the argument '--json' cannot be used multiple times`).
+- Port behavior: the contract's own `--no-db` is present for the usage line (S1.15, S1.70: `Usage: br --no-db <COMMAND>`) but is not counted as an occurrence, so `bn --no-db list` runs `list`. A second explicit `--no-db` at the top level is refused as the original refuses it.
+- Why: the port exists to stand in for `br --no-db`. A script that calls `br --no-db list` must keep working when `br` is replaced by the port; refusing the very flag that defines the port's mode would make the drop-in impossible.
+- Kill-switch: none. The strict reading has no user: nobody types `--no-db --no-db`.
+- Affected cases: none of the 344. No case passes `--no-db` at the top level, because the harness would capture it as `br --no-db --no-db …`; `usage_no_db_explicit_sub` (`count --no-db`, accepted by the original too) covers the command level.
+- Impact measured: 0 of 344 cases.
 - Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation (the words quoted under DISC-001); decided by the porting agent under that delegation

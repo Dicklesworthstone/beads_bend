@@ -1,0 +1,7 @@
+error: unrecognized subcommand 'wher'
+
+  tip: a similar subcommand exists: 'where'
+
+Usage: br [OPTIONS] <COMMAND>
+
+For more information, try '--help'.

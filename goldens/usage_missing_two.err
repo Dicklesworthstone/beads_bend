@@ -1,0 +1,7 @@
+error: the following required arguments were not provided:
+  <ISSUE>
+  <DEPENDS_ON>
+
+Usage: br dep add <ISSUE> <DEPENDS_ON>
+
+For more information, try '--help'.

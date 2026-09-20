@@ -1,0 +1,4 @@
+error: invalid value 'sideways' for '--direction <DIRECTION>'
+  [possible values: down, up, both]
+
+For more information, try '--help'.

@@ -1,0 +1,6 @@
+error: the following required arguments were not provided:
+  <ID>
+
+Usage: br comments add <ID> [TEXT]...
+
+For more information, try '--help'.

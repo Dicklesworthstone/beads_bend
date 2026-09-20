@@ -270,7 +270,7 @@ beads_rust's own AGENTS.md says it does not care about backwards compatibility. 
 - A DISC is approved by someone who did not implement it. The DISC approver is the repository owner (PLAN §7).
 - Goldens are re-captured for an accepted DISC only through the canonicalizing wrapper the entry names, with `--disc DISC-nnn`.
 - `ACCEPTED`, `REVERTED` and `RESOLVED` entries keep their historical text and original evidence.
-- DISC-001 through DISC-005 are all `OPEN` with `Approver: pending (repository owner)` as of 2026-09-20. An OPEN DISC blocks convergence (`scripts/converge.sh`).
+- DISC-001 through DISC-007 are `ACCEPTED` by the owner's delegation of 2026-09-20 (their words are quoted in each entry). A new DISC starts `OPEN`, and an OPEN DISC blocks convergence (`scripts/converge.sh`).
 
 Inside the port's own code the beads_rust rule still holds: no compatibility shims, no wrapper defs for superseded defs. Fix the def.
 
@@ -299,7 +299,7 @@ Only `All terms check.` is green. Any longer verdict (`All terms check, but N de
 | law coverage | `./scripts/law-coverage.sh` (every law proved, no ghost citation) |
 | convergence | `./scripts/converge.sh docs/PORT_STATE.md` (computed from the rounds table and the OQ/DISC registers beside it) |
 | the state file | `./scripts/state-check.sh docs/PORT_STATE.md` before ending a session (no placeholders, gate lines pasted, one executable next action) |
-| the words | `./scripts/claims-lint.sh docs/*.md perf/*.md README.md` before committing any claim. `claims-lint.sh` fails on a missing requested file and no `README.md` exists as of 2026-09-20: until one does, pass `docs/*.md perf/*.md` |
+| the words | `./scripts/claims-lint.sh docs/*.md perf/*.md README.md` before committing any claim. |
 
 If a gate is red, **carefully understand and resolve each issue**. A red gate is not negotiated. Convergence is computed, not felt: this port is tier **T3** (PLAN §2): at least 10 find-fix rounds with the last two clean, at least one non-author round, every OQ resolved or excluded, no OPEN DISC.
 
@@ -337,7 +337,7 @@ The corpus must cover:
 | `edge_` | boundary inputs: the `precision` fixture (OQ-001, OQ-002), the maximum title |
 | `scn_` | multi-step scenarios from `goldens/scenarios/` |
 
-The case count is `grep -vc '^#' goldens/cases.tsv` and must equal the count in the `goldens/MANIFEST.txt` header (235 on 2026-09-20).
+The case count is `grep -vc '^#' goldens/cases.tsv` and must equal the count in the `goldens/MANIFEST.txt` header (344 on 2026-09-20).
 
 ### Test Fixtures
 
@@ -396,7 +396,7 @@ Law: <fast_is_spec> — <verdict line> (unsafe <k> = <a> @unsafe + <b> instances
 Not claimed: <refused captures with predicates>
 ```
 
-Anything that does not fit these shapes is not said. **As of 2026-09-20 neither shape can be filled: no Bend implementation of `br` exists (see "beads_bend — This Project"). Never say the port is working, complete, fast or verified.**
+Anything that does not fit these shapes is not said. **As of 2026-09-20 neither shape can be filled: the implementation is early and no command runs (see "beads_bend — This Project"). Never say the port is working, complete, fast or verified.**
 
 ---
 
@@ -434,11 +434,12 @@ bend2.dev is unofficial. `bend guide`, `bend base`, the repository and the paper
 
 | fact | how to check |
 |---|---|
-| **No Bend implementation of `br` exists.** `port/main.bend`, `port/LAWS.bend` and `port/PROOF.bend` hold the scaffold's identity placeholder only (`core_spec`, `core_fast`, law `fast_is_spec`). The lanes gate reads FAIL for that reason | read the three files; `docs/PORT_STATE.md` "Last gate outputs" |
-| Phase 1 (spec) is in progress. Phase −1 (fit screen) and Phase 0 (truth pack: 235 goldens, floor STABLE) are done. Phases 2 through 6 have not started | `docs/PORT_STATE.md`; `git log --oneline` |
-| The spec `docs/EXISTING_BEADS_RUST_STRUCTURE.md` is still the scaffold template; extractor parts are landing in `docs/spec-parts/` | read the spec; `ls docs/spec-parts` |
-| `docs/PIN.toml`, `docs/FEATURE_PARITY.md` (board verdict MALFORMED), `docs/NUMERIC_PLAN.md`, `docs/PROPOSED_ARCHITECTURE.md` and `port.env` still hold scaffold placeholders. `port.env` names `ORIGINAL="python3 legacy/ORIGINAL.py"` and `SWITCH=X_SPEC=1`; neither is this port's value, so `scripts/port.sh` is not usable yet | `rg -n '<' docs/PIN.toml`; read `port.env` |
-| DISC-001 through DISC-005 are OPEN, approver pending | `docs/DISCREPANCIES.md` |
+| **The Bend implementation is early and not usable.** `port/main.bend` is the IO shell; `port/core/` holds the pure core: UTF-8, SHA-256, the id hash, instants, the JSON line lexer and decoder, the 44-member record, the store loader, failures, the argument parser (`surface.bend` tables, `cli.bend` algorithm, `help.bend` generated texts) and the dispatcher `run.bend`. The argument parser and the load refusals are what passes; **no command runs yet** | `ls port/core`; `docs/PORT_STATE.md` "Last gate outputs" |
+| Phases −1, 0, 1 (first pass) and 2 are done; Phase 3 is in progress. The corpus is `grep -vc '^#' goldens/cases.tsv` cases | `docs/PORT_STATE.md`; `git log --oneline` |
+| The spec is merged from `docs/spec-parts/` by `scripts/merge-spec-parts.py`: edit a part, then merge; never edit `docs/EXISTING_BEADS_RUST_STRUCTURE.md` directly | `python3 -B scripts/merge-spec-parts.py --check` |
+| `port/core/help.bend` is generated from the spec appendix `docs/spec-parts/HELP_TEXTS.md` (clause S1.89) by `scripts/gen-help-bend.py`; `port/core/model.bend` and `port/core/decode.bend` were generated once and are now the source | `python3 -B scripts/gen-help-bend.py --check` |
+| DISC-001 through DISC-007 are ACCEPTED by the owner's delegation (quoted in each entry); they can revoke any of them | `docs/DISCREPANCIES.md` |
+| The inner loop is `scripts/quick-lanes.sh <out-dir>` (c-1t and js, minutes); the gate is `scripts/lanes.sh` (four lanes; the interpreter lane alone is about an hour because it type-checks the program per case) | `scripts/quick-lanes.sh --help` |
 | The gpu lane is MISSING: no CUDA device on this host | PLAN §2b |
 | No `.beads/` directory and no `.github/workflows/`; `README.md`, `LICENSE` and the remote `origin` exist | `ls -a`; `git remote -v` |
 
@@ -455,7 +456,7 @@ bend2.dev is unofficial. `bend guide`, `bend base`, the repository and the paper
 | 5 performance | fast twins, `perf/` ledgers, incumbent numbers | every kept lever law-bound, cv-gated, ledgered |
 | 6 certify | `docs/PORT_REPORT.md`, evidence bundle | claims taxonomy complete; SHIP/HOLD/BLOCK |
 
-### Architecture (the intended shape; `docs/PROPOSED_ARCHITECTURE.md` is unfilled, and nothing below is implemented)
+### Architecture (`docs/PROPOSED_ARCHITECTURE.md` is the authority; of the core below, decode, id generation, the argument parser and errors exist so far)
 
 ```
 argv, env (BEADS_DIR, BEADS_BEND_NOW), .beads/issues.jsonl, .beads/last-touched

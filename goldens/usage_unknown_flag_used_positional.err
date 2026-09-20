@@ -1,0 +1,7 @@
+error: unexpected argument '--jsno' found
+
+  tip: a similar argument exists: '--json'
+
+Usage: br show --json <IDS>...
+
+For more information, try '--help'.

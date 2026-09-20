@@ -18,6 +18,7 @@ import ./core/id.bend as Id
 import ./core/time.bend as Time
 import ./core/model.bend as Model
 import ./core/store.bend as Store
+import ./core/cli.bend as Cli
 
 # S0.1 the fast twin equals the spec twin, for every input. One `for` per
 # line, the goal last; `+x` when the proof needs x more than once.
@@ -141,3 +142,38 @@ law store_refuses_malformed:
 # computed values, [inference] until OQ-006 captures them
 law id_length_table:
   {[Id.length_for(0), Id.length_for(8), Id.length_for(163), Id.length_for(164), Id.length_for(983), Id.length_for(984), Id.length_for(5898), Id.length_for(5899), Id.length_for(35389), Id.length_for(35390), Id.length_for(212339), Id.length_for(212340)] == [3n, 3n, 3n, 4n, 4n, 5n, 5n, 6n, 6n, 7n, 7n, 8n] : List<&2, Nat>}
+
+# S1.21 closed golden: goldens/usage_limit_bad.err — the parser's own refusal of a value, held and then fired at the end of argv
+law cli_limit_bad:
+  {Cli.parse(["list", "--limit", "x"]) == Cli.Refused{"error: invalid value 'x' for '--limit <LIMIT>': invalid digit found in string\n\nFor more information, try '--help'.\n"} : Cli.Parsed}
+
+# S1.22 closed golden: goldens/usage_u8_range.err — read as a signed 64-bit integer, then held to 0..=255
+law cli_u8_range:
+  {Cli.parse(["list", "--priority-min", "300"]) == Cli.Refused{"error: invalid value '300' for '--priority-min <PRIORITY_MIN>': 300 is not in 0..=255\n\nFor more information, try '--help'.\n"} : Cli.Parsed}
+
+# S1.81 closed golden: goldens/usage_similar_flag_in_cmd.err — the most similar long name is suggested and named on the usage line
+law cli_similar_flag:
+  {Cli.parse(["list", "--jsno"]) == Cli.Refused{"error: unexpected argument '--jsno' found\n\n  tip: a similar argument exists: '--json'\n\nUsage: br list --json\n\nFor more information, try '--help'.\n"} : Cli.Parsed}
+
+# S1.82 closed golden: goldens/usage_similar_subcommand.err — every similar subcommand, in ascending similarity
+law cli_similar_subcommand:
+  {Cli.parse(["lst"]) == Cli.Refused{"error: unrecognized subcommand 'lst'\n\n  tip: some similar subcommands exist: 'lint', 'list'\n\nUsage: br [OPTIONS] <COMMAND>\n\nFor more information, try '--help'.\n"} : Cli.Parsed}
+
+# S1.74 closed golden: goldens/usage_conflict_title.err — the first present argument that a present partner excludes
+law cli_conflict_title:
+  {Cli.parse(["create", "A", "--title", "B"]) == Cli.Refused{"error: the argument '[TITLE]' cannot be used with '--title <TITLE_FLAG>'\n\nUsage: br create <TITLE>\n\nFor more information, try '--help'.\n"} : Cli.Parsed}
+
+# S1.14 S1.69 closed facts: a short cluster whose last letter takes the next word; `--` ends option parsing;
+# a global before the command is an occurrence of the command
+law cli_commands:
+  {[Cli.parse(["list", "-rs", "open"]), Cli.parse(["show", "--", "--json"]), Cli.parse(["--json", "list", "-p1"])] == [Cli.Command{"list", [Cli.Occ{"reverse", ""}, Cli.Occ{"status", "open"}], []}, Cli.Command{"show", [], ["--json"]}, Cli.Command{"list", [Cli.Occ{"json", ""}, Cli.Occ{"priority", "1"}], []}] : List<&2, Cli.Parsed>}
+
+# S1.25 S1.29 S1.89 closed facts (goldens usage_help_subcommand_list, usage_help_before_bad, usage_help_short_list,
+# usage_dep_alone): `help list` asks for `list`'s long help; a help option stops the parse where it stands; `-h` is
+# the short form; a bare group asks for its own long help
+law cli_help_forms:
+  {[Cli.parse(["help", "list"]), Cli.parse(["list", "--help", "--zzqq"]), Cli.parse(["list", "-h"]), Cli.parse(["dep"])] == [Cli.Helped{"list", True{}}, Cli.Helped{"list", True{}}, Cli.Helped{"list", False{}}, Cli.GroupHelp{"dep"}] : List<&2, Cli.Parsed>}
+
+# S1.79 closed golden: goldens/usage_enum_similar_value.err — a refused word similar to a listed value earns a tip
+law cli_similar_value:
+  {Cli.parse(["count", "--by", "statu"]) == Cli.Refused{"error: invalid value 'statu' for '--by <BY>'\n  [possible values: status, priority, type, assignee, label]\n\n  tip: a similar value exists: 'status'\n\nFor more information, try '--help'.\n"} : Cli.Parsed}

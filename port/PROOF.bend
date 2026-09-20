@@ -10,6 +10,7 @@ import ./core/id.bend as Id
 import ./core/time.bend as Time
 import ./core/model.bend as Model
 import ./core/store.bend as Store
+import ./core/cli.bend as Cli
 import ./LAWS.bend as Laws
 
 # S0.1 both twins are the identity; the checker sees it by computation
@@ -128,3 +129,35 @@ def Laws.store_refuses_malformed():
 def Laws.id_length_table():
   {==}
 
+
+# S1.21 the checker parses the argv and compares the refusal with the captured bytes
+def Laws.cli_limit_bad():
+  {==}
+
+# S1.22 the checker reads the digits, compares magnitudes and renders the range message
+def Laws.cli_u8_range():
+  {==}
+
+# S1.81 the checker scores every long name of `list` against `jsno` and keeps the best
+def Laws.cli_similar_flag():
+  {==}
+
+# S1.82 the checker scores all 52 top-level words against `lst` and sorts the close ones
+def Laws.cli_similar_subcommand():
+  {==}
+
+# S1.74 the checker finds the first excluded pair in first-seen order
+def Laws.cli_conflict_title():
+  {==}
+
+# S1.14 S1.69 the checker parses three accepted command lines
+def Laws.cli_commands():
+  {==}
+
+# S1.25 S1.29 S1.89 the checker follows the help forms
+def Laws.cli_help_forms():
+  {==}
+
+# S1.79 the checker scores the five listed values against `statu`
+def Laws.cli_similar_value():
+  {==}

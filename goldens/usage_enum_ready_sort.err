@@ -1,0 +1,4 @@
+error: invalid value 'bogus' for '--sort <SORT>'
+  [possible values: hybrid, priority, oldest]
+
+For more information, try '--help'.
