@@ -1,0 +1,5 @@
+error: the argument '--json' cannot be used multiple times
+
+Usage: br list [OPTIONS]
+
+For more information, try '--help'.

@@ -1,0 +1,16 @@
+{
+  "error": {
+    "code": "AMBIGUOUS_ID",
+    "message": "Ambiguous ID 'm': matches [\"proj-7vm\", \"proj-mkh\", \"proj-mta\"]",
+    "hint": "Provide more characters of the ID",
+    "retryable": true,
+    "context": {
+      "partial_id": "m",
+      "matches": [
+        "proj-7vm",
+        "proj-mkh",
+        "proj-mta"
+      ]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+proj-tkn
+--- .beads/issues.jsonl ---
+{"id":"proj-tkn","title":"Quick urgent","status":"open","priority":0,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":".","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-tkn

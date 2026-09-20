@@ -1,0 +1,6 @@
+error: 'br' requires a subcommand but one was not provided
+  [subcommands: agents, audit, blocked, capabilities, capacity, changelog, close, comments, comment, completions, completion, config, coordination, coord, count, create, defer, delete, dep, doctor, epic, gate, graph, history, info, init, label, lint, list, orphans, q, query, ready, reopen, robot-docs, robot_docs, scheduler, schedule, schema, search, show, stale, stats, status, sync, undefer, update, vcs-status, upgrade, version, where, help]
+
+Usage: br [OPTIONS] <COMMAND>
+
+For more information, try '--help'.

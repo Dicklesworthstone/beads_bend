@@ -1,0 +1,1 @@
+[{"issue_id":"proj-170","depends_on_id":"proj-mta","type":"blocks","title":"Set up database schema","status":"open","priority":1},{"issue_id":"proj-170","depends_on_id":"proj-uly","type":"parent-child","title":"Auth epic","status":"open","priority":2}]

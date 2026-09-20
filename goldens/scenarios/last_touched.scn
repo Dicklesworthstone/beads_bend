@@ -1,0 +1,11 @@
+# last_touched: commands without an id act on the last touched issue
+@fx=empty
+@time=2026-02-02 09:00:00
+["create","Touch me"]
+@time=2026-02-02 09:01:00
+["update","--status","in_progress"]
+@time=2026-02-02 09:02:00
+["close","--reason","Finished"]
+@time=2026-02-02 09:03:00
+["reopen"]
+["list","--json"]

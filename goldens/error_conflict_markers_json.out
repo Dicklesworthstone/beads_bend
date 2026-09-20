@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: Merge conflict markers detected in /mnt/proj/.beads/issues.jsonl.\n/mnt/proj/.beads/issues.jsonl:2 Start (HEAD)\n/mnt/proj/.beads/issues.jsonl:4 Separator\n/mnt/proj/.beads/issues.jsonl:6 End (branch)\nResolve conflicts before importing.",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

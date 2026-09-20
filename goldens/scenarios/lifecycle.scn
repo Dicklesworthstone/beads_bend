@@ -1,0 +1,16 @@
+# lifecycle: claim, close, and watch the dependency graph unblock (S: ready/blocked, close, epic)
+@fx=basic
+@time=2026-02-01 09:00:00
+["ready","--json"]
+["update","proj-mta","--claim"]
+@time=2026-02-01 09:30:00
+["close","proj-mta","--reason","Schema done"]
+["ready"]
+["blocked"]
+@time=2026-02-01 10:00:00
+["close","proj-170","--reason","Auth done"]
+["epic","status"]
+["ready","--json"]
+@time=2026-02-01 10:30:00
+["close","proj-uly"]
+["stats"]

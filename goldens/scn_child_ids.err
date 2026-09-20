@@ -1,0 +1,6 @@
+$ ["create", "Child A", "--parent", "proj-uly", "--json"]
+$ ["create", "Child B", "--parent", "proj-uly"]
+$ ["create", "Grandchild", "--parent", "proj-uly.1", "--json"]
+$ ["dep", "tree", "proj-uly"]
+$ ["epic", "status", "--json"]
+$ ["ready"]

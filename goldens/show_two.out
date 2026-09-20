@@ -1,0 +1,16 @@
+○ proj-mta · Set up database schema   [● P1 · OPEN]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-01
+Labels: backend, db
+
+Create the initial tables.
+
+Dependents:
+  <- proj-170 (blocks) - Implement user auth
+
+○ proj-5u2 · Write API docs   [● P3 · OPEN]
+Owner: tester · Type: docs
+Created: 2026-01-01 · Updated: 2026-01-01
+
+Dependencies:
+  -> proj-170 (related) - Implement user auth

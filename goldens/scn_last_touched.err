@@ -1,0 +1,5 @@
+$ ["create", "Touch me"]
+$ ["update", "--status", "in_progress"]
+$ ["close", "--reason", "Finished"]
+$ ["reopen"]
+$ ["list", "--json"]

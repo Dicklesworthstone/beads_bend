@@ -1,0 +1,11 @@
+# child_ids: hierarchical ids <parent>.<n> and their depth
+@fx=basic
+@time=2026-02-04 09:00:00
+["create","Child A","--parent","proj-uly","--json"]
+@time=2026-02-04 09:00:01
+["create","Child B","--parent","proj-uly"]
+@time=2026-02-04 09:00:02
+["create","Grandchild","--parent","proj-uly.1","--json"]
+["dep","tree","proj-uly"]
+["epic","status","--json"]
+["ready"]

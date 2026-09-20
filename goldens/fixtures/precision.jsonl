@@ -1,0 +1,8 @@
+{"id":"proj-aaa","title":"whole second","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:05Z","updated_at":"2026-01-01T10:00:05Z","compaction_level":0}
+{"id":"proj-aab","title":"millis","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:05.100Z","updated_at":"2026-01-01T10:00:05.100Z"}
+{"id":"proj-aac","title":"nanos","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:05.000000001Z","updated_at":"2026-01-01T10:00:05.000000001Z"}
+{"id":"proj-aad","title":"one tenth short form","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:05.1Z","updated_at":"2026-01-01T10:00:05.1Z"}
+{"id":"proj-aae","title":"offset zone","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T12:00:04+02:00","updated_at":"2026-01-01T12:00:04+02:00"}
+{"id":"proj-aaf","title":"empty strings kept","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:06Z","updated_at":"2026-01-01T10:00:06Z","description":"","assignee":"","compacted_at_commit":"","unknown_field":"is it kept?","labels":["zeta","alpha","alpha"]}
+{"id":"proj-aag","title":"UPPER case title","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:07Z","updated_at":"2026-01-01T10:00:07Z"}
+{"id":"proj-aah","title":"apple lower title","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:08Z","updated_at":"2026-01-01T10:00:08Z"}

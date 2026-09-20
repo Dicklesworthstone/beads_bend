@@ -1,0 +1,3 @@
+Dependencies of proj-170 (2):
+  -> proj-mta (blocks): Set up database schema [P1] [open]
+  -> proj-uly (parent-child): Auth epic [P2] [open]

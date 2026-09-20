@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "NOT_INITIALIZED",
+    "message": "Beads not initialized: run 'br init' first",
+    "hint": "Run: br init",
+    "retryable": false,
+    "context": null
+  }
+}

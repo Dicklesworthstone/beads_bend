@@ -1,0 +1,12 @@
+○ proj-170 · Implement user auth   [● P1 · OPEN]
+Owner: tester · Type: feature
+Created: 2026-01-01 · Updated: 2026-01-01
+Assignee: alice
+Labels: auth, backend
+
+Dependencies:
+  -> proj-mta (blocks) - Set up database schema
+  -> proj-uly (parent-child) - Auth epic
+
+Dependents:
+  <- proj-5u2 (related) - Write API docs

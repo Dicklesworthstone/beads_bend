@@ -11,6 +11,7 @@ import calendar
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -23,6 +24,7 @@ STATE_FILES = ("issues.jsonl", "last-touched")
 FAKETIME_LIB = "toolchain/faketime/root/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1"
 PASSED_ENV = ("PATH", "HOME", "USER", "TZ", "NO_COLOR", "RUST_LOG", "BEND_NO_TELEMETRY", "BEND_BIN")
 STEP_TIMEOUT = 120  # seconds per step; a fully frozen clock once hung `br` forever
+AMBIGUOUS_INLINE = re.compile(rb"(Ambiguous ID '[^']*': matches \[)([^\]]*)(\])")
 
 
 def die(message):
@@ -82,11 +84,50 @@ def run(inner, argv, stamp, oracle, root):
     # harness, argv is a list (no shell), the environment is cleared and the
     # run is time-bounded. UBS python.taint.command flags it by design.
     try:
-        return subprocess.run(inner + argv, cwd=WS, timeout=STEP_TIMEOUT, check=False).returncode
+        done = subprocess.run(inner + argv, cwd=WS, timeout=STEP_TIMEOUT, check=False, capture_output=True)
     except subprocess.TimeoutExpired:
         die(f"step exceeded {STEP_TIMEOUT}s: {argv}")
     except OSError as exc:
         die(f"cannot run {inner[0]}: {exc}")
+    sys.stdout.buffer.write(canon(done.stdout))
+    sys.stdout.buffer.flush()
+    sys.stderr.buffer.write(canon(done.stderr))
+    sys.stderr.buffer.flush()
+    return done.returncode
+
+
+def canon(data):
+    """DISC-005 (OrderLeak), and nothing else: the original lists the
+    candidates of an ambiguous partial id in hash-random order (it differs
+    between two runs of one command). Sort those lists by byte order, in the
+    inline message and in the pretty-printed `context.matches` block. Applied
+    identically to the original and to the port; every other byte passes
+    through untouched, and the exit code is never canonicalized."""
+    if b"Ambiguous ID '" not in data:
+        return data
+
+    def inline(match):
+        return match.group(1) + b", ".join(sorted(match.group(2).split(b", "))) + match.group(3)
+
+    data = AMBIGUOUS_INLINE.sub(inline, data)
+    if b'"AMBIGUOUS_ID"' not in data:
+        return data
+    lines, out, i = data.split(b"\n"), [], 0
+    while i < len(lines):
+        out.append(lines[i])
+        if lines[i].strip() == b'"matches": [':
+            j = i + 1
+            while j < len(lines) and lines[j].strip() not in (b"]", b"],"):
+                j += 1
+            block = lines[i + 1:j]
+            if j < len(lines) and block:
+                indent = block[0][:len(block[0]) - len(block[0].lstrip())]
+                items = sorted(line.strip().rstrip(b",") for line in block)
+                out.extend(indent + item + (b"," if k < len(items) - 1 else b"") for k, item in enumerate(items))
+                i = j
+                continue
+        i += 1
+    return b"\n".join(out)
 
 
 def dump_changes(before):

@@ -1,0 +1,35 @@
+# build_basic: the scenario that PRODUCES goldens/fixtures/basic.jsonl.
+# The fixture is the original's own output, never hand-typed: run this through
+# the oracle and save the final `--- .beads/issues.jsonl ---` dump
+# (scripts/make-fixture.sh basic build_basic). Ids are deterministic because
+# every step runs at a pinned instant.
+@fx=empty
+@time=2026-01-01 10:00:00
+["create","Set up database schema","-t","task","-p","1","-l","backend,db","-d","Create the initial tables."]
+@time=2026-01-01 10:00:01
+["create","Implement user auth","-t","feature","-p","1","-a","alice","-l","backend,auth"]
+@time=2026-01-01 10:00:02
+["create","Fix login timeout","-t","bug","-p","0","-a","bob"]
+@time=2026-01-01 10:00:03
+["create","Write API docs","-t","docs","-p","3"]
+@time=2026-01-01 10:00:04
+["create","Auth epic","-t","epic","-p","2"]
+@time=2026-01-01 10:00:05
+["create","Refactor config loader","-t","chore","-p","4"]
+@time=2026-01-01 10:00:06
+["create","Ünïcödé title — “quotes” & <tags> \\ backslash","-t","task","-p","2","-d","Line one\nLine two\ttabbed"]
+@time=2026-01-01 10:00:07
+["create","Already finished work","-t","task","-p","2"]
+# relationships and lifecycle (ids are the ones the creates above produce)
+@time=2026-01-01 11:00:00
+["dep","add","proj-170","proj-mta"]
+["dep","add","proj-170","proj-uly","--type","parent-child"]
+["dep","add","proj-5u2","proj-170","--type","related"]
+@time=2026-01-01 12:00:00
+["update","proj-ptp","--status","in_progress"]
+@time=2026-01-01 12:30:00
+["comments","add","proj-ptp","Reproduced on staging."]
+@time=2026-01-01 13:00:00
+["close","proj-mkh","--reason","Done before the fixture"]
+@time=2026-01-01 14:00:00
+["defer","proj-7vm","--until","2027-06-01"]

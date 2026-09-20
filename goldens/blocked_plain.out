@@ -1,0 +1,7 @@
+
+🚫 Blocked issues (2):
+
+[● P1] proj-170: Implement user auth
+  Blocked by 1 open dependencies: [proj-mta]
+[● P2] proj-uly: Auth epic
+  Blocked by 1 open dependencies: [proj-170]

@@ -1,0 +1,6 @@
+error: the following required arguments were not provided:
+  <QUERY>
+
+Usage: br search <QUERY>
+
+For more information, try '--help'.

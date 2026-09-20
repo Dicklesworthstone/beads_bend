@@ -1,0 +1,7 @@
+error: unexpected argument '--no-such-flag' found
+
+  tip: a similar argument exists: '--no-auto-flush'
+
+Usage: br --no-db --no-auto-flush <COMMAND>
+
+For more information, try '--help'.

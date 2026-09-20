@@ -1,0 +1,7 @@
+# dup_title: identical title, creator and instant: the id nonce ladder must separate them
+@fx=empty
+@time=2026-02-03 09:00:00
+["create","Same title"]
+["create","Same title"]
+["create","Same title","--json"]
+["list","--json"]

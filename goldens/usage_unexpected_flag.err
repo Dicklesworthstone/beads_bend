@@ -1,0 +1,7 @@
+error: unexpected argument '--priority' found
+
+  tip: to pass '--priority' as a value, use '-- --priority'
+
+Usage: br show [OPTIONS] [IDS]...
+
+For more information, try '--help'.
