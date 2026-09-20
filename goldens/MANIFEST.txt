@@ -1,10 +1,10 @@
-captured: 2026-09-20T17:13:06.029638+00:00
+captured: 2026-09-20T22:52:05.592181+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (344 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"b66bd8bedf6c02caa37752d5c610e689f7194b13fd0d1d63ddf5a4ba61adf1c7"},"case_files":[],"stdin_files":[]}
-recapture: repin: 25 new cases resolving OQ-104..OQ-113: enumerated formats, similar value, tie, group with options, exclusion order, help forms, integer edges, hyphen values
+cases: goldens/cases.tsv (352 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"a2b64a5e93990b040892bc37313725257e1386daa7981d7b5b9b28cd304ba2aa"},"case_files":[],"stdin_files":[]}
+recapture: repin: harness: ws_inner.py STEP_TIMEOUT 120s -> 600s so the interpreter lane (2 min 28 s of type-checking per case at this book size) is runnable; the oracle's steps are under a second and no golden changes
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -603,12 +603,18 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_dep_add_missing.out
   c9b2cf18ca3d082bcdebd0a3743ff84a7418e6d4962cc810a21041d98f33fac7  error_dep_add_missing.err
   1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_dep_add_missing.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_dep_add_second_parent.out
+  548158121e6c7f1a852d3a7ab06a1cb130d2d510dc5ef617138b3db38d4f0918  error_dep_add_second_parent.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_dep_add_second_parent.exit
   ce2d179ce0c15d6ea47e8f85798a09a08c0a700107b0f71cf3423f1df8c19f28  dep_add_external.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_add_external.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_add_external.exit
   551f9e3c3cee895531b7e866bcb755a9467d601cd91322180b8416811023469a  dep_remove_basic.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_remove_basic.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_remove_basic.exit
+  09b7f27eff7da27386924337f4110c4fb59126cab901900bb4a06ab4293c07b1  dep_remove_typed.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_remove_typed.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_remove_typed.exit
   2bf28416caff695d03dcf133c7a67ca1456d692ff093d208e80d58b36801bf7e  dep_remove_absent.out
   576e190e0af267b60f2e052d93be833edd87548a234e888d33544c889cbac279  dep_remove_absent.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_remove_absent.exit
@@ -633,6 +639,18 @@ sha256:
   25c771f325135874145148c5dff8f513cdaf5d2cd68dfaddc4c5be353482c7a3  label_rename.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_rename.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_rename.exit
+  7770e0bc4249c1a851c33e4dfbc712df4e90408c60292cca37bfd86152967bd2  label_rename_absent.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_rename_absent.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_rename_absent.exit
+  89c44ba946792091d4a332d82b5569827e6c3854d54a07681f562ec58478f242  label_rename_same.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_rename_same.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_rename_same.exit
+  5ef5f42b49031bffab401f50d5fe9aa94969ce48c189ce0b52f0f0b67f2ada59  label_rename_merge.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_rename_merge.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_rename_merge.exit
+  cc94d7101fa700db8f50d08598a417f86ac74389ba6d026118327e87dcd6f8eb  label_add_flag_two.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_add_flag_two.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_add_flag_two.exit
   e941e9659942e1900b7dcd7b46d2b688b8a57aced9c12b33fea1f43cf9edc576  comments_add.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  comments_add.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  comments_add.exit
@@ -645,12 +663,18 @@ sha256:
   44341ecb2e2df049958d4c830399764c809f4608ce49e6d14980eae676cfd5f9  comments_add_second.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  comments_add_second.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  comments_add_second.exit
+  9d35ec16b0438375d15d8f6e4cb69ccdc1fe485ce73b0eaf05fb0a28bde720f7  comments_add_words.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  comments_add_words.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  comments_add_words.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_comments_add_empty.out
   f018bcea64434f8202f93c623ee24c23b8d174d256adb2063d88c184a5a1da60  error_comments_add_empty.err
   7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_comments_add_empty.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_comments_add_missing.out
   c9b2cf18ca3d082bcdebd0a3743ff84a7418e6d4962cc810a21041d98f33fac7  error_comments_add_missing.err
   1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_comments_add_missing.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_comments_add_no_text.out
+  f635e7f5bed4ec398c5c207be6fd4b158ccf30313bf5757a863ed2f435748bd7  error_comments_add_no_text.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_comments_add_no_text.exit
   90136a34eb35b54deb87e92fa0052ff0f1b8044bc4780da81636346af337d5e8  actor_flag_create.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  actor_flag_create.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  actor_flag_create.exit
@@ -1005,7 +1029,7 @@ sha256:
   06e9d52c1720fca412803e3b07c4b228ff113e303f4c7ab94665319d832bbfb7  usage_no_db_explicit_sub.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_no_db_explicit_sub.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  usage_no_db_explicit_sub.exit
-  6f313dc8733897ef2fa8ebb0a5f4d056b0edd601d4ab431a97721848f655cd81  usage_version_flag.out
+  d3a07eec817c050e91c51f8991a0c6d9fa2fd38b62cfa22c3713ba2c09d8ec86  usage_version_flag.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_version_flag.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  usage_version_flag.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_help_after_bad.out
@@ -1020,10 +1044,10 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_ambiguous.out
   0706249286c357e68c0ca59d3f4a065887940f686c8ea04c8c67827c40beb8db  error_update_ambiguous.err
   1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_update_ambiguous.exit
-  45490520878455c8d5bfc43218f91b2c3a72d8d8c467539c24b40dbf34fe614a  version_plain.out
+  ffa536e1f5c969a6ca2eeb1855bd7b3515f0ede6a043ed285209194738444229  version_plain.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  version_plain.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  version_plain.exit
-  816a9e6fe76f988118acea4c884fbcb752f9d111810bb6788dafec9aa6793885  version_json.out
+  876edda02b302af89d1e7a243ba1de3b2af29616f472ed38a92aebf064acdf0b  version_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  version_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  version_json.exit
   d482a6cbf1e9bbae8098fe80a9e7b4f13554082d025dd797431b74e2befbca35  scn_lifecycle.out

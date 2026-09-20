@@ -3,8 +3,10 @@
 # live keys under its own order (the blocker count is a sort key nowhere else);
 # `ready` lists the open issues outside it under one of three sort policies;
 # `stats` counts. Not here yet: `blocked --detailed`, `ready --parent` /
-# `--recursive` / `--epic`, and an average lead time that is not a whole
-# number of tenths (OQ-078). Nothing here consults the original.
+# `--recursive` / `--epic`, and a mean of whole-hour lead times that is not
+# itself a whole number of tenths, or whose days figure lands exactly on a
+# half of a tenth that binary64 does not hold exactly (OQ-078).
+# Nothing here consults the original.
 import Base
 import ./time.bend as Time
 import ./model.bend as Model
@@ -301,18 +303,43 @@ type Lead is Data:
 def tenths_text(+q: U32) -> String:
   U32.show((q / 10 : U32)) ++ "." ++ U32.show((q % 10 : U32))
 
+# S5.170 (spec twin) where the remainder of a division sits against half of the divisor: 0 below, 1 exactly half,
+# 2 above
+def half_case(+twice: U32, +den: U32) -> U32:
+  Bool.pick(U32, U32.is_eq(twice, den), 1, Bool.pick(U32, (twice < den : U32), 0, 2))
+
+# S5.170 (spec twin) the rounded tenths, ties to even (Rust's `{:.1}`). A tie is decided only when the value is
+# one binary64 holds exactly, which for a half of a tenth means `.25` or `.75` (the tenths digit 2 or 7): any
+# other tie is a value binary64 rounds first, which the port cannot follow yet (OQ-078)
+def rounded_tenths(+q0: U32, side: U32, dyadic: Bool, even: Bool) -> Maybe<&2, U32>:
+  match side:
+    case 0:
+      Some{q0}
+    case 2:
+      Some{(q0 + 1 : U32)}
+    case _:
+      Bool.pick(Maybe<&2, U32>, dyadic, Bool.pick(Maybe<&2, U32>, even, Some{q0}, Some{(q0 + 1 : U32)}), None{})
+
+# S5.170 (spec twin) `num / den` in tenths as the original prints it. Away from a tie the exact ratio and the
+# binary64 the original rounds first fall on the same side of the boundary: the ratio's distance to the nearest
+# half-tenth is at least 1/(20·den), which for a store of fewer than 100000 closed issues is far above the
+# 1 ulp of a mean under 1000000 hours
+def tenths(+num: U32, +den: U32) -> Maybe<&2, U32>:
+  rounded_tenths((num / den : U32), half_case(((num % den : U32) * 2 : U32), den), U32.is_eq(((num / den : U32) % 5 : U32), 2), U32.is_eq(((num / den : U32) % 2 : U32), 0))
+
 # S5.170 (spec twin) the plain form: hours under 24, days from 24 hours on, one fractional digit each
-def lead_plain(+sum: U32, +count: U32, +hours_q: U32, in_hours: Bool, days_exact: Bool) -> Lead:
-  match in_hours days_exact:
+def lead_plain(+hours_q: U32, in_hours: Bool, days_q: Maybe<&2, U32>) -> Lead:
+  match in_hours days_q:
     case True{} _:
       LeadOk{tenths_text(hours_q) ++ " hours", tenths_text(hours_q)}
-    case False{} True{}:
-      LeadOk{tenths_text(((sum * 10 : U32) / (count * 24 : U32) : U32)) ++ " days", tenths_text(hours_q)}
-    case False{} False{}:
+    case False{} Some{+q}:
+      LeadOk{tenths_text(q) ++ " days", tenths_text(hours_q)}
+    case False{} None{}:
       LeadBad{}
 
-# S4.154 S5.54 S5.170 (spec twin) the average of the whole-hour lead times: exact when it is a whole number of
-# tenths (2 hours prints `2.0`), which every captured case is
+# S4.154 S5.54 S5.170 (spec twin) the average of the whole-hour lead times. The JSON number is printed as tenths,
+# so a mean of hours that is not a whole number of tenths is still refused (it would need binary64's shortest
+# round-trip form: OQ-078); the plain days figure is rounded to tenths
 def lead_of_sum(+sum: U32, +count: U32, none: Bool, exact: Bool) -> Lead:
   match none exact:
     case True{} _:
@@ -320,7 +347,7 @@ def lead_of_sum(+sum: U32, +count: U32, none: Bool, exact: Bool) -> Lead:
     case False{} False{}:
       LeadBad{}
     case False{} True{}:
-      lead_plain(sum, count, ((sum * 10 : U32) / count : U32), (sum < (count * 24 : U32) : U32), U32.is_eq(((sum * 10 : U32) % (count * 24 : U32) : U32), 0))
+      lead_plain(((sum * 10 : U32) / count : U32), (sum < (count * 24 : U32) : U32), tenths((sum * 10 : U32), (count * 24 : U32)))
 
 # S4.154 (spec twin) the average lead time of the figures; a count of zero is guarded before any division
 def lead(f: Figures) -> Lead:

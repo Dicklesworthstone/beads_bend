@@ -337,7 +337,7 @@ The corpus must cover:
 | `edge_` | boundary inputs: the `precision` fixture (OQ-001, OQ-002), the maximum title |
 | `scn_` | multi-step scenarios from `goldens/scenarios/` |
 
-The case count is `grep -vc '^#' goldens/cases.tsv` and must equal the count in the `goldens/MANIFEST.txt` header (344 on 2026-09-20).
+The case count is `grep -vc '^#' goldens/cases.tsv` and must equal the count in the `goldens/MANIFEST.txt` header (352 on 2026-09-20).
 
 ### Test Fixtures
 
@@ -396,7 +396,7 @@ Law: <fast_is_spec> — <verdict line> (unsafe <k> = <a> @unsafe + <b> instances
 Not claimed: <refused captures with predicates>
 ```
 
-Anything that does not fit these shapes is not said. **As of 2026-09-20 neither shape can be filled: the implementation is early and no command runs (see "beads_bend — This Project"). Never say the port is working, complete, fast or verified.**
+Anything that does not fit these shapes is not said. **As of 2026-09-20 neither shape can be filled: no find-fix round has run, convergence is not computed, and nothing has been measured. What may be said is the lane line the gates print — 352 of 352 cases on c-1t, c-8t and js, `All terms check.` with 50 laws — never that the port is complete, fast, certified or verified.**
 
 ---
 
@@ -434,12 +434,12 @@ bend2.dev is unofficial. `bend guide`, `bend base`, the repository and the paper
 
 | fact | how to check |
 |---|---|
-| **The Bend implementation is early and not usable.** `port/main.bend` is the IO shell; `port/core/` holds the pure core: UTF-8, SHA-256, the id hash, instants, the JSON line lexer and decoder, the 44-member record, the store loader, failures, the argument parser (`surface.bend` tables, `cli.bend` algorithm, `help.bend` generated texts) and the dispatcher `run.bend`. The argument parser and the load refusals are what passes; **no command runs yet** | `ls port/core`; `docs/PORT_STATE.md` "Last gate outputs" |
-| Phases −1, 0, 1 (first pass) and 2 are done; Phase 3 is in progress. The corpus is `grep -vc '^#' goldens/cases.tsv` cases | `docs/PORT_STATE.md`; `git log --oneline` |
+| **The Bend implementation answers every command the corpus exercises and writes the store, and is not certified.** `port/main.bend` is the IO shell (three custom effects: `Sys.exit`, `Sys.cwd`, `Sys.remove`); `port/core/` holds the pure core: UTF-8, SHA-256, the id hash, instants, the JSON line lexer and decoder, the 44-member record, the store loader and `Store.text`, failures, the argument parser (`surface.bend` tables, `cli.bend` algorithm, `help.bend` generated texts), the queries, the graph, the mutations (`create`, `update`, the status transitions, `edges`, `labels`, `remove`) and the dispatcher `run.bend`. **352 of 352 cases pass on c-1t, c-8t and js**; forms no case captures answer the port's own "not ported yet" failure instead of a guess | `ls port/core`; `docs/PORT_STATE.md` "Last gate outputs" |
+| Phases −1, 0, 1 (first pass) and 2 are done; Phase 3 is at its exit gate (the interpreter lane is the open item). The corpus is `grep -vc '^#' goldens/cases.tsv` cases | `docs/PORT_STATE.md`; `git log --oneline` |
 | The spec is merged from `docs/spec-parts/` by `scripts/merge-spec-parts.py`: edit a part, then merge; never edit `docs/EXISTING_BEADS_RUST_STRUCTURE.md` directly | `python3 -B scripts/merge-spec-parts.py --check` |
 | `port/core/help.bend` is generated from the spec appendix `docs/spec-parts/HELP_TEXTS.md` (clause S1.89) by `scripts/gen-help-bend.py`; `port/core/model.bend` and `port/core/decode.bend` were generated once and are now the source | `python3 -B scripts/gen-help-bend.py --check` |
 | DISC-001 through DISC-007 are ACCEPTED by the owner's delegation (quoted in each entry); they can revoke any of them | `docs/DISCREPANCIES.md` |
-| The inner loop is `scripts/quick-lanes.sh <out-dir>` (c-1t and js, minutes); the gate is `scripts/lanes.sh` (four lanes; the interpreter lane alone is about an hour because it type-checks the program per case) | `scripts/quick-lanes.sh --help` |
+| The inner loop is the JS lane (`bend main.bend -o bn.js`, about a minute, then `scripts/conform.sh … --lane js`); a C build now takes about 8 minutes and 19 GB of RAM and is OOM-killed when the machine is busy (exit 137 with no binary: check the file exists). The gate is `scripts/lanes.sh`, whose interpreter lane type-checks the program per case — 2 min 28 s per case at this size, about 14.5 hours for the corpus | `scripts/quick-lanes.sh --help`; `docs/PORT_STATE.md` |
 | The gpu lane is MISSING: no CUDA device on this host | PLAN §2b |
 | No `.beads/` directory and no `.github/workflows/`; `README.md`, `LICENSE` and the remote `origin` exist | `ls -a`; `git remote -v` |
 
@@ -456,7 +456,7 @@ bend2.dev is unofficial. `bend guide`, `bend base`, the repository and the paper
 | 5 performance | fast twins, `perf/` ledgers, incumbent numbers | every kept lever law-bound, cv-gated, ledgered |
 | 6 certify | `docs/PORT_REPORT.md`, evidence bundle | claims taxonomy complete; SHIP/HOLD/BLOCK |
 
-### Architecture (`docs/PROPOSED_ARCHITECTURE.md` is the authority; of the core below, decode, id generation, the argument parser and errors exist so far)
+### Architecture (`docs/PROPOSED_ARCHITECTURE.md` is the authority; every box below exists, except `epic close-eligible`, which has no captured case)
 
 ```
 argv, env (BEADS_DIR, BEADS_BEND_NOW), .beads/issues.jsonl, .beads/last-touched
@@ -498,7 +498,9 @@ beads_bend/
 │   └── BEADS_RUST_v0.6.0/         # Tag snapshot, Phase 1 extraction only
 ├── perf/                          # Experiment cards and ledgers (Phase 5)
 ├── port/
-│   ├── main.bend                  # Scaffold placeholder (core and shell split into separate files in Phase 3: PLAN §8)
+│   ├── main.bend                  # The IO shell: gathers the inputs, calls `Run.outcome` once, performs it
+│   ├── core/                     # The pure core, one module per area (PLAN §8: core and shell are separate files)
+│   ├── effs/                     # The custom effects' C and JS sides (`Sys.exit`, `Sys.cwd`, `Sys.remove`)
 │   ├── LAWS.bend                  # HUMAN-OWNED. Add, never weaken or delete
 │   ├── PROOF.bend                 # The agent's proofs
 │   └── probes/                    # Bend probes that settle runtime questions (clock: OQ-004, OQ-009)

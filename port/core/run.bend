@@ -20,6 +20,9 @@ import ./update.bend as Update
 import ./status.bend as Status
 import ./when.bend as When
 import ./blocked.bend as Blocked
+import ./edges.bend as Edges
+import ./labels.bend as Labels
+import ./remove.bend as Remove
 
 # S8.5 (data) one environment variable as the shell read it: its name and its value ("" when it is not set)
 type Var is Data:
@@ -701,6 +704,311 @@ def comments_list_cmd(+model: List<&2, Model.Issue>, words: List<&2, String>, pr
     case Con{word, rest}:
       viewed(Views.comments_list(Views.hit(model, word, prefix), json), json, quiet)
 
+# ---------------------------------------------------------------- dep add / dep remove (S4.350–S4.363)
+
+# S5.45 S5.107 (spec twin) a mutation that reports on stderr and still writes its files: `dep remove` with no such
+# edge. Quiet suppresses both streams and never the writes
+def warned(out: String, note: String, writes: List<&2, Write>, quiet: Bool) -> Outcome:
+  match quiet:
+    case True{}:
+      Outcome{"", "", 0, writes}
+    case False{}:
+      Outcome{out, note, 0, writes}
+
+# S4.360 S4.361 S5.45 (spec twin) what an edge command answered: the payload under `--json`, the plain line
+# otherwise, and the warning of a removal that found nothing (whose plain line is empty)
+def edged(d: Edges.Done, +dependent: String, +target: String, json: Bool, quiet: Bool) -> Outcome:
+  match d json:
+    case Edges.EdgeBad{f} mode:
+      failed(f, mode)
+    case Edges.EdgeOk{model, plain, entry, last, changed} True{}:
+      warned(entry, "", batch_changes(model, changed, last), quiet)
+    case Edges.EdgeOk{model, +plain, entry, last, changed} False{}:
+      warned(plain, Bool.pick(String, String.is_empty(plain), Edges.not_found_warning(dependent, target), ""), batch_changes(model, changed, last), quiet)
+
+# S4.353 (spec twin) is this endpoint a tombstone: the original refuses such an edge with words no case captures
+def is_tombstone(found: Maybe<&2, Model.Issue>) -> Bool:
+  match found:
+    case None{}:
+      False{}
+    case Some{i}:
+      String.eq(Model.status_of(i), "tombstone")
+
+# S4.350 S4.353 (spec twin) `dep add` once the dependent's record is in hand
+def dep_add_found(found: Maybe<&2, Model.Issue>, +model: List<&2, Model.Issue>, +dependent: String, +target: String, +kind: String, now: Time.Instant, actor: String, json: Bool, quiet: Bool) -> Outcome:
+  match found:
+    case None{}:
+      failed(Resolve.not_found(dependent), json)
+    case Some{i}:
+      edged(Edges.add_checked(model, i, dependent, target, kind, now, actor, String.eq(dependent, target), Edges.closes_cycle(model, dependent, target, kind)), dependent, target, json, quiet)
+
+# S4.352 S4.357 (spec twin) `dep add` once its `--type` is known: a type outside the eleven is refused; a
+# `parent-child` edge to an external target, and an endpoint that is a tombstone, are not ported
+def dep_add_typed(+model: List<&2, Model.Issue>, +dependent: String, +target: String, +word: String, now: Time.Instant, actor: String, +json: Bool, quiet: Bool, later: Bool) -> Outcome:
+  match later:
+    case True{}:
+      failed(unported(), json)
+    case False{}:
+      Bool.pick(Outcome, String.is_empty(Edges.canonical(word)), failed(Edges.bad_type(word), json), dep_add_found(Blocked.lookup(model, dependent), model, dependent, target, Edges.canonical(word), now, actor, json, quiet))
+
+# S4.359 (spec twin) `dep remove` once the dependent's record is in hand: the types between the pair decide
+def dep_remove_found(found: Maybe<&2, Model.Issue>, +model: List<&2, Model.Issue>, +dependent: String, +target: String, given: Maybe<&2, String>, now: Time.Instant, json: Bool, quiet: Bool) -> Outcome:
+  match found:
+    case None{}:
+      failed(Resolve.not_found(dependent), json)
+    case Some{+i}:
+      edged(Edges.remove_edge(model, i, dependent, target, Edges.types_between(Model.deps_of(i), target), given, now), dependent, target, json, quiet)
+
+# S4.350 S4.359 (spec twin) an edge command once both of its ids are resolved
+def edge_at(+model: List<&2, Model.Issue>, +dependent: String, +target: String, +opts: List<&2, Cli.Occ>, now: Time.Instant, actor: String, +json: Bool, quiet: Bool, adding: Bool) -> Outcome:
+  match adding:
+    case True{}:
+      dep_add_typed(model, dependent, target, Maybe.default(&2, String, Cli.value(opts, "type"), "blocks"), now, actor, json, quiet, (Cli.given(opts, "metadata") || (String.eq(Model.dep_type_repaired(Maybe.default(&2, String, Cli.value(opts, "type"), "blocks")), "parent-child") && Blocked.external(target)) || is_tombstone(Blocked.lookup(model, dependent)) || is_tombstone(Blocked.lookup(model, target))))
+    case False{}:
+      dep_remove_found(Blocked.lookup(model, dependent), model, dependent, target, Cli.value(opts, "type"), now, json, quiet)
+
+# S4.353 S4.357 (spec twin) the two ids of an edge command, the dependent's refusal winning over the target's; an
+# `external:` target is taken verbatim and never resolved
+def edge_ids(+stored: List<&2, String>, +issue: String, +target: String, +prefix: String) -> Resolve.Many:
+  Resolve.many_put(Resolve.resolve(stored, issue, prefix), Bool.pick(Resolve.Many, Blocked.external(target), Resolve.ManyOk{target <> Nil{}}, Resolve.many(target <> Nil{}, stored, prefix)))
+
+# S4.353 (spec twin) an edge command once its ids were judged
+def edge_resolved(m: Resolve.Many, +model: List<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, now: Time.Instant, actor: String, +json: Bool, quiet: Bool, adding: Bool) -> Outcome:
+  match m:
+    case Resolve.ManyBad{f}:
+      failed(f, json)
+    case Resolve.ManyOk{Con{dependent, Con{target, more}}}:
+      edge_at(model, dependent, target, opts, now, actor, json, quiet, adding)
+    case Resolve.ManyOk{other}:
+      failed(unported(), json)
+
+# S4.350–S4.363 (spec twin) `dep add` and `dep remove`; `adding` says which. The parser requires both positionals,
+# so a shorter argv never reaches here
+def edge_cmd(adding: Bool, now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool) -> Outcome:
+  match now words:
+    case None{} _:
+      failed(no_clock(), json)
+    case Some{at} Con{issue, Con{target, more}}:
+      edge_resolved(edge_ids(Show.ids_of(raw), issue, target, prefix), Store.model(raw), opts, at, actor, json, quiet, adding)
+    case Some{at} other:
+      failed(unported(), json)
+
+# ---------------------------------------------------------------- label add / remove / rename (S4.370–S4.379)
+
+# S4.370 S9.18 (spec twin) `label add`/`label remove` with an issue but no label
+def label_usage(+sub: String) -> Failure.Failure:
+  Create.invalid("arguments", "usage: label " ++ sub ++ " <issue...> <label...> or label " ++ sub ++ " <issue...> -l <label>[,<label>]")
+
+# S4.371 S4.376 (spec twin) what a label batch answered: its rows in label-major order, as one JSON array or as
+# the plain lines, and the file changes (the store only when a record changed)
+def labelled(b: Labels.Batch, json: Bool, quiet: Bool) -> Outcome:
+  match b json:
+    case Labels.BatchBad{f} mode:
+      failed(f, mode)
+    case Labels.BatchOk{model, plain, rows, last, changed} True{}:
+      wrote("[" ++ String.join(List.reverse(&2, String, rows), ",") ++ "]\n", batch_changes(model, changed, last), quiet)
+    case Labels.BatchOk{model, plain, rows, last, changed} False{}:
+      wrote(String.concat(List.reverse(&2, String, plain)), batch_changes(model, changed, last), quiet)
+
+# S4.370 (spec twin) the first positional alone
+def first_only(words: List<&2, String>) -> List<&2, String>:
+  match words:
+    case Nil{}:
+      Nil{}
+    case Con{w, rest}:
+      w <> Nil{}
+
+# S4.370 (spec twin) the issues of a label command: with `-l` every positional is one, otherwise the first
+def label_issues(+words: List<&2, String>, flagged: Bool) -> List<&2, String>:
+  Bool.pick(List<&2, String>, flagged, words, first_only(words))
+
+# S4.370 (spec twin) the labels of a label command: the `-l` values (comma split), otherwise the last positional
+def label_words(+words: List<&2, String>, flagged: Bool, given: List<&2, String>) -> List<&2, String>:
+  Bool.pick(List<&2, String>, flagged, given, Maybe.default(&2, String, List.last(&2, String, words), "") <> Nil{})
+
+# S4.370 (spec twin) the shape of a label command's positionals: 0 usable, 1 the usage refusal (no `-l` and fewer
+# than two), 2 the walk over more than two positionals, which is not ported
+def label_shape(flagged: Bool, +n: Nat) -> U32:
+  Bool.pick(U32, flagged, 0, Bool.pick(U32, Bool.not(Nat.is_gt(n, 1n)), 1, Bool.pick(U32, Nat.is_gt(n, 2n), 2, 0)))
+
+# S4.373 S4.375 (spec twin) a label batch once its issues are resolved. S4.370's own message for a positional that
+# resolves to nothing is not captured by any case, so that refusal is not ported
+def label_pairs(m: Resolve.Many, model: List<&2, Model.Issue>, labels: List<&2, String>, now: Time.Instant, adding: Bool, +json: Bool, quiet: Bool) -> Outcome:
+  match m:
+    case Resolve.ManyBad{f}:
+      failed(unported(), json)
+    case Resolve.ManyOk{ids}:
+      labelled(Labels.run(model, ids, labels, now, adding, ""), json, quiet)
+
+# S4.372 (spec twin) every named label is validated before any issue is touched
+def label_checked(adding: Bool, at: Time.Instant, +opts: List<&2, Cli.Occ>, +words: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, +json: Bool, quiet: Bool, +bad: String) -> Outcome:
+  match bad:
+    case SCon{h, t}:
+      failed(Labels.label_refusal(SCon{h, t}), json)
+    case SNil{}:
+      label_pairs(Resolve.many(label_issues(words, Cli.given(opts, "label")), Show.ids_of(raw), prefix), Store.model(raw), label_words(words, Cli.given(opts, "label"), Query.comma_split(Cli.values(opts, "label"))), at, adding, json, quiet)
+
+# S4.370 (spec twin) a label command once its positionals were counted
+def label_shaped(+adding: Bool, at: Time.Instant, +opts: List<&2, Cli.Occ>, +words: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, +json: Bool, quiet: Bool, shape: U32) -> Outcome:
+  match shape:
+    case 1:
+      failed(label_usage(Bool.pick(String, adding, "add", "remove")), json)
+    case 2:
+      failed(unported(), json)
+    case _:
+      label_checked(adding, at, opts, words, raw, prefix, json, quiet, Labels.first_bad(label_words(words, Cli.given(opts, "label"), Query.comma_split(Cli.values(opts, "label")))))
+
+# S4.370–S4.376 (spec twin) `label add` and `label remove`; `adding` says which
+def label_cmd(adding: Bool, now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, +words: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, +json: Bool, quiet: Bool) -> Outcome:
+  match now:
+    case None{}:
+      failed(no_clock(), json)
+    case Some{at}:
+      label_shaped(adding, at, opts, words, raw, prefix, json, quiet, label_shape(Cli.given(opts, "label"), List.length(&2, String, words)))
+
+# S4.377 S5.18 (spec twin) the file changes of a rename: the store when a record changed, and never the sidecar
+def store_only(model: List<&2, Model.Issue>, changed: Bool) -> List<&2, Write>:
+  match changed:
+    case True{}:
+      Write{".beads/issues.jsonl", Some{Store.text(model)}} <> Nil{}
+    case False{}:
+      Nil{}
+
+# S4.377 S4.378 S5.50 (spec twin) what `label rename` answered
+def renamed(d: Labels.Done, json: Bool, quiet: Bool) -> Outcome:
+  match d json:
+    case Labels.LabelBad{f} mode:
+      failed(f, mode)
+    case Labels.LabelOk{model, plain, entry, last, changed} True{}:
+      wrote(entry, store_only(model, changed), quiet)
+    case Labels.LabelOk{model, plain, entry, last, changed} False{}:
+      wrote(plain, store_only(model, changed), quiet)
+
+# S4.372 S4.377 (spec twin) `label rename` once both names were validated
+def rename_checked(at: Time.Instant, +model: List<&2, Model.Issue>, +old: String, +new: String, json: Bool, quiet: Bool, +bad: String) -> Outcome:
+  match bad:
+    case SCon{h, t}:
+      failed(Labels.label_refusal(SCon{h, t}), json)
+    case SNil{}:
+      renamed(Labels.rename(model, old, new, at, String.eq(old, new), Labels.affected(model, old, 0)), json, quiet)
+
+# S4.377–S4.379 (spec twin) `label rename <old> <new>`; the parser requires both positionals
+def rename_cmd(now: Maybe<&2, Time.Instant>, words: List<&2, String>, +raw: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
+  match now words:
+    case None{} _:
+      failed(no_clock(), json)
+    case Some{at} Con{+old, Con{+new, more}}:
+      rename_checked(at, Store.model(raw), old, new, json, quiet, Labels.first_bad(old <> new <> Nil{}))
+    case Some{at} other:
+      failed(unported(), json)
+
+# ---------------------------------------------------------------- comments add (S4.380–S4.385)
+
+# S4.381 (spec twin) `comments add` with no text source at all
+def comment_required() -> Failure.Failure:
+  Create.invalid("text", "comment text required")
+
+# S4.381 (spec twin) the text of a comment: `-m/--content` wins over the positional words, which are joined by one
+# ASCII space and never trimmed before storage
+def comment_text(given: Maybe<&2, String>, words: List<&2, String>) -> String:
+  Maybe.default(&2, String, given, String.join(words, " "))
+
+# S4.381 (spec twin) the positionals after the issue id
+def after_first(words: List<&2, String>) -> List<&2, String>:
+  match words:
+    case Nil{}:
+      Nil{}
+    case Con{w, rest}:
+      rest
+
+# S4.380 S4.383 (spec twin) what `comments add` answered: the comment object under `--json`, the plain line
+# otherwise, the store and the sidecar
+def commented(d: Labels.Done, json: Bool, quiet: Bool) -> Outcome:
+  match d json:
+    case Labels.LabelBad{f} mode:
+      failed(f, mode)
+    case Labels.LabelOk{model, plain, entry, last, changed} True{}:
+      wrote(entry, batch_changes(model, changed, last), quiet)
+    case Labels.LabelOk{model, plain, entry, last, changed} False{}:
+      wrote(plain, batch_changes(model, changed, last), quiet)
+
+# S4.380 (spec twin) `comments add` once the issue's record is in hand
+def comment_found(found: Maybe<&2, Model.Issue>, +model: List<&2, Model.Issue>, +id: String, author: String, +text: String, at: Time.Instant, json: Bool, quiet: Bool) -> Outcome:
+  match found:
+    case None{}:
+      failed(Resolve.not_found(id), json)
+    case Some{i}:
+      commented(Labels.comment(model, i, author, text, at, String.is_empty(String.trim(text))), json, quiet)
+
+# S4.380 S4.384 (spec twin) `comments add` once its issue is resolved; a missing text source is its own refusal
+def comment_resolved(f: Resolve.Found, +model: List<&2, Model.Issue>, author: String, text: String, at: Time.Instant, +json: Bool, quiet: Bool, none: Bool) -> Outcome:
+  match f none:
+    case Resolve.FoundBad{bad} _:
+      failed(bad, json)
+    case Resolve.FoundOk{id} True{}:
+      failed(comment_required(), json)
+    case Resolve.FoundOk{+id} False{}:
+      comment_found(Blocked.lookup(model, id), model, id, author, text, at, json, quiet)
+
+# S4.380–S4.385 (spec twin) `comments add <id> [text…]`; `-f` (a file or stdin) is not ported
+def comment_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool, later: Bool) -> Outcome:
+  match now words later:
+    case _ _ True{}:
+      failed(unported(), json)
+    case None{} _ False{}:
+      failed(no_clock(), json)
+    case Some{at} Con{first, +rest} False{}:
+      comment_resolved(Resolve.resolve(Show.ids_of(raw), first, prefix), Store.model(raw), Maybe.default(&2, String, Cli.value(opts, "author"), actor), comment_text(Cli.value(opts, "message"), rest), at, json, quiet, (Bool.not(Cli.given(opts, "message")) && Bool.not(Nat.is_gt(List.length(&2, String, rest), 0n))))
+    case Some{at} Nil{} False{}:
+      failed(no_comment_id(), json)
+
+# ---------------------------------------------------------------- delete (S4.330–S4.341)
+
+# S4.340 S9.18 (spec twin) `delete` with no ids at all
+def no_delete_ids() -> Failure.Failure:
+  Create.invalid("ids", "no issue IDs provided")
+
+# S4.210 S5.18 (spec twin) the file changes of a delete: the store, and the REMOVAL of `.beads/last-touched` when
+# the id it names is one of the deleted ones
+def delete_writes(+model: List<&2, Model.Issue>, deleted: List<&2, String>, +touched: String) -> List<&2, Write>:
+  Bool.pick(List<&2, Write>, (Bool.not(String.is_empty(touched)) && Blocked.among(deleted, touched)), Write{".beads/issues.jsonl", Some{Store.text(model)}} <> Write{".beads/last-touched", None{}} <> Nil{}, Write{".beads/issues.jsonl", Some{Store.text(model)}} <> Nil{})
+
+# S4.333 S4.337 S4.338 (spec twin) what a delete answered: a preview writes nothing, a delete writes the store
+def deleted_out(d: Remove.Done, +touched: String, json: Bool, quiet: Bool) -> Outcome:
+  match d:
+    case Remove.DelBad{f}:
+      failed(f, json)
+    case Remove.DelPreview{out}:
+      printed(out, "", quiet)
+    case Remove.DelDone{out, model, ids}:
+      wrote(out, delete_writes(model, ids, touched), quiet)
+
+# S4.333 S4.335 (spec twin) `delete` once its ids are resolved and its dependents are known. The JSON shape of a
+# preview and of a dry run, and a dry run under `--force`/`--cascade`, are not captured by any case
+def delete_at(+model: List<&2, Model.Issue>, +ids: List<&2, String>, +direct: List<&2, String>, now: Time.Instant, actor: String, reason: String, +force: Bool, +cascade: Bool, +json: Bool, quiet: Bool, +dry: Bool, +touched: String) -> Outcome:
+  Bool.pick(Outcome, ((json && (dry || (Nat.is_gt(List.length(&2, String, direct), 0n) && Bool.not(force) && Bool.not(cascade)))) || (dry && (force || cascade))), failed(unported(), json), deleted_out(Remove.run(model, ids, direct, now, actor, reason, (Nat.is_gt(List.length(&2, String, direct), 0n) && Bool.not(force) && Bool.not(cascade)), force, cascade, json, dry), touched, json, quiet))
+
+# S4.332 (spec twin) `delete` once its ids are resolved
+def delete_resolved(m: Resolve.Many, +model: List<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, now: Time.Instant, actor: String, +json: Bool, quiet: Bool, touched: String) -> Outcome:
+  match m:
+    case Resolve.ManyBad{f}:
+      failed(f, json)
+    case Resolve.ManyOk{+ids}:
+      delete_at(model, ids, Remove.dependents(model, ids), now, actor, Maybe.default(&2, String, Cli.value(opts, "reason"), "delete"), Cli.given(opts, "force"), Cli.given(opts, "cascade"), json, quiet, Cli.given(opts, "dry-run"), touched)
+
+# S4.330–S4.340 (spec twin) `delete`: the ids are deduplicated and sorted ascending before resolution, so the
+# command line's order never reaches the output. `--hard` and `--from-file` are not ported
+def delete_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool, touched: String, later: Bool) -> Outcome:
+  match now words later:
+    case _ _ True{}:
+      failed(unported(), json)
+    case None{} _ False{}:
+      failed(no_clock(), json)
+    case Some{at} Nil{} False{}:
+      failed(no_delete_ids(), json)
+    case Some{at} Con{w, rest} False{}:
+      delete_resolved(Resolve.many(Model.dedup(List.sort(~String, ~String.is_le, w <> rest)), Show.ids_of(raw), prefix), Store.model(raw), opts, at, actor, json, quiet, touched)
+
 # S1 S4 S5 (spec twin) one ported command on a loaded store. `show` reads the file's records as they are
 # (S2.38, S2.39); every other command reads the loaded model (Store.model). `n` is the command's number
 # (`command_number`); 0 is a command that is not ported, which answers the port's own failure
@@ -750,6 +1058,20 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
       transition(3, Show.pinned(env_of(env, "BEADS_BEND_NOW")), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
     case 18 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       update_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "append-notes") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
+    case 23 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      edge_cmd(True{}, Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+    case 24 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      edge_cmd(False{}, Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+    case 25 Call{path, opts, words, json, quiet, touched, +env, cwd}:
+      label_cmd(True{}, Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, prefix_of(cwd), json, quiet)
+    case 26 Call{path, opts, words, json, quiet, touched, +env, cwd}:
+      label_cmd(False{}, Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, prefix_of(cwd), json, quiet)
+    case 27 Call{path, opts, words, json, quiet, touched, +env, cwd}:
+      rename_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), words, issues, json, quiet)
+    case 28 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      comment_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, Cli.given(opts, "file"))
+    case 29 Call{path, +opts, words, json, quiet, +touched, +env, cwd}:
+      delete_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, touched_text(Bytes.decode(touched)), (Cli.given(opts, "hard") || Cli.given(opts, "from-file")))
     case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 
@@ -761,7 +1083,7 @@ def path_of(c: Call) -> String:
 
 # S1.16 (spec twin) the number `command_at` routes on: 0 for a command that is not ported yet
 def command_number(+path: String) -> U32:
-  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, Bool.pick(U32, String.eq(path, "update"), 18, Bool.pick(U32, String.eq(path, "close"), 19, Bool.pick(U32, String.eq(path, "reopen"), 20, Bool.pick(U32, String.eq(path, "defer"), 21, Bool.pick(U32, String.eq(path, "undefer"), 22, 0))))))))))))))))))))))
+  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, Bool.pick(U32, String.eq(path, "update"), 18, Bool.pick(U32, String.eq(path, "close"), 19, Bool.pick(U32, String.eq(path, "reopen"), 20, Bool.pick(U32, String.eq(path, "defer"), 21, Bool.pick(U32, String.eq(path, "undefer"), 22, Bool.pick(U32, String.eq(path, "dep add"), 23, Bool.pick(U32, String.eq(path, "dep remove"), 24, Bool.pick(U32, String.eq(path, "label add"), 25, Bool.pick(U32, String.eq(path, "label remove"), 26, Bool.pick(U32, String.eq(path, "label rename"), 27, Bool.pick(U32, String.eq(path, "comments add"), 28, Bool.pick(U32, String.eq(path, "delete"), 29, 0)))))))))))))))))))))))))))))
 
 # S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches
 def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:
@@ -800,6 +1122,37 @@ def helped(text: String) -> Outcome:
     case SCon{h, t}:
       Outcome{SCon{h, t}, "", 0, Nil{}}
 
+# S5.200 S5.201 DISC-006 (spec twin) the port's own identity. The original's `version` prints build metadata of a
+# different program (a Rust toolchain, a target triple, a git branch); printing those bytes would be a false
+# statement about the binary that is running, so the port names itself, the Bend it was built with and the
+# original it ports. The three captured cases are compared through the shape canonicalizer of DISC-006
+def port_name() -> String:
+  "bn"
+
+# S5.200 DISC-006 (spec twin) the port's version, chosen 2026-09-20: nothing is released yet
+def port_version() -> String:
+  "0.1.0"
+
+# S5.201 DISC-006 (spec twin) the pinned toolchain and oracle the version report names
+def port_bend() -> String:
+  "2.0.20"
+
+# S5.201 DISC-006 (spec twin) `<name> version <version> (bend <bend>) (port of br 0.6.0@<commit>)`
+def version_plain() -> String:
+  String.concat([port_name(), " version ", port_version(), " (bend ", port_bend(), ") (port of br 0.6.0@b1cfebe)\n"])
+
+# S5.202 DISC-006 (spec twin) the JSON report: one compact object, the members in this order
+def version_json() -> String:
+  String.concat(["{\"version\":", Failure.quoted(port_version()), ",\"build\":\"bend\",\"bend_version\":", Failure.quoted(port_bend()), ",\"port_of\":\"br 0.6.0\",\"oracle_commit\":\"b1cfebe05437463e91a353cf2bedafac27266f5b\",\"features\":[]}\n"])
+
+# S5.107 DISC-006 (spec twin) `version` needs no workspace and no store; Quiet prints nothing
+def version_out(json: Bool, quiet: Bool) -> Outcome:
+  printed(Bool.pick(String, json, version_json(), version_plain()), "", quiet)
+
+# S1.28 DISC-006 (spec twin) the top-level `--version` / `-V` flag: the name and the version alone
+def version_flag() -> Outcome:
+  Outcome{port_name() ++ " " ++ port_version() ++ "\n", "", 0, Nil{}}
+
 # S1.16 (spec twin) a command of the original that is outside the port's `--no-db` surface (PLAN §3): the port's own words, exit 1
 def outside(word: String) -> Outcome:
   Outcome{"", "Error: `" ++ word ++ "` is outside beads_bend's --no-db surface (docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md §3)\n", 1, Nil{}}
@@ -815,11 +1168,11 @@ def ran(p: Cli.Parsed, workspace: Bool, +cwd: String, store: List<&2, U32>, touc
     case Cli.GroupHelp{path}:
       Outcome{"", Help.text(path, True{}), 2, Nil{}}
     case Cli.Versioned{}:
-      failed(unported(), False{})
+      version_flag()
     case Cli.Outside{word}:
       outside(word)
-    case Cli.Command{path, +opts, words}:
-      routed(workspace, Call{path, opts, words, (Cli.given(opts, "json") || Cli.given(opts, "robot")), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot")))), touched, env, cwd}, cwd, store)
+    case Cli.Command{+path, +opts, words}:
+      Bool.pick(Outcome, String.eq(path, "version"), version_out((Cli.given(opts, "json") || Cli.given(opts, "robot")), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot"))))), routed(workspace, Call{path, opts, words, (Cli.given(opts, "json") || Cli.given(opts, "robot")), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot")))), touched, env, cwd}, cwd, store))
 
 # S1 S4 S5 S9 (spec twin, dispatcher) the single entry the shell calls
 def outcome(inputs: Inputs) -> Outcome:

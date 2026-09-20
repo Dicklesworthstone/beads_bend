@@ -202,3 +202,19 @@ def Laws.run_create_min():
 # S5.1–S5.15 the checker loads, repairs and re-renders the eight records of fixture `basic`
 def Laws.store_text_fixpoint_basic():
   {==}
+
+# S4.353 S4.358 S4.362 the checker runs `dep add` over three records and finds the edge already there
+def Laws.run_dep_add_duplicate():
+  {==}
+
+# S4.332 S4.333 the checker walks the dependents of a delete and renders the preview
+def Laws.run_delete_preview():
+  {==}
+
+# S4.154 S5.170 the checker divides 22320 tenths by 24·4 hours and rounds the tie to the even tenth
+def Laws.lead_tenths_quarter():
+  {==}
+
+# S5.170 OQ-078 the checker refuses a tie binary64 does not hold exactly
+def Laws.lead_tenths_odd_tie_refused():
+  {==}

@@ -23,8 +23,16 @@ DEFAULT_TIME = "2026-01-02 03:04:05"
 STATE_FILES = ("issues.jsonl", "last-touched")
 FAKETIME_LIB = "toolchain/faketime/root/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1"
 PASSED_ENV = ("PATH", "HOME", "USER", "TZ", "NO_COLOR", "RUST_LOG", "BEND_NO_TELEMETRY", "BEND_BIN")
-STEP_TIMEOUT = 120  # seconds per step; a fully frozen clock once hung `br` forever
+STEP_TIMEOUT = 600  # seconds per step; a fully frozen clock once hung `br` forever.
+# 600, not the original 120: the interpreter lane type-checks the whole book on
+# every case, which at this port's size is 2 min 28 s per run (measured
+# 2026-09-20, `bend port/main.bend -- --help`), so a 120 s step budget killed
+# every interpreter case as a sandbox failure (exit 125). The oracle's own
+# steps take under a second, so the budget never reaches them: the re-capture
+# that carries this change moved 0 of 1056 golden hashes.
 AMBIGUOUS_INLINE = re.compile(rb"(Ambiguous ID '[^']*': matches \[)([^\]]*)(\])")
+VERSION_REPORT = re.compile(rb"^[A-Za-z0-9_.-]+ version [0-9]+\.[0-9]+\.[0-9]+ .+$")
+VERSION_FLAG = re.compile(rb"^[A-Za-z0-9_.-]+ [0-9]+\.[0-9]+\.[0-9]+$")
 
 
 def die(message):
@@ -89,9 +97,10 @@ def run(inner, argv, stamp, oracle, root):
         die(f"step exceeded {STEP_TIMEOUT}s: {argv}")
     except OSError as exc:
         die(f"cannot run {inner[0]}: {exc}")
-    sys.stdout.buffer.write(canon(done.stdout))
+    shape = versions(argv)
+    sys.stdout.buffer.write(canon_version(canon(done.stdout), shape))
     sys.stdout.buffer.flush()
-    sys.stderr.buffer.write(canon(done.stderr))
+    sys.stderr.buffer.write(canon_version(canon(done.stderr), shape))
     sys.stderr.buffer.flush()
     return done.returncode
 
@@ -128,6 +137,49 @@ def canon(data):
                 continue
         i += 1
     return b"\n".join(out)
+
+
+def versions(argv):
+    """DISC-006: is this step the `version` command or the top-level version
+    flag? Decided from argv alone, identically for the original and the port."""
+    for word in argv:
+        if word in ("--version", "-V"):
+            return True
+        if not word.startswith("-"):
+            return word == "version"
+    return False
+
+
+def canon_version(data, shape):
+    """DISC-006 (Platform), and nothing else: `br version` reports build
+    metadata of a different program (its Rust toolchain, its target triple,
+    its git branch), which the port cannot truthfully print, so the port
+    reports its own name, version, Bend and the original it ports. Only for a
+    version step, and identically on both sides, the report is reduced to its
+    SHAPE: one line `<name> version <version> <details>`, one line
+    `<name> <version>` for the flag, or one JSON object with a string member
+    `version`. Anything else passes through and still fails its golden; the
+    exit code is never canonicalized."""
+    if not shape:
+        return data
+    body = data.strip()
+    if not body:
+        return data
+    if body.startswith(b"{"):
+        try:
+            report = json.loads(body)
+        except ValueError:
+            return data
+        if isinstance(report, dict) and isinstance(report.get("version"), str):
+            return b'{"version": <string>}\n'
+        return data
+    if b"\n" in body:
+        return data
+    if VERSION_REPORT.match(body):
+        return b"<name> version <version> <details>\n"
+    if VERSION_FLAG.match(body):
+        return b"<name> <version>\n"
+    return data
 
 
 def dump_changes(before):

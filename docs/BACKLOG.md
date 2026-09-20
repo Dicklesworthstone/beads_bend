@@ -80,13 +80,13 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [ ] E3.2 the prefix: `config.yaml` `issue_prefix`, directory-name rules, fallback `br`
 - [ ] E3.3 `metadata.json`, `BEADS_JSONL`, user-level config layers under `$HOME`
 - [ ] E3.4 `where` (plain, JSON): goldens `where_plain`, `where_json`
-- [ ] E3.5 `version` per DISC-006 (`bn version …`), plus the shape canonicalizer for `version_plain` / `version_json` in `scripts/ws_inner.py`, re-captured with `--disc DISC-006`
+- [x] E3.5 `version` per DISC-006 (`bn version 0.1.0 (bend 2.0.20) (port of br 0.6.0@b1cfebe)`, the JSON report, and `bn --version`), the shape canonicalizer `versions`/`canon_version` in `scripts/ws_inner.py`, the three goldens re-captured with `--disc DISC-006` (the MANIFEST diff named only them)
 
 ### E4. Store completeness — `core/store.bend`
 - [x] E4.1 (`Model.repaired`, `Store.model`; `show` keeps the raw records) load repairs S2.31–S2.36: status/type/dep-type folding and aliases; label sort+dedup; duplicate edges; duplicate comments; `-wisp-` ⇒ ephemeral; `closed_at` repairs; `external_ref` trim; `updated_at` ≥ `created_at`
 - [ ] E4.2 duplicate-id refusal (S2.40); tombstone protection (S2.42)
 - [ ] E4.3 validation S2.43–S2.56 with verbatim messages (exit 4)
-- [ ] E4.4 `Store.text`: records by id bytes, `\n` each; S5.9 `""` rule; S5.14 dependency defaults (`import`, `{}`, `""`); S5.16 exclusions
+- [x] E4.4 `Store.text`: records by id bytes, `\n` each; S5.9 `""` rule; S5.14 dependency defaults (`import`, `{}`, `""`); S5.16 exclusions
 - [ ] E4.5 laws: `labels_normalize_idempotent`, `store_text_fixpoint_basic`, a closed law for `edge_precision_rewrite`'s lines
 - [ ] E4.6 UTF-8 strictness (overlong, surrogates, > U+10FFFF) after OQ-101
 
@@ -104,10 +104,11 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [ ] E5.5 laws: `counts_sum_to_total`; order laws for the comparators
 
 ### E6. Mutations — `core/mutate.bend`
-- [ ] E6.1 `create`, `q` (full id ladder against the store; child ids; `--deps`, `--parent`; `--dry-run`, `--silent`, `--ephemeral`)
-- [ ] E6.2 `update` (every flag, `--claim`, last-touched fallback), `close` (+`--suggest-next`, blocked refusal, partial batches exit 3), `reopen`, `defer`/`undefer` (date forms S4.56–S4.62)
-- [ ] E6.3 `delete` (tombstone, dependents, `--force`, `--cascade`, `--dry-run`, removes `last-touched`)
-- [ ] E6.4 `dep add/remove` (cycle refusal exit 5, no-op duplicates), `label add/remove/rename`, `comments add` (id = store-wide max + 1), `epic close-eligible`
+- [x] E6.1 `create`, `q` (full id ladder against the store; child ids; `--deps`, `--parent`; `--dry-run`, `--silent`, `--ephemeral`)
+- [x] E6.2 `update` (every flag, `--claim`, last-touched fallback), `close` (+`--suggest-next`, blocked refusal, partial batches exit 3), `reopen`, `defer`/`undefer` (date forms S4.56–S4.62)
+- [x] E6.3 `delete` (tombstone, dependents, `--force`, `--cascade`, `--dry-run`, removes `last-touched`) — `core/remove.bend`; `--hard` and `--from-file` answer the port's own failure (OQ-128), as do a `--json` preview or dry run and `--dry-run` with `--force`/`--cascade` (OQ-127)
+- [x] E6.4 `dep add/remove` (cycle refusal exit 5, no-op duplicates) in `core/edges.bend`; `label add/remove/rename` and `comments add` (id = store-wide max + 1) in `core/labels.bend`. Left refused with the port's own failure: a tombstoned endpoint and a `parent-child` edge to an `external:` target (OQ-124), the split of more than two label positionals (OQ-122), a label positional that resolves to nothing (OQ-123), `comments add -f`
+  - [ ] E6.4a `epic close-eligible` (S4.390–S4.393): no case is captured, so no golden can judge it; capture `epic_close_eligible` and `epic_close_eligible_dry_run` first
 - [ ] E6.5 the shell's writes: `Sys.rename` temp-file publication, `Sys.remove`, `last-touched` ordering after the flush
 - [ ] E6.6 `Clock.wall` in the shell + `BEADS_BEND_NOW` pin (DISC-001); the `Platform` DISC for JS-lane millisecond precision
 

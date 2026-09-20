@@ -22,6 +22,7 @@ import ./core/cli.bend as Cli
 import ./core/query.bend as Query
 import ./core/render.bend as Render
 import ./core/resolve.bend as Resolve
+import ./core/work.bend as Work
 import ./core/run.bend as Run
 import ./fixtures.bend as Fixtures
 
@@ -230,3 +231,26 @@ law resolve_steps:
 # range, an end that is not a priority, and a missing end select nothing, which refuses the token
 law query_priority_ranges:
   {[Query.picks_of(Query.cut_at_dash("0-2", [])), Query.picks_of(Query.cut_at_dash("P1-P3", [])), Query.picks_of(Query.cut_at_dash("2", [])), Query.picks_of(Query.cut_at_dash("3-1", [])), Query.picks_of(Query.cut_at_dash("1-9", [])), Query.picks_of(Query.cut_at_dash("1-", []))] == [[0, 1, 2], [1, 2, 3], [2], [], [], []] : List<&2, List<&2, U32>>}
+
+# S4.353 S4.358 S4.362 closed fact (goldens/dep_add_duplicate): over the three records the BLOCKED relation of
+# fixture `basic` involves, `dep add proj-170 proj-mta` finds the edge already there: the U+2192 line on stdout,
+# exit 0, the store NOT rewritten, and `.beads/last-touched` naming the dependent all the same
+law run_dep_add_duplicate:
+  {Run.outcome(Run.Inputs{["dep", "add", "proj-170", "proj-mta"], True{}, "/mnt/proj", Bytes.utf8("{\"id\":\"proj-170\",\"title\":\"Implement user auth\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"feature\",\"assignee\":\"alice\",\"created_at\":\"2026-01-01T10:00:01Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T11:00:00Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0,\"labels\":[\"auth\",\"backend\"],\"dependencies\":[{\"issue_id\":\"proj-170\",\"depends_on_id\":\"proj-mta\",\"type\":\"blocks\",\"created_at\":\"2026-01-01T11:00:00Z\",\"created_by\":\"tester\",\"metadata\":\"{}\",\"thread_id\":\"\"},{\"issue_id\":\"proj-170\",\"depends_on_id\":\"proj-uly\",\"type\":\"parent-child\",\"created_at\":\"2026-01-01T11:00:00Z\",\"created_by\":\"tester\",\"metadata\":\"{}\",\"thread_id\":\"\"}]}\n{\"id\":\"proj-mta\",\"title\":\"Set up database schema\",\"description\":\"Create the initial tables.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T10:00:00Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0,\"labels\":[\"backend\",\"db\"]}\n{\"id\":\"proj-uly\",\"title\":\"Auth epic\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"epic\",\"created_at\":\"2026-01-01T10:00:04Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T10:00:04Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0}\n"), [], [Run.Var{"USER", "tester"}, Run.Var{"BEADS_BEND_NOW", "1767323045"}]}) == Run.Outcome{"Dependency already exists: proj-170 → proj-mta\n", "", 0, [Run.Write{".beads/last-touched", Some{"proj-170\n"}}]} : Run.Outcome}
+
+# S4.332 S4.333 closed golden (goldens/delete_with_dependents): over those same three records `delete proj-mta` is
+# a PREVIEW: `proj-170` depends on it through a `blocks` edge, `proj-uly` is reached transitively because
+# `proj-170` is its child, nothing is written and the exit code is 0
+law run_delete_preview:
+  {Run.outcome(Run.Inputs{["delete", "proj-mta"], True{}, "/mnt/proj", Bytes.utf8("{\"id\":\"proj-170\",\"title\":\"Implement user auth\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"feature\",\"assignee\":\"alice\",\"created_at\":\"2026-01-01T10:00:01Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T11:00:00Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0,\"labels\":[\"auth\",\"backend\"],\"dependencies\":[{\"issue_id\":\"proj-170\",\"depends_on_id\":\"proj-mta\",\"type\":\"blocks\",\"created_at\":\"2026-01-01T11:00:00Z\",\"created_by\":\"tester\",\"metadata\":\"{}\",\"thread_id\":\"\"},{\"issue_id\":\"proj-170\",\"depends_on_id\":\"proj-uly\",\"type\":\"parent-child\",\"created_at\":\"2026-01-01T11:00:00Z\",\"created_by\":\"tester\",\"metadata\":\"{}\",\"thread_id\":\"\"}]}\n{\"id\":\"proj-mta\",\"title\":\"Set up database schema\",\"description\":\"Create the initial tables.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T10:00:00Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0,\"labels\":[\"backend\",\"db\"]}\n{\"id\":\"proj-uly\",\"title\":\"Auth epic\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"epic\",\"created_at\":\"2026-01-01T10:00:04Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T10:00:04Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0}\n"), [], [Run.Var{"USER", "tester"}, Run.Var{"BEADS_BEND_NOW", "1767323045"}]}) == Run.Outcome{"The following issues depend on issues being deleted:\n  - proj-170\n\n1 additional issue(s) would be transitively affected by --cascade:\n  - proj-uly\n\nUse --force to orphan these dependents, or --cascade to delete them recursively.\n--cascade would delete 2 total dependent(s).\nNo changes made (preview mode).\n", "", 0, []} : Run.Outcome}
+
+# S4.154 S5.170 closed fact (goldens/scn_lifecycle, its last step): the four whole-hour lead times 2, 743, 743 and
+# 744 average to 558 hours, which is 23.25 days; binary64 holds `.25` exactly and Rust's `{:.1}` rounds a tie to
+# the even tenth, so the figure prints `23.2`. 22320 tenths over 24·4 hours is that division
+law lead_tenths_quarter:
+  {Work.tenths(22320, 96) == Some{232} : Maybe<&2, U32>}
+
+# S5.170 OQ-078 refutation: a tie that binary64 does NOT hold exactly (here 3.5 tenths, the value `0.35`) is the
+# one the port refuses instead of guessing which side the original's rounding of the double landed on
+law lead_tenths_odd_tie_refused:
+  {Work.tenths(7, 2) == None{} : Maybe<&2, U32>}
