@@ -189,3 +189,7 @@ def Laws.query_priority_ranges():
 # S4.41–S4.47 the checker resolves six inputs against eight ids
 def Laws.resolve_steps():
   {==}
+
+# S4.157–S4.169 the checker builds the BLOCKED relation of three records and renders `blocked`
+def Laws.run_blocked_three():
+  {==}

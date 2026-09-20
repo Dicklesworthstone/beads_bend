@@ -650,3 +650,15 @@ def dep_type_of(d: Dependency) -> String:
   match d:
     case Dependency{_, _, dep_type, _, _, _, _}:
       dep_type
+
+# S3.1 S4.171 (spec twin) is the issue pinned (an absent marker counts as not pinned)
+def is_pinned(i: Issue) -> Bool:
+  match i:
+    case Issue{_, _, _, _, _, _, _, _, _, Flags{_, pinned, _}, _, _, _}:
+      pinned
+
+# S3.1 (spec twin) who created the issue, when it says
+def created_by_of(i: Issue) -> Maybe<&2, String>:
+  match i:
+    case Issue{_, _, People{_, _, created_by, _}, _, _, _, _, _, _, _, _, _, _}:
+      created_by

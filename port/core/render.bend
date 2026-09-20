@@ -7,6 +7,7 @@ import ./time.bend as Time
 import ./model.bend as Model
 import ./failure.bend as Failure
 import ./query.bend as Query
+import ./work.bend as Work
 
 # S5.110 (spec twin) the glyph of a status; a status that is not built in prints `?`
 def icon(+status: String) -> String:
@@ -182,3 +183,129 @@ def search_plain(+page: List<&2, Model.Issue>, query: String, +more: Bool, offse
 # S5.34 (spec twin) the envelope of `search --json`: no `total`, and `hidden_closed_count` in its place
 def search_json(page: List<&2, Model.Issue>, all: List<&2, Model.Issue>, hidden: Nat, limit: Nat, offset: Nat, more: Bool) -> String:
   String.concat(["{\"issues\":[", String.concat(elements(page, all, True{})), "],\"hidden_closed_count\":", Nat.show(hidden), ",\"limit\":", Nat.show(limit), ",\"offset\":", Nat.show(offset), ",\"has_more\":", Failure.bool_text(more), "}\n"])
+
+# ---------------------------------------------------------------- ready (S5.36, S5.130–S5.136)
+
+# S5.131 (spec twin) the rows of `ready`: `{index}. [● P{n}] [{type}] {id}: {title}`, numbered from 1
+def ready_lines(issues: List<&2, Model.Issue>, +index: U32) -> List<&2, String>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      String.concat([U32.show(index), ". [● P", Model.priority_of(i), "] [", inline(Model.type_of(i)), "] ", inline(Model.id_of(i)), ": ", inline(Model.title_of(i)), "\n"]) <> ready_lines(rest, (index + 1 : U32))
+
+# S4.178 S5.133 (spec twin) the one line an empty `ready` prints: nothing active; a filter was asked for; or nothing is actionable
+def ready_empty(any_active: Bool, filtered: Bool) -> String:
+  match any_active filtered:
+    case False{} _:
+      "✨ All work complete — no issues to work on\n"
+    case True{} True{}:
+      "✨ No ready issues match the requested filters or configured ready status group\n"
+    case True{} False{}:
+      "✨ No ready issues — remaining work is not currently actionable\n"
+
+# S5.130–S5.133 (spec twin) plain `ready`: the header with the number of rows SHOWN, one blank line, the rows
+def ready_plain(+page: List<&2, Model.Issue>, any_active: Bool, filtered: Bool) -> String:
+  match page:
+    case Nil{}:
+      ready_empty(any_active, filtered)
+    case Con{i, rest}:
+      String.concat(["📋 Ready work (", Nat.show(List.length(&2, Model.Issue, page)), Bool.pick(String, Nat.is_eq(List.length(&2, Model.Issue, page), 1n), " issue", " issues"), " with no blockers):\n\n", String.concat(ready_lines(page, 1))])
+
+# S4.177 S5.134 (spec twin) the note a truncating limit writes to stderr
+def ready_note(+shown: Nat, +total: Nat) -> String:
+  Bool.pick(String, Nat.is_lt(shown, total), "[note] Showing " ++ Nat.show(shown) ++ " of " ++ Nat.show(total) ++ " ready issues. Use --limit 0 for all results.\n", "")
+
+# S5.36 (spec twin) one element of `ready --json`: sixteen members in this order, `labels` always present
+def ready_object(+i: Model.Issue) -> String:
+  "{" ++ Model.joined([Model.o_str("acceptance_criteria", Model.acceptance_of(i)), Model.o_str("prerequisites", Model.prerequisites_of(i)), Model.o_str("assignee", Model.assignee_of(i)), Model.m_time("created_at", Model.created_of(i)), Model.o_str("created_by", Model.created_by_of(i)), Model.o_str("description", Model.description_of(i)), Model.o_int("estimated_minutes", Model.estimate_of(i)), Model.m_str("id", Model.id_of(i)), Model.m_str("issue_type", Model.type_of(i)), "\"labels\":[" ++ Model.strings_text(Model.labels_of(i)) ++ "]", Model.o_str("notes", Model.notes_of(i)), Model.o_str("owner", Model.owner_of(i)), Model.m_int("priority", Model.priority_of(i)), Model.m_str("status", Model.status_of(i)), Model.m_str("title", Model.title_of(i)), Model.m_time("updated_at", Model.updated_of(i))]) ++ "}"
+
+# S5.36 (spec twin) the elements of `ready --json`, each preceded by `,` except the first
+def ready_objects(issues: List<&2, Model.Issue>, first: Bool) -> List<&2, String>:
+  match issues first:
+    case Nil{} _:
+      Nil{}
+    case Con{i, rest} True{}:
+      ready_object(i) <> ready_objects(rest, False{})
+    case Con{i, rest} False{}:
+      "," <> ready_object(i) <> ready_objects(rest, False{})
+
+# S5.36 (spec twin) `ready --json`: a bare array, `[]` when nothing is ready
+def ready_json(page: List<&2, Model.Issue>) -> String:
+  "[" ++ String.concat(ready_objects(page, True{})) ++ "]\n"
+
+# ---------------------------------------------------------------- blocked (S5.35, S5.137–S5.142)
+
+# S5.139–S5.141 (spec twin) the two lines of one blocked issue; `dependencies` is never singular
+def blocked_lines(rows: List<&2, Work.Row>) -> List<&2, String>:
+  match rows:
+    case Nil{}:
+      Nil{}
+    case Con{Work.Row{+issue, +blockers}, rest}:
+      String.concat(["[● P", Model.priority_of(issue), "] ", inline(Model.id_of(issue)), ": ", inline(Model.title_of(issue)), "\n  Blocked by ", Nat.show(List.length(&2, String, blockers)), " open dependencies: [", inline(String.join(blockers, ", ")), "]\n"]) <> blocked_lines(rest)
+
+# S5.137 S5.138 S5.142 (spec twin) plain `blocked`: a blank line, the header with the TOTAL before any limit, a blank line, the rows
+def blocked_plain(page: List<&2, Work.Row>, total: Nat) -> String:
+  match page:
+    case Nil{}:
+      "✨ No blocked issues\n"
+    case Con{r, rest}:
+      "\n🚫 Blocked issues (" ++ Nat.show(total) ++ "):\n\n" ++ String.concat(blocked_lines(r <> rest))
+
+# S4.170 (spec twin) the note a truncating limit writes to stderr
+def blocked_note(+shown: Nat, +total: Nat) -> String:
+  Bool.pick(String, Nat.is_lt(shown, total), "[note] Showing " ++ Nat.show(shown) ++ " of " ++ Nat.show(total) ++ " blocked issues. Use --limit 0 for all results.\n", "")
+
+# S5.35 (spec twin) one element of `blocked --json`: eleven members in this order, `created_by` and `description` omitted when not set
+def blocked_object(r: Work.Row) -> String:
+  match r:
+    case Work.Row{+i, +blockers}:
+      "{" ++ Model.joined(["\"blocked_by\":[" ++ Model.strings_text(blockers) ++ "]", "\"blocked_by_count\":" ++ Nat.show(List.length(&2, String, blockers)), Model.m_time("created_at", Model.created_of(i)), Model.o_str("created_by", Model.created_by_of(i)), Model.o_str("description", Model.description_of(i)), Model.m_str("id", Model.id_of(i)), Model.m_str("issue_type", Model.type_of(i)), Model.m_int("priority", Model.priority_of(i)), Model.m_str("status", Model.status_of(i)), Model.m_str("title", Model.title_of(i)), Model.m_time("updated_at", Model.updated_of(i))]) ++ "}"
+
+# S5.35 (spec twin) the elements of `blocked --json`, each preceded by `,` except the first
+def blocked_objects(rows: List<&2, Work.Row>, first: Bool) -> List<&2, String>:
+  match rows first:
+    case Nil{} _:
+      Nil{}
+    case Con{r, rest} True{}:
+      blocked_object(r) <> blocked_objects(rest, False{})
+    case Con{r, rest} False{}:
+      "," <> blocked_object(r) <> blocked_objects(rest, False{})
+
+# S4.170 S5.35 (spec twin) the envelope of `blocked --json`; `offset` is always 0
+def blocked_json(page: List<&2, Work.Row>, total: Nat, limit: Nat, more: Bool) -> String:
+  String.concat(["{\"issues\":[", String.concat(blocked_objects(page, True{})), "],\"total\":", Nat.show(total), ",\"limit\":", Nat.show(limit), ",\"offset\":0,\"has_more\":", Failure.bool_text(more), "}\n"])
+
+# ---------------------------------------------------------------- stats (S5.53, S5.167–S5.171)
+
+# S5.169 (spec twin) a summary row that is printed only when its figure is above zero
+def row_if(label: String, +n: U32) -> String:
+  Bool.pick(String, U32.is_eq(n, 0), "", label ++ U32.show(n) ++ "\n")
+
+# S5.170 (spec twin) the `Extended:` block: only when a lead time exists or tombstones exist
+def extended(lead: String, +tombstones: U32) -> String:
+  match lead:
+    case SNil{}:
+      Bool.pick(String, U32.is_eq(tombstones, 0), "", "\nExtended:\n" ++ row_if("  Deleted:                ", tombstones))
+    case SCon{h, t}:
+      "\nExtended:\n  Avg Lead Time:          " ++ SCon{h, t} ++ "\n" ++ row_if("  Deleted:                ", tombstones)
+
+# S5.167–S5.171 (spec twin) plain `stats`; every value starts at column 27; `lead` is the lead-time text with its unit, "" when there is none
+def stats_plain(f: Work.Figures, lead: String) -> String:
+  match f:
+    case Work.Figures{total, open, in_progress, closed, blocked, deferred, draft, ready, +tombstone, pinned, epics, lead_sum, lead_count}:
+      String.concat(["📊 Issue Database Status\n\nSummary:\n  Total Issues:           ", U32.show(total), "\n  Open:                   ", U32.show(open), "\n  In Progress:            ", U32.show(in_progress), "\n  Blocked:                ", U32.show(blocked), "\n  Closed:                 ", U32.show(closed), "\n  Ready to Work:          ", U32.show(ready), "\n", row_if("  Deferred:               ", deferred), row_if("  Tombstones:             ", tombstone), row_if("  Pinned:                 ", pinned), row_if("  Epics ready to close:   ", epics), extended(lead, tombstone), "\nFor more details, use 'br list' to see individual issues.\n"])
+
+# S5.53 S5.54 (spec twin) `average_lead_time_hours`, when it exists
+def lead_member(lead: String) -> String:
+  match lead:
+    case SNil{}:
+      ""
+    case SCon{h, t}:
+      ",\"average_lead_time_hours\":" ++ SCon{h, t}
+
+# S5.53 (spec twin) `stats --json`: eleven integers in this order, then the average lead time when it exists
+def stats_json(f: Work.Figures, lead: String) -> String:
+  match f:
+    case Work.Figures{total, open, in_progress, closed, blocked, deferred, draft, ready, tombstone, pinned, epics, lead_sum, lead_count}:
+      String.concat(["{\"summary\":{\"total_issues\":", U32.show(total), ",\"open_issues\":", U32.show(open), ",\"in_progress_issues\":", U32.show(in_progress), ",\"closed_issues\":", U32.show(closed), ",\"blocked_issues\":", U32.show(blocked), ",\"deferred_issues\":", U32.show(deferred), ",\"draft_issues\":", U32.show(draft), ",\"ready_issues\":", U32.show(ready), ",\"tombstone_issues\":", U32.show(tombstone), ",\"pinned_issues\":", U32.show(pinned), ",\"epics_eligible_for_closure\":", U32.show(epics), lead_member(lead), "}}\n"])

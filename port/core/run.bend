@@ -12,6 +12,7 @@ import ./query.bend as Query
 import ./render.bend as Render
 import ./resolve.bend as Resolve
 import ./show.bend as Show
+import ./work.bend as Work
 
 # S8.5 (data) one environment variable as the shell read it: its name and its value ("" when it is not set)
 type Var is Data:
@@ -192,6 +193,109 @@ def search_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +query:
     case False{} False{}:
       search_built(Query.build(opts, issues, True{}, False{}), opts, issues, query, json, quiet)
 
+# S4.119 (spec twin) at most `limit` rows of any list; 0 keeps them all
+def limited_rows(+rows: List<&2, Work.Row>, +limit: Nat) -> List<&2, Work.Row>:
+  Bool.pick(List<&2, Work.Row>, Nat.is_eq(limit, 0n), rows, List.take(&2, Work.Row, rows, limit))
+
+# S4.170 S5.35 S5.137–S5.142 (spec twin) `blocked` once its rows are ordered: the total is counted before the limit
+def blocked_page(+rows: List<&2, Work.Row>, +limit: Nat, json: Bool, quiet: Bool) -> Outcome:
+  match json:
+    case True{}:
+      printed(Render.blocked_json(limited_rows(rows, limit), List.length(&2, Work.Row, rows), limit, Nat.is_lt(List.length(&2, Work.Row, limited_rows(rows, limit)), List.length(&2, Work.Row, rows))), "", quiet)
+    case False{}:
+      printed(Render.blocked_plain(limited_rows(rows, limit), List.length(&2, Work.Row, rows)), Render.blocked_note(List.length(&2, Work.Row, limited_rows(rows, limit)), List.length(&2, Work.Row, rows)), quiet)
+
+# S4.107 S4.168 (spec twin) `blocked` once its priorities were judged; its limit is 50 unless told otherwise
+def blocked_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool) -> Outcome:
+  match p:
+    case Query.PickBad{f}:
+      failed(f, json)
+    case Query.PickOk{values}:
+      blocked_page(Work.blocked_rows(issues, Query.folded_all(Cli.values(opts, "type")), values, Cli.values(opts, "label")), Query.search_limit(Cli.value(opts, "limit")), json, quiet)
+
+# S4.167–S4.170 (spec twin) `blocked`; its `--detailed` form is not ported yet
+def blocked_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
+  match later:
+    case True{}:
+      failed(unported(), json)
+    case False{}:
+      blocked_picked(Query.pick_go(Query.comma_split(Cli.values(opts, "priority")), Query.PickOk{Nil{}}), opts, issues, json, quiet)
+
+# S4.177 S5.36 S5.130–S5.134 (spec twin) `ready` once its issues are ordered: the header counts the rows SHOWN, the note the rows found
+def ready_page(+found: List<&2, Model.Issue>, +limit: Nat, any_active: Bool, filtered: Bool, json: Bool, quiet: Bool) -> Outcome:
+  match json:
+    case True{}:
+      printed(Render.ready_json(Query.page(found, 0n, limit)), "", quiet)
+    case False{}:
+      printed(Render.ready_plain(Query.page(found, 0n, limit), any_active, filtered), Render.ready_note(List.length(&2, Model.Issue, Query.page(found, 0n, limit)), List.length(&2, Model.Issue, found)), quiet)
+
+# S1.49 S1.64 (spec twin) `--assignee` without a value means the current actor: `--actor`, else `USER` (the
+# configuration file's `actor` is not read yet, backlog E3.3)
+def ready_assignee(given: Maybe<&2, String>, actor: String) -> Maybe<&2, String>:
+  match given:
+    case None{}:
+      None{}
+    case Some{SNil{}}:
+      Some{actor}
+    case Some{SCon{h, t}}:
+      Some{SCon{h, t}}
+
+# S1.64 (spec twin) the first of the two that is not blank, else `unknown`
+def actor_pick(flag: String, user: String) -> String:
+  match flag user:
+    case SCon{h, t} _:
+      SCon{h, t}
+    case SNil{} SCon{h, t}:
+      SCon{h, t}
+    case SNil{} SNil{}:
+      "unknown"
+
+# S1.64 (spec twin) the acting actor: `--actor` when it is not blank, else `USER` trimmed, else `unknown`
+def actor_of(flag: Maybe<&2, String>, user: String) -> String:
+  actor_pick(String.trim(Maybe.default(&2, String, flag, "")), String.trim(user))
+
+# S4.171–S4.178 (spec twin) `ready` once its priorities were judged
+def ready_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +env: List<&2, Var>, json: Bool, quiet: Bool) -> Outcome:
+  match p:
+    case Query.PickBad{f}:
+      failed(f, json)
+    case Query.PickOk{values}:
+      ready_page(Work.ready_issues(issues, Show.pinned(env_of(env, "BEADS_BEND_NOW")), Cli.given(opts, "include-deferred"), ready_assignee(Cli.value(opts, "assignee"), actor_of(Cli.value(opts, "actor"), env_of(env, "USER"))), Cli.given(opts, "unassigned"), Cli.values(opts, "label"), Cli.values(opts, "label-any"), Query.folded_all(Cli.values(opts, "type")), values, Work.policy_of(Cli.value(opts, "sort"))), Query.count_of(Cli.value(opts, "limit")), Work.any_active(issues), (Cli.given(opts, "assignee") || Cli.given(opts, "unassigned") || Cli.given(opts, "label") || Cli.given(opts, "label-any") || Cli.given(opts, "type") || Cli.given(opts, "priority") || Cli.given(opts, "parent")), json, quiet)
+
+# S4.173 (spec twin) `ready`; its `--parent`, `--recursive` and `--epic` filters are not ported yet
+def ready_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, env: List<&2, Var>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
+  match later:
+    case True{}:
+      failed(unported(), json)
+    case False{}:
+      ready_picked(Query.pick_go(Query.comma_split(Cli.values(opts, "priority")), Query.PickOk{Nil{}}), opts, issues, env, json, quiet)
+
+# S5.53 S5.167–S5.171 (spec twin) `stats` once its lead time is known: one the port cannot print yet answers the port's own failure
+def stats_out(f: Work.Figures, l: Work.Lead, json: Bool, quiet: Bool) -> Outcome:
+  match l json:
+    case Work.LeadBad{} _:
+      failed(unported(), json)
+    case Work.NoLead{} True{}:
+      printed(Render.stats_json(f, ""), "", quiet)
+    case Work.NoLead{} False{}:
+      printed(Render.stats_plain(f, ""), "", quiet)
+    case Work.LeadOk{plain, number} True{}:
+      printed(Render.stats_json(f, number), "", quiet)
+    case Work.LeadOk{plain, number} False{}:
+      printed(Render.stats_plain(f, plain), "", quiet)
+
+# S4.154 (spec twin) the figures with their average lead time
+def stats_figures(+f: Work.Figures, json: Bool, quiet: Bool) -> Outcome:
+  stats_out(f, Work.lead(f), json, quiet)
+
+# S4.151–S4.156 (spec twin) `stats`; its breakdowns and its activity block are not ported (the activity block needs git: PLAN §3)
+def stats_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, env: List<&2, Var>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
+  match later:
+    case True{}:
+      failed(unported(), json)
+    case False{}:
+      stats_figures(Work.figures(issues, Show.pinned(env_of(env, "BEADS_BEND_NOW"))), json, quiet)
+
 # S1.34 (spec twin) the one positional of `search`, trimmed
 def first_word(words: List<&2, String>) -> String:
   match words:
@@ -221,19 +325,26 @@ def shown(s: Show.Shown, json: Bool, quiet: Bool) -> Outcome:
     case Show.ShowOk{out}:
       printed(out, "", quiet)
 
-# S1 S4 S5 (spec twin) route on the command's words. `list` and `count` read the loaded model (Store.model);
-# `show` reads the file's records as they are (S2.38, S2.39)
-def command_pick(is_list: Bool, is_count: Bool, is_show: Bool, is_search: Bool, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
-  match is_list is_count is_show is_search c:
-    case True{} _ _ _ Call{path, +opts, words, json, quiet, touched, env, cwd}:
+# S1 S4 S5 (spec twin) one ported command on a loaded store. `show` reads the file's records as they are
+# (S2.38, S2.39); every other command reads the loaded model (Store.model). `n` is the command's number
+# (`command_number`); 0 is a command that is not ported, which answers the port's own failure
+def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
+  match n c:
+    case 1 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       list_cmd(opts, Store.model(issues), json, quiet, (Cli.given(opts, "overdue") || Cli.given(opts, "tree") || Cli.given(opts, "pretty")))
-    case False{} True{} _ _ Call{path, +opts, words, json, quiet, touched, env, cwd}:
+    case 2 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       count_cmd(opts, Store.model(issues), json, quiet, Nat.is_gt(List.length(&2, String, selectors(opts)), 1n))
-    case False{} False{} True{} _ Call{path, opts, words, +json, quiet, touched, +env, cwd}:
+    case 3 Call{path, opts, words, +json, quiet, touched, +env, cwd}:
       shown(Show.run(words, issues, touched_text(Bytes.decode(touched)), env_of(env, "USER"), env_of(env, "BEADS_BEND_NOW"), prefix_of(cwd), json), json, quiet)
-    case False{} False{} False{} True{} Call{path, +opts, +words, json, quiet, touched, env, cwd}:
+    case 4 Call{path, +opts, +words, json, quiet, touched, env, cwd}:
       search_cmd(opts, Store.model(issues), first_word(words), json, quiet, String.is_empty(first_word(words)), U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9))
-    case False{} False{} False{} False{} Call{path, opts, words, json, quiet, touched, env, cwd}:
+    case 5 Call{path, +opts, words, json, quiet, touched, env, cwd}:
+      ready_cmd(opts, Store.model(issues), env, json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "recursive") || Cli.given(opts, "epic")))
+    case 6 Call{path, +opts, words, json, quiet, touched, env, cwd}:
+      blocked_cmd(opts, Store.model(issues), json, quiet, Cli.given(opts, "detailed"))
+    case 7 Call{path, +opts, words, json, quiet, touched, env, cwd}:
+      stats_cmd(opts, Store.model(issues), env, json, quiet, (Cli.given(opts, "by-type") || Cli.given(opts, "by-priority") || Cli.given(opts, "by-assignee") || Cli.given(opts, "by-label") || Cli.given(opts, "activity")))
+    case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 
 # S1 S4 S5 (spec twin) the words that name the command
@@ -242,9 +353,13 @@ def path_of(c: Call) -> String:
     case Call{path, opts, words, json, quiet, touched, env, cwd}:
       path
 
-# S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches; a command that is not ported answers the port's own failure
+# S1.16 (spec twin) the number `command_at` routes on: 0 for a command that is not ported yet
+def command_number(+path: String) -> U32:
+  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, 0)))))))
+
+# S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches
 def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:
-  command_pick(String.eq(path_of(c), "list"), String.eq(path_of(c), "count"), String.eq(path_of(c), "show"), String.eq(path_of(c), "search"), c, issues)
+  command_at(command_number(path_of(c)), c, issues)
 
 # S2.26 S2.27 (spec twin) a loaded store: a refusal is the outcome; a good store reaches the command
 def loaded(st: Store.Loaded, +c: Call) -> Outcome:
