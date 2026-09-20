@@ -15,6 +15,7 @@ import ./main.bend as L
 import ./core/bytes.bend as Bytes
 import ./core/sha256.bend as Sha
 import ./core/id.bend as Id
+import ./core/time.bend as Time
 
 # S0.1 the fast twin equals the spec twin, for every input. One `for` per
 # line, the goal last; `+x` when the proof needs x more than once.
@@ -61,3 +62,63 @@ law id_ladder_1:
 # S4.11 closed golden: goldens/scn_dup_title, the third create takes nonce 2: proj-fa9
 law id_ladder_2:
   {Id.hash36(Id.seed("Same title", "", "tester", "1770109200000000000", 2n), 3n) == "fa9" : String}
+
+# S4.54 S4.55 closed golden: fixture `precision` holds `2026-01-01T10:00:05Z`; goldens/edge_precision_rewrite shows the original writing back `2026-01-01T10:00:05Z`
+law time_whole_second:
+  {Time.reprint(Time.parse("2026-01-01T10:00:05Z"), "Z") == "2026-01-01T10:00:05Z" : String}
+
+# S4.54 S4.55 closed golden: fixture `precision` holds `2026-01-01T10:00:05.100Z`; goldens/edge_precision_rewrite shows the original writing back `2026-01-01T10:00:05.100Z`
+law time_millis:
+  {Time.reprint(Time.parse("2026-01-01T10:00:05.100Z"), "Z") == "2026-01-01T10:00:05.100Z" : String}
+
+# S4.54 S4.55 closed golden: fixture `precision` holds `2026-01-01T10:00:05.000000001Z`; goldens/edge_precision_rewrite shows the original writing back `2026-01-01T10:00:05.000000001Z`
+law time_nanos:
+  {Time.reprint(Time.parse("2026-01-01T10:00:05.000000001Z"), "Z") == "2026-01-01T10:00:05.000000001Z" : String}
+
+# S4.54 S4.55 closed golden: fixture `precision` holds `2026-01-01T10:00:05.1Z`; goldens/edge_precision_rewrite shows the original writing back `2026-01-01T10:00:05.100Z`
+law time_tenth_widens:
+  {Time.reprint(Time.parse("2026-01-01T10:00:05.1Z"), "Z") == "2026-01-01T10:00:05.100Z" : String}
+
+# S4.54 S4.55 closed golden: fixture `precision` holds `2026-01-01T12:00:04+02:00`; goldens/edge_precision_rewrite shows the original writing back `2026-01-01T10:00:04Z`
+law time_offset_to_utc:
+  {Time.reprint(Time.parse("2026-01-01T12:00:04+02:00"), "Z") == "2026-01-01T10:00:04Z" : String}
+
+# S4.55 S4.57 closed fact of the proleptic Gregorian calendar (expected value from python3 datetime): `2026-03-01T00:30:00+02:00`
+law time_borrow_across_month:
+  {Time.reprint(Time.parse("2026-03-01T00:30:00+02:00"), "Z") == "2026-02-28T22:30:00Z" : String}
+
+# S4.55 S4.57 closed fact of the proleptic Gregorian calendar (expected value from python3 datetime): `2024-03-01T00:00:00+01:00`
+law time_borrow_into_leap_day:
+  {Time.reprint(Time.parse("2024-03-01T00:00:00+01:00"), "Z") == "2024-02-29T23:00:00Z" : String}
+
+# S4.55 S4.57 closed fact of the proleptic Gregorian calendar (expected value from python3 datetime): `2026-12-31T23:30:00-01:00`
+law time_carry_across_year:
+  {Time.reprint(Time.parse("2026-12-31T23:30:00-01:00"), "Z") == "2027-01-01T00:30:00Z" : String}
+
+# S4.55 S4.57 closed fact of the proleptic Gregorian calendar (expected value from python3 datetime): `2026-06-15T08:09:10.000250Z`
+law time_micros:
+  {Time.reprint(Time.parse("2026-06-15T08:09:10.000250Z"), "Z") == "2026-06-15T08:09:10.000250Z" : String}
+
+# S4.55 S4.57 closed fact of the proleptic Gregorian calendar (expected value from python3 datetime): `2026-01-02t03:04:05z`
+law time_lowercase_t_z:
+  {Time.reprint(Time.parse("2026-01-02t03:04:05z"), "Z") == "2026-01-02T03:04:05Z" : String}
+
+# S4.57 a malformed spelling is a verdict (reprint answers the empty string), never a default instant: `2026-02-30T00:00:00Z`
+law time_refuses_feb_30:
+  {Time.reprint(Time.parse("2026-02-30T00:00:00Z"), "Z") == "" : String}
+
+# S4.57 a malformed spelling is a verdict (reprint answers the empty string), never a default instant: `not-a-date`
+law time_refuses_words:
+  {Time.reprint(Time.parse("not-a-date"), "Z") == "" : String}
+
+# S4.57 a malformed spelling is a verdict (reprint answers the empty string), never a default instant: `2026-01-01T24:00:00Z`
+law time_refuses_hour_24:
+  {Time.reprint(Time.parse("2026-01-01T24:00:00Z"), "Z") == "" : String}
+
+# S4.57 a malformed spelling is a verdict (reprint answers the empty string), never a default instant: `2026-01-01T10:00:05`
+law time_refuses_no_zone:
+  {Time.reprint(Time.parse("2026-01-01T10:00:05"), "Z") == "" : String}
+
+# S4.64 the same instant with the offset spelling the `defer` and `close` payloads use
+law time_offset_suffix:
+  {Time.reprint(Time.parse("2027-06-01T09:00:00Z"), "+00:00") == "2027-06-01T09:00:00+00:00" : String}
