@@ -123,3 +123,8 @@ def Laws.store_line_create_min():
 # S2.24 S2.27 the checker splits, lexes and decodes the fixture and renders the refusal
 def Laws.store_refuses_malformed():
   {==}
+
+# S4.9 the checker evaluates the table at each edge
+def Laws.id_length_table():
+  {==}
+

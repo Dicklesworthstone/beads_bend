@@ -135,3 +135,9 @@ law store_line_create_min:
 # second is refused with its 1-based line number and serde_json's message and byte column
 law store_refuses_malformed:
   {Store.refusal(Store.load(Time.codes("{\"id\":\"proj-aaa\",\"title\":\"before the conflict\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:05Z\",\"updated_at\":\"2026-01-01T10:00:05Z\"}\n{\"id\":\"proj-aab\",\"title\":\"truncated line\n"), "/mnt/proj/.beads/issues.jsonl")) == "Error: Configuration error: Invalid JSON at line 2: EOF while parsing a string at line 1 column 40\n" : String}
+
+# S4.9 closed facts: the adaptive-length table at every band edge. The empty store and the `basic`
+# fixture (8 records) are the captured cases (ids of length 3); the edges past 163/164 are S4.9's
+# computed values, [inference] until OQ-006 captures them
+law id_length_table:
+  {[Id.length_for(0), Id.length_for(8), Id.length_for(163), Id.length_for(164), Id.length_for(983), Id.length_for(984), Id.length_for(5898), Id.length_for(5899), Id.length_for(35389), Id.length_for(35390), Id.length_for(212339), Id.length_for(212340)] == [3n, 3n, 3n, 4n, 4n, 5n, 5n, 6n, 6n, 7n, 7n, 8n] : List<&2, Nat>}

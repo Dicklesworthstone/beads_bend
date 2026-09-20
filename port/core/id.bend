@@ -107,3 +107,29 @@ def digits36(n: Nat, +v: Limbs, acc: String) -> String:
 # S4.4 S4.5 S4.6 (spec twin) the hash part of an id for a seed and a length
 def hash36(+seed_bytes: List<&2, U32>, length: Nat) -> String:
   digits36(length, limbs(Sha.digest(seed_bytes)), SNil{})
+
+# S4.8 S4.9 (spec twin) route on the band verdicts, narrowest band first
+def length_pick(b3: Bool, b4: Bool, b5: Bool, b6: Bool, b7: Bool) -> Nat:
+  match b3 b4 b5 b6 b7:
+    case True{} _ _ _ _:
+      3n
+    case False{} True{} _ _ _:
+      4n
+    case False{} False{} True{} _ _:
+      5n
+    case False{} False{} False{} True{} _:
+      6n
+    case False{} False{} False{} False{} True{}:
+      7n
+    case False{} False{} False{} False{} False{}:
+      8n
+
+# S4.8 S4.9 S7.8 (spec twin) the hash length for a store of `count` records (tombstones included,
+# S4.10). The original evaluates a birthday bound in 64-bit floats; over an integer count that
+# predicate is this finite table, so no float exists in the port (docs/NUMERIC_PLAN.md S7.8).
+# The first band (3 up to 163 records) is what every captured case exercises; the later edges are
+# S4.9's computed values and stay [inference] until OQ-006's boundary goldens are captured.
+# The count is a U32: a Nat of this size inside a law would be a Peano numeral.
+def length_for(+count: U32) -> Nat:
+  length_pick((count <= 163 : U32), (count <= 983 : U32), (count <= 5898 : U32), (count <= 35389 : U32), (count <= 212339 : U32))
+
