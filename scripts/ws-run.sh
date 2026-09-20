@@ -24,7 +24,12 @@ ROOT="$(cd "$HERE/.." && pwd)"
 if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then sed -n '2,/^set -/p' "$0" | sed '$d; s/^# \{0,1\}//'; exit 0; fi
 command -v bwrap >/dev/null 2>&1 || { echo 'ws-run: bwrap (bubblewrap) is required' >&2; exit 125; }
 BEND_BIN="${BEND_BIN:-$HOME/.bend/bin/bend}"
-exec bwrap --die-with-parent --ro-bind / / --bind /tmp /tmp --dev /dev --proc /proc \
+# The filesystem is read-only inside the sandbox except the tmpfs workspace
+# and the temp directories: lanes.sh builds its binaries under TMPDIR and its
+# interpreter lane appends the compiler's pre-run note to a file there.
+TMPBIND=()
+if [[ -n "${TMPDIR:-}" && -d "$TMPDIR" && "${TMPDIR%/}" != /tmp ]]; then TMPBIND=(--bind "$TMPDIR" "$TMPDIR"); fi
+exec bwrap --die-with-parent --ro-bind / / --bind /tmp /tmp "${TMPBIND[@]}" --dev /dev --proc /proc \
   --tmpfs /mnt --chdir /mnt --clearenv \
   --setenv PATH "$PATH" --setenv HOME /mnt/home --setenv USER tester --setenv TZ UTC \
   --setenv NO_COLOR 1 --setenv RUST_LOG error --setenv BEND_NO_TELEMETRY 1 \

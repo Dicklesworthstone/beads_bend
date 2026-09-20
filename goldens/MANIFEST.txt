@@ -1,10 +1,10 @@
-captured: 2026-09-20T06:03:15.048050+00:00
+captured: 2026-09-20T06:09:50.077304+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 cases: goldens/cases.tsv (235 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"367c0b9f990e0a8d7bfdb0c03b91d2b03b99d8ff69ce4795e05c752cd6749baa"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"2629bda22a8101a0fae49c49f55d73a5810e370555508c9fe0797497707f1b1d"},"case_files":[],"stdin_files":[]}
-recapture: disc: DISC-005
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"2629bda22a8101a0fae49c49f55d73a5810e370555508c9fe0797497707f1b1d"},"case_files":[],"stdin_files":[]}
+recapture: repin: harness fix: ws-run.sh binds TMPDIR read-write for the interpreter lane; oracle bytes unchanged
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
