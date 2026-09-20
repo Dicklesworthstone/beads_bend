@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Status](https://img.shields.io/badge/status-Phase%201%20%28spec%29%3A%20no%20implementation%20yet-red.svg)](#status)
+[![Status](https://img.shields.io/badge/status-Phase%203%20early%3A%207%20of%20235%20cases%20pass-red.svg)](#status)
 [![Bend](https://img.shields.io/badge/bend-2.0.20%20%28pinned%29-blue.svg)](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md)
 [![Oracle](https://img.shields.io/badge/oracle-br%200.6.0%20%28pinned%29-orange.svg)](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md)
 
@@ -15,14 +15,14 @@ A port of [`br` (beads_rust)](https://github.com/Dicklesworthstone/beads_rust), 
 <div align="center">
 <h3>There is nothing to install</h3>
 
-<p><em>No Bend implementation exists in this repository. No binary, no install script, no release, no benchmark. What exists is the evidence base a port is judged against. Read <a href="#status">Status</a> before anything else.</em></p>
+<p><em>No usable Bend implementation exists in this repository: an early core and shell pass 7 of the 235 conformance cases, and no command works yet. No binary, no install script, no release, no benchmark. What exists is the evidence base a port is judged against, and the first proved pieces of the port. Read <a href="#status">Status</a> before anything else.</em></p>
 </div>
 
 ---
 
 ## Status
 
-As of 2026-09-20 this project is in Phase 1 of an eight-phase port method (fit screen, truth pack, spec, architecture, reference port, parity gate, performance, certify). The fit screen and the truth pack are done; the spec is being extracted; nothing after it has started. I would rather publish an honest empty shell than a README that describes software that does not exist.
+As of 2026-09-20 this project is early in Phase 3 of an eight-phase port method (fit screen, truth pack, spec, architecture, reference port, parity gate, performance, certify). The fit screen, the truth pack, a first pass of the spec and the architecture are done; the reference port has its first modules and its first passing cases; nothing after it has started. I would rather publish an honest, nearly empty shell than a README that describes software that does not exist.
 
 | Artifact | State | Where |
 |----------|-------|-------|
@@ -33,12 +33,12 @@ As of 2026-09-20 this project is in Phase 1 of an eight-phase port method (fit s
 | Goldens | 235 captured `.out` / `.err` / `.exit` triples from the pinned original; digests in `goldens/MANIFEST.txt` (sha256 `ae5b18770a62af73…`); 61 of them carry a dump of the resulting `.beads/issues.jsonl` | `goldens/` |
 | Reproducibility floor | `{"repeat":3,"stable":235,"unstable":[],"inconclusive":[],"oracle_identity_checked":true,"verdict":"STABLE"}`, after the one hash-random output of the original was canonicalized (DISC-005) | `docs/PORT_STATE.md` |
 | Fixtures and scenarios | 6 fixtures (`basic`, `basic_touched`, `conflict`, `empty`, `malformed`, `precision`) and 5 multi-step scenarios; the realistic fixtures are the original's own output | `goldens/fixtures/`, `goldens/scenarios/` |
-| Spec (Phase 1) | **in progress**: six of the seven planned section extracts are under `docs/spec-parts/` (704 numbered clauses with `file:line` provenance and a golden case each), plus the data-model section; the seventh (order leaks, effects, oddities) is being extracted. The merge into one spec (`scripts/merge-spec-parts.py`), `scripts/spec-lint.py` and the self-containment review have not run | `docs/spec-parts/`, `docs/EXISTING_BEADS_RUST_STRUCTURE.md` |
-| Architecture, numeric plan (Phase 2) | scaffold templates | `docs/PROPOSED_ARCHITECTURE.md`, `docs/NUMERIC_PLAN.md` |
-| Bend implementation (Phase 3) | **none**. `port/main.bend` is the scaffold's placeholder: two identity defs and a shell that prints a number. The lanes gate run against it reports `FAIL`: 1 of 235 cases passes on each of interpreter, c-1t, c-8t and js. What that run establishes is the harness, which executes every case on four lanes | `port/`, `docs/PORT_STATE.md` |
-| Laws and proofs | one scaffold law, `fast_is_spec`, over that placeholder: `All terms check.` with 0 `@unsafe` under `bend 2.0.20`. It says nothing about `br` | `port/LAWS.bend`, `port/PROOF.bend` |
+| Spec (Phase 1) | **first pass done**: 874 numbered clauses with `file:line` provenance and a golden case each, merged from eight part files by `scripts/merge-spec-parts.py`; `scripts/spec-lint.py` reports 0 findings; a blind self-containment review predicted 10 of 10 sampled cases byte for byte from the spec alone (`docs/reviews/self-containment-1/`) and still found six clause contradictions, now open questions. The method's second and third extraction passes and the capture of the extractors' proposed cases have not run | `docs/EXISTING_BEADS_RUST_STRUCTURE.md`, `docs/spec-parts/`, `docs/OPEN_QUESTIONS.md` |
+| Architecture, numeric plan (Phase 2) | written: one pure function `run : Inputs -> Outcome` and a thin IO shell; every one of the 739 behavior clauses has a home def (`scripts/arch-lint.py`: PASS); no `F32` anywhere and no budgeted output class | `docs/PROPOSED_ARCHITECTURE.md`, `docs/NUMERIC_PLAN.md` |
+| Bend implementation (Phase 3) | **early, and not usable**: ten core modules under `port/core/` (UTF-8, SHA-256, the id hash, instants, the JSON line lexer and member splitter, the 44-member record and its store line, the line decoder, store loading, error rendering, the dispatcher) and the IO shell `port/main.bend` with two custom effects (`Sys.exit`, `Sys.cwd`). There is **no argument parser and no command**: what runs end to end is the refusal with no workspace and the two store-load refusals (conflict markers, a malformed line). **7 of 235 conformance cases pass**; every real command answers the port's own "not ported yet" failure, so nothing passes by accident | `port/`, `docs/PORT_STATE.md` |
+| Laws and proofs | 27 closed laws, all proved by the checker computing both sides: SHA-256 against three published vectors, seven captured ids from their seeds (including `q`'s empty-creator seed and the nonce ladder), fifteen timestamp facts (the five spellings of fixture `precision` as the original wrote them back, calendar borrows and carries, refusals), and the exact store line of `create_min`. `bend port/PROOF.bend` prints `All terms check.` with 0 `@unsafe` under `bend 2.0.20`. A closed law covers one value; none of these is a quantified property | `port/LAWS.bend`, `port/PROOF.bend` |
 | Feasibility probes | a wall-clock custom effect (OQ-009: it loads on the interpreter, C and JS engines; Bend 2.0.20 itself has no wall clock, OQ-004) and a SHA-256 over `U32` words whose four digests equal `hashlib`'s on all three engines (PLAN §8). Probes are not the port | `port/probes/` |
-| Parity board (Phase 4) | template; `scripts/parity-board.sh` reports `MALFORMED` on its placeholder rows | `docs/FEATURE_PARITY.md` |
+| Parity board (Phase 4) | skeleton: 29 in-scope rows (2 `partial`, 27 `missing`) and 13 classed exclusions; `scripts/parity-board.sh` reports `PARTIAL`. No find-fix round has run | `docs/FEATURE_PARITY.md` |
 | Performance (Phase 5) | no measurement of any kind; `perf/EXPERIMENTS.md` is empty | `perf/` |
 | Port report (Phase 6) | template | `docs/PORT_REPORT.md` |
 | Binary, installer, release, license file, git remote | none | |
