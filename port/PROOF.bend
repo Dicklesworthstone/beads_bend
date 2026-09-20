@@ -6,6 +6,7 @@ import Base
 import ./main.bend as L
 import ./core/bytes.bend as Bytes
 import ./core/sha256.bend as Sha
+import ./core/id.bend as Id
 import ./LAWS.bend as Laws
 
 # S0.1 both twins are the identity; the checker sees it by computation
@@ -22,4 +23,32 @@ def Laws.sha_abc():
 
 # S4.4 the checker computes a two-block digest
 def Laws.sha_two_blocks():
+  {==}
+
+# S4.1–S4.6 the checker computes the id
+def Laws.id_fyw():
+  {==}
+
+# S4.1–S4.6 the checker computes the id
+def Laws.id_mta():
+  {==}
+
+# S4.1–S4.6 the checker computes the id
+def Laws.id_170():
+  {==}
+
+# S4.16 the checker computes the id
+def Laws.id_q_asw():
+  {==}
+
+# S4.11 the checker computes the id
+def Laws.id_ladder_0():
+  {==}
+
+# S4.11 the checker computes the id
+def Laws.id_ladder_1():
+  {==}
+
+# S4.11 the checker computes the id
+def Laws.id_ladder_2():
   {==}

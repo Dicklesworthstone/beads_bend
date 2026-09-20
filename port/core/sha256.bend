@@ -118,7 +118,8 @@ def words_go(bs: List<&2, U32>, acc: List<U32>) -> List<U32>:
 def be4(+x: U32) -> List<&2, U32>:
   [((x >> 24n : U32) .&. 255 : U32), ((x >> 16n : U32) .&. 255 : U32), ((x >> 8n : U32) .&. 255 : U32), (x .&. 255 : U32)]
 
-# S4.4 (spec twin) n zero bytes
+# S4.4 (spec twin) n zero bytes. Not tail recursive, and it need not be: pad
+# calls it with n = (119 - len mod 64) mod 64, so the depth is at most 63.
 def zeros(n: Nat) -> List<&2, U32>:
   match n:
     case 0n:
