@@ -17,6 +17,8 @@ import ./views.bend as Views
 import ./time.bend as Time
 import ./create.bend as Create
 import ./update.bend as Update
+import ./status.bend as Status
+import ./when.bend as When
 import ./blocked.bend as Blocked
 
 # S8.5 (data) one environment variable as the shell read it: its name and its value ("" when it is not set)
@@ -519,6 +521,140 @@ def update_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, ids: List
     case Some{at} False{} False{}:
       update_ranked(Create.rank_of(Cli.value(opts, "priority")), Cli.given(opts, "priority"), ids, opts, raw, actor, at, prefix, json, quiet)
 
+# S5.1 S5.18 (spec twin) the file changes of a transition batch: nothing when no id was acted on
+def batch_writes(model: List<&2, Model.Issue>, last: String) -> List<&2, Write>:
+  match last:
+    case SNil{}:
+      Nil{}
+    case SCon{h, t}:
+      changes(Some{Store.text(model)}, SCon{h, t})
+
+# S4.297 (spec twin) keep an id that was blocked before the write, is not blocked after it, and is then `open` or `in_progress`
+def unblocked_put(found: Maybe<&2, Model.Issue>, freed: Bool, +rest: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match found freed:
+    case Some{+i} True{}:
+      Bool.pick(List<&2, Model.Issue>, (String.eq(Model.status_of(i), "open") || String.eq(Model.status_of(i), "in_progress")), i <> rest, rest)
+    case _ _:
+      rest
+
+# S4.297 (spec twin) the issues a close unblocked: the blocked ids before the write minus the blocked ids after it
+def unblocked(before: List<&2, String>, +after: List<&2, String>, +model: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match before:
+    case Nil{}:
+      Nil{}
+    case Con{+id, rest}:
+      unblocked_put(Blocked.lookup(model, id), Bool.not(Blocked.among(after, id)), unblocked(rest, after, model))
+
+# S4.297 (spec twin) the unblocked issues as plain lines and as JSON objects `{"id","title","priority"}`
+def unblocked_text(items: List<&2, Model.Issue>, json: Bool, first: Bool) -> List<&2, String>:
+  match items json:
+    case Nil{} _:
+      Nil{}
+    case Con{+i, rest} True{}:
+      String.concat([Bool.pick(String, first, "", ","), "{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"priority\":", Model.priority_of(i), "}"]) <> unblocked_text(rest, True{}, False{})
+    case Con{+i, rest} False{}:
+      ("  " ++ Render.inline(Model.id_of(i)) ++ ": " ++ Render.inline(Model.title_of(i)) ++ "\n") <> unblocked_text(rest, False{}, False{})
+
+# S4.297 S4.298 S5.40 (spec twin) the stdout of `close`. Plain: the success lines, then the unblocked block under
+# `--suggest-next`. JSON: a bare array when nothing was skipped and `--suggest-next` was not given; else an object
+# with `closed`, `skipped` (omitted when empty) and, under `--suggest-next`, `unblocked`
+def close_text(+elements: List<&2, String>, lines: List<&2, String>, +skips: List<&2, Status.Skip>, +freed: List<&2, Model.Issue>, +suggest: Bool, json: Bool) -> String:
+  match json:
+    case False{}:
+      String.concat(lines) ++ Bool.pick(String, (suggest && Bool.not(List.is_empty(&2, Model.Issue, freed))), "Unblocked " ++ Nat.show(List.length(&2, Model.Issue, freed)) ++ " issue(s):\n" ++ String.concat(unblocked_text(freed, False{}, True{})), "")
+    case True{}:
+      Bool.pick(String, (List.is_empty(&2, Status.Skip, skips) && Bool.not(suggest)), "[" ++ String.join(elements, ",") ++ "]\n", String.concat(["{\"closed\":[", String.join(elements, ","), "]", Bool.pick(String, List.is_empty(&2, Status.Skip, skips), "", ",\"skipped\":[" ++ String.concat(Status.skip_objects(skips, True{})) ++ "]"), Bool.pick(String, suggest, ",\"unblocked\":[" ++ String.concat(unblocked_text(freed, True{}, True{})) ++ "]", ""), "}\n"]))
+
+# S4.293 S4.294 S5.22 (spec twin) a `close` with skips fails AFTER its output and its writes: every id skipped is
+# `NOTHING_TO_DO`, some skipped is `CLOSE_INCOMPLETE`; JSON mode prints the payload and then the envelope on stdout and
+# nothing on stderr; plain mode prints the warnings and the error on stderr
+def close_failed(out: String, +skips: List<&2, Status.Skip>, +closed: Nat, writes: List<&2, Write>, json: Bool) -> Outcome:
+  match json:
+    case True{}:
+      Outcome{out ++ Failure.json_text(Bool.pick(Failure.Failure, Nat.is_eq(closed, 0n), Status.nothing_to_do(skips), Status.close_incomplete(closed, skips))), "", 3, writes}
+    case False{}:
+      Outcome{out, String.concat(Status.warning_lines(skips)) ++ Failure.plain_text(Bool.pick(Failure.Failure, Nat.is_eq(closed, 0n), Status.nothing_to_do(skips), Status.close_incomplete(closed, skips))), 3, writes}
+
+# S4.293 S4.294 (spec twin) a `close` without skips succeeds; one with skips fails after its output and writes
+def close_done(out: String, skips: List<&2, Status.Skip>, closed: Nat, writes: List<&2, Write>, json: Bool, quiet: Bool) -> Outcome:
+  match skips:
+    case Nil{}:
+      wrote(out, writes, quiet)
+    case Con{s, rest}:
+      close_failed(out, s <> rest, closed, writes, json)
+
+# S4.290–S4.299 (spec twin) what a `close` batch answered; `before` is the blocked ids of the store before the batch
+def closed_batch(b: Status.Batch, before: List<&2, String>, suggest: Bool, +json: Bool, quiet: Bool) -> Outcome:
+  match b:
+    case Status.Batch{+model, +plain, elements, +skips, last}:
+      close_done(close_text(List.reverse(&2, String, elements), List.reverse(&2, String, plain), List.reverse(&2, Status.Skip, skips), unblocked(before, Blocked.keys(Blocked.relation(model)), model), suggest, json), List.reverse(&2, Status.Skip, skips), List.length(&2, String, plain), batch_writes(model, last), json, quiet)
+
+# S4.290 S4.297 (spec twin) `close` once every id is resolved: `--suggest-next` works with a single id only
+def close_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
+  match m:
+    case Resolve.ManyBad{f}:
+      failed(f, json)
+    case Resolve.ManyOk{+ids}:
+      Bool.pick(Outcome, (Cli.given(opts, "suggest-next") && Nat.is_gt(List.length(&2, String, ids), 1n)), failed(Create.invalid("suggest-next", "--suggest-next only works with a single issue ID"), json), closed_batch(Status.close_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, Blocked.relation(model), now, Maybe.default(&2, String, Cli.value(opts, "reason"), "done"), Cli.given(opts, "force")), Blocked.keys(Blocked.relation(model)), Cli.given(opts, "suggest-next"), json, quiet))
+
+# S4.314 S4.326 S5.42 S5.43 (spec twin) what `reopen`, `defer` or `undefer` answered: the successes before the skips;
+# as JSON one object whose first member is named after the command, `skipped` omitted when empty; exit 0 even when
+# every id was skipped; `nothing` is the line for a batch in which literally nothing happened
+def gated_batch(b: Status.Batch, name: String, nothing: String, json: Bool, quiet: Bool) -> Outcome:
+  match b json:
+    case Status.Batch{model, plain, elements, +skips, last} True{}:
+      wrote(String.concat(["{\"", name, "\":[", String.join(List.reverse(&2, String, elements), ","), "]", Bool.pick(String, List.is_empty(&2, Status.Skip, skips), "", ",\"skipped\":[" ++ String.concat(Status.skip_objects(List.reverse(&2, Status.Skip, skips), True{})) ++ "]"), "}\n"]), batch_writes(model, last), quiet)
+    case Status.Batch{model, +plain, elements, +skips, last} False{}:
+      wrote(Bool.pick(String, (List.is_empty(&2, String, plain) && List.is_empty(&2, Status.Skip, skips)), nothing, String.concat(List.reverse(&2, String, plain)) ++ String.concat(Status.skip_lines(List.reverse(&2, Status.Skip, skips)))), batch_writes(model, last), quiet)
+
+# S4.310–S4.315 (spec twin) `reopen` once every id is resolved
+def reopen_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
+  match m:
+    case Resolve.ManyBad{f}:
+      failed(f, json)
+    case Resolve.ManyOk{ids}:
+      gated_batch(Status.reopen_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, now, Cli.value(opts, "reason"), actor), "reopened", "No issues to reopen.\n", json, quiet)
+
+# S4.321–S4.326 (spec twin) `defer` (`deferring` true) or `undefer` once every id is resolved
+def gate_many(m: Resolve.Many, +model: List<&2, Model.Issue>, now: Time.Instant, until: Maybe<&2, Time.Instant>, +deferring: Bool, +json: Bool, quiet: Bool) -> Outcome:
+  match m:
+    case Resolve.ManyBad{f}:
+      failed(f, json)
+    case Resolve.ManyOk{ids}:
+      gated_batch(Status.gate_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, now, until, deferring), Bool.pick(String, deferring, "deferred", "undeferred"), Bool.pick(String, deferring, "No issues to defer.\n", "No issues to undefer.\n"), json, quiet)
+
+# S4.322 S4.324 (spec twin) `defer --until`, judged once before any issue is examined
+def gate_until(n: When.Named, m: Resolve.Many, model: List<&2, Model.Issue>, now: Time.Instant, json: Bool, quiet: Bool) -> Outcome:
+  match n:
+    case When.NoTime{why}:
+      failed(Create.invalid("defer_until", When.reason(why)), json)
+    case When.AtTime{at}:
+      gate_many(m, model, now, Some{at}, True{}, json, quiet)
+
+# S4.290 S4.310 S4.320 (spec twin) the four status transitions: `which` is 0 close, 1 reopen, 2 defer, 3 undefer. Forms that
+# are not ported and a missing clock are answered first; `close` and `reopen` fall back to `.beads/last-touched`,
+# `defer` and `undefer` demand an id
+def transition(which: U32, now: Maybe<&2, Time.Instant>, later: Bool, +ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, +quiet: Bool) -> Outcome:
+  match which now later ids:
+    case _ _ True{} _:
+      failed(unported(), json)
+    case _ None{} False{} _:
+      failed(no_clock(), json)
+    case 0 Some{at} False{} Nil{}:
+      failed(Show.no_ids(), json)
+    case 1 Some{at} False{} Nil{}:
+      failed(Show.no_ids(), json)
+    case _ Some{at} False{} Nil{}:
+      failed(Create.invalid("ids", "at least one issue ID is required"), json)
+    case 0 Some{at} False{} Con{id, rest}:
+      close_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), opts, Store.model(raw), at, json, quiet)
+    case 1 Some{at} False{} Con{id, rest}:
+      reopen_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), opts, Store.model(raw), actor, at, json, quiet)
+    case 2 Some{+at} False{} Con{id, rest}:
+      Bool.pick(Outcome, Cli.given(opts, "until"), gate_until(When.named(String.trim(Maybe.default(&2, String, Cli.value(opts, "until"), "")), at), Resolve.many(id <> rest, Show.ids_of(raw), prefix), Store.model(raw), at, json, quiet), gate_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), Store.model(raw), at, None{}, True{}, json, quiet))
+    case _ Some{at} False{} Con{id, rest}:
+      gate_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), Store.model(raw), at, None{}, False{}, json, quiet)
+
 # S5.20 S5.105 (spec twin) what a small view answered, as an outcome; a form that is not ported answers the port's own failure
 def viewed(v: Views.View, json: Bool, quiet: Bool) -> Outcome:
   match v:
@@ -604,6 +740,14 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
       create_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, env, cwd, json, quiet, (Cli.given(opts, "file") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context")), False{})
     case 17 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       create_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, env, cwd, json, quiet, False{}, True{})
+    case 19 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      transition(0, Show.pinned(env_of(env, "BEADS_BEND_NOW")), (Cli.given(opts, "transition-comment") || Cli.given(opts, "session") || Cli.given(opts, "bypass-policy") || Cli.given(opts, "bypass-reason")), Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+    case 20 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      transition(1, Show.pinned(env_of(env, "BEADS_BEND_NOW")), False{}, Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+    case 21 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      transition(2, Show.pinned(env_of(env, "BEADS_BEND_NOW")), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+    case 22 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      transition(3, Show.pinned(env_of(env, "BEADS_BEND_NOW")), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
     case 18 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       update_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "append-notes") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
     case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
@@ -617,7 +761,7 @@ def path_of(c: Call) -> String:
 
 # S1.16 (spec twin) the number `command_at` routes on: 0 for a command that is not ported yet
 def command_number(+path: String) -> U32:
-  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, Bool.pick(U32, String.eq(path, "update"), 18, 0))))))))))))))))))
+  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, Bool.pick(U32, String.eq(path, "update"), 18, Bool.pick(U32, String.eq(path, "close"), 19, Bool.pick(U32, String.eq(path, "reopen"), 20, Bool.pick(U32, String.eq(path, "defer"), 21, Bool.pick(U32, String.eq(path, "undefer"), 22, 0))))))))))))))))))))))
 
 # S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches
 def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:
