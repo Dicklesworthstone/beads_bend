@@ -7,3 +7,4 @@ port/*.c
 port/*.js
 port/*.gpu
 port/beads_rust
+toolchain/

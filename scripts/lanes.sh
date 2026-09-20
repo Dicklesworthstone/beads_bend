@@ -66,7 +66,13 @@ run_lane() {  # $1 lane name, rest: the port command
   local lane="$1"; shift
   local budget="$CASE_TIMEOUT"
   [[ "$lane" != interpreter ]] || budget="$INTERPRETER_TIMEOUT"
-  local out rc; out="$("$HERE/conform.sh" "$CASES" "$GOLD" --lane "$lane" --timeout "$budget" $NOERR -- "$@" 2>&1)"; rc=$?
+  # LANE_WRAP (this port's addition; unset = the stock behaviour): a wrapper
+  # run in front of every lane command as `<wrap…> <lane command…> :: <case
+  # args…>`. scripts/ws-run.sh gives the port the same sandboxed workspace
+  # (fixed path, fixture, pinned instant) the oracle was captured in.
+  local -a cmd=("$@")
+  if [[ -n "${LANE_WRAP:-}" ]]; then local -a wrap; read -ra wrap <<<"$LANE_WRAP"; cmd=("${wrap[@]}" "$@" ::); fi
+  local out rc; out="$("$HERE/conform.sh" "$CASES" "$GOLD" --lane "$lane" --timeout "$budget" $NOERR -- "${cmd[@]}" 2>&1)"; rc=$?
   local json; json="$(printf '%s\n' "$out" | grep '^{' | tail -1)"
   local v p f parsed
   parsed="$(printf '%s' "$json" | python3 -B -c '
