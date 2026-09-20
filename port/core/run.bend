@@ -16,6 +16,8 @@ import ./work.bend as Work
 import ./views.bend as Views
 import ./time.bend as Time
 import ./create.bend as Create
+import ./update.bend as Update
+import ./blocked.bend as Blocked
 
 # S8.5 (data) one environment variable as the shell read it: its name and its value ("" when it is not set)
 type Var is Data:
@@ -424,13 +426,13 @@ def world_actor(w: Create.World) -> String:
 def create_in(+w: Create.World, +opts: List<&2, Cli.Occ>, words: List<&2, String>, raw: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
   created(Create.make(create_request(opts, create_title(words, Cli.value(opts, "title")), world_actor(w)), w), opts, Store.model(raw), json, quiet, Cli.given(opts, "dry-run"), Cli.given(opts, "ephemeral"))
 
-# S5.38 (spec twin) what `q` answered: the bare id and a newline, whatever the output mode
-def quick(m: Create.Made, model: List<&2, Model.Issue>, json: Bool, quiet: Bool) -> Outcome:
+# S4.254 S5.38 (spec twin) what `q` answered: the bare id and a newline; as JSON, an object of the id and the title only
+def quick(m: Create.Made, model: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
   match m:
     case Create.MadeBad{f}:
       failed(f, json)
     case Create.MadeOk{+issue, built}:
-      wrote(Model.id_of(issue) ++ "\n", changes(Some{Store.text(List.append(&2, Model.Issue, model, issue <> Nil{}))}, Model.id_of(issue)), quiet)
+      wrote(Bool.pick(String, json, "{\"id\":" ++ Failure.quoted(Model.id_of(issue)) ++ ",\"title\":" ++ Failure.quoted(Model.title_of(issue)) ++ "}\n", Model.id_of(issue) ++ "\n"), changes(Some{Store.text(List.append(&2, Model.Issue, model, issue <> Nil{}))}, Model.id_of(issue)), quiet)
 
 # S4.237 S4.225 S4.232 (spec twin) `create` and `q` once the pinned instant was read: without one the port refuses
 # (no clock effect yet); `--file`, `--description-file` and `--agent-context` are not ported yet
@@ -444,6 +446,78 @@ def create_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: Li
       create_in(world_of(at, env_of(env, "BEADS_BEND_NOW"), opts, raw, env, cwd), opts, words, raw, json, quiet)
     case Some{at} False{} True{}:
       quick(Create.make(q_request(opts, words), world_of(at, env_of(env, "BEADS_BEND_NOW"), opts, raw, env, cwd)), Store.model(raw), json, quiet)
+
+# S4.269 (spec twin) is a status word terminal
+def terminal_word(+word: String) -> Bool:
+  (String.eq(word, "closed") || String.eq(word, "tombstone"))
+
+# S4.269 (spec twin) `update --status closed` is refused before any I/O, with the original's words
+def close_via_update() -> Failure.Failure:
+  Create.invalid("status", "refusing to close via `br update --status closed`: terminal-state transitions must go through `br close` so close-policy (close-reason / AC / attribution) is enforced. Use `br close <id> --reason \"...\"` instead, or `br close <id> --bypass-policy --bypass-reason \"...\"` to opt out explicitly. See https://github.com/Dicklesworthstone/beads_rust/issues/301.")
+
+# S4.203 S4.209 S5.18 (spec twin) the file changes of a batch: the store only when a stored column changed, the sidecar
+# whenever an id was acted on
+def batch_changes(model: List<&2, Model.Issue>, changed: Bool, last: String) -> List<&2, Write>:
+  match changed last:
+    case _ SNil{}:
+      Nil{}
+    case True{} SCon{h, t}:
+      changes(Some{Store.text(model)}, SCon{h, t})
+    case False{} SCon{h, t}:
+      changes(None{}, SCon{h, t})
+
+# S4.261 S4.273 S5.39 (spec twin) what `update` answered: the blocks in order (JSON: one array), and the file changes
+def updated(b: Update.Batch, json: Bool, quiet: Bool) -> Outcome:
+  match b json:
+    case Update.BatchBad{f} mode:
+      failed(f, mode)
+    case Update.BatchOk{model, plain, elements, changed, last} True{}:
+      wrote("[" ++ String.join(List.reverse(&2, String, elements), ",") ++ "]\n", batch_changes(model, changed, last), quiet)
+    case Update.BatchOk{model, plain, elements, changed, last} False{}:
+      wrote(String.concat(List.reverse(&2, String, plain)), batch_changes(model, changed, last), quiet)
+
+# S4.260 S4.264 (spec twin) was any field flag given: without one, `update` reports `No updates specified`
+def any_update_flag(+opts: List<&2, Cli.Occ>) -> Bool:
+  (Cli.given(opts, "status") || Cli.given(opts, "priority") || Cli.given(opts, "type") || Cli.given(opts, "title") || Cli.given(opts, "description") || Cli.given(opts, "design") || Cli.given(opts, "acceptance-criteria") || Cli.given(opts, "prerequisites") || Cli.given(opts, "notes") || Cli.given(opts, "assignee") || Cli.given(opts, "owner") || Cli.given(opts, "estimate") || Cli.given(opts, "due") || Cli.given(opts, "defer") || Cli.given(opts, "external-ref") || Cli.given(opts, "source-repo") || Cli.given(opts, "source-repo-path") || Cli.given(opts, "claim") || Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label"))
+
+# S4.212 S4.260 (spec twin) `update` once every id is resolved
+def update_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
+  match m:
+    case Resolve.ManyBad{f}:
+      failed(f, json)
+    case Resolve.ManyOk{ids}:
+      updated(Update.run(ids, model, opts, priority, Blocked.relation(model), actor, now, any_update_flag(opts)), json, quiet)
+
+# S4.260 (spec twin) `update` once its ids are known: none at all (no positional, no last-touched issue) is refused
+def update_ids(ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, prefix: String, +json: Bool, quiet: Bool) -> Outcome:
+  match ids:
+    case Nil{}:
+      failed(Show.no_ids(), json)
+    case Con{id, rest}:
+      update_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), opts, Store.model(raw), priority, actor, now, json, quiet)
+
+# S4.224 S4.275 (spec twin) `update` once its priority was judged
+def update_ranked(r: Create.Rank, given: Bool, ids: List<&2, String>, opts: List<&2, Cli.Occ>, raw: List<&2, Model.Issue>, actor: String, now: Time.Instant, prefix: String, json: Bool, quiet: Bool) -> Outcome:
+  match r given:
+    case Create.RankBad{f} _:
+      failed(f, json)
+    case Create.RankOk{digits} True{}:
+      update_ids(ids, opts, raw, Some{digits}, actor, now, prefix, json, quiet)
+    case Create.RankOk{digits} False{}:
+      update_ids(ids, opts, raw, None{}, actor, now, prefix, json, quiet)
+
+# S4.269 S4.275 (spec twin) `update`: the forms that are not ported, the missing clock, and a terminal `--status` are
+# answered before anything else
+def update_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, ids: List<&2, String>, raw: List<&2, Model.Issue>, actor: String, prefix: String, +json: Bool, quiet: Bool, later: Bool, terminal: Bool) -> Outcome:
+  match now later terminal:
+    case _ True{} _:
+      failed(unported(), json)
+    case None{} False{} _:
+      failed(no_clock(), json)
+    case Some{at} False{} True{}:
+      failed(close_via_update(), json)
+    case Some{at} False{} False{}:
+      update_ranked(Create.rank_of(Cli.value(opts, "priority")), Cli.given(opts, "priority"), ids, opts, raw, actor, at, prefix, json, quiet)
 
 # S5.20 S5.105 (spec twin) what a small view answered, as an outcome; a form that is not ported answers the port's own failure
 def viewed(v: Views.View, json: Bool, quiet: Bool) -> Outcome:
@@ -530,6 +604,8 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
       create_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, env, cwd, json, quiet, (Cli.given(opts, "file") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context")), False{})
     case 17 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       create_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, env, cwd, json, quiet, False{}, True{})
+    case 18 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
+      update_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "append-notes") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
     case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 
@@ -541,7 +617,7 @@ def path_of(c: Call) -> String:
 
 # S1.16 (spec twin) the number `command_at` routes on: 0 for a command that is not ported yet
 def command_number(+path: String) -> U32:
-  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, 0)))))))))))))))))
+  Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, Bool.pick(U32, String.eq(path, "update"), 18, 0))))))))))))))))))
 
 # S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches
 def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:

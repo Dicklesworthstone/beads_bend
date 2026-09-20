@@ -177,6 +177,29 @@ def resolve_trimmed(+ids: List<&2, String>, +typed: String, +prefix: String, emp
 def resolve(ids: List<&2, String>, +input: String, prefix: String) -> Found:
   resolve_trimmed(ids, String.trim(input), prefix, String.is_empty(String.trim(input)))
 
+# S4.212 (data) several inputs resolved: every stored id, in input order, or the FIRST refusal from the left
+type Many is Data:
+  ManyBad{failure: Failure.Failure}
+  ManyOk{ids: List<&2, String>}
+
+# S4.212 (spec twin) one resolution in front of the rest: a refusal here wins over any refusal further right
+def many_put(found: Found, rest: Many) -> Many:
+  match found rest:
+    case FoundBad{f} _:
+      ManyBad{f}
+    case FoundOk{id} ManyBad{f}:
+      ManyBad{f}
+    case FoundOk{id} ManyOk{ids}:
+      ManyOk{id <> ids}
+
+# S4.212 (spec twin) id resolution is all-or-nothing and happens before any mutation
+def many(inputs: List<&2, String>, +ids: List<&2, String>, +prefix: String) -> Many:
+  match inputs:
+    case Nil{}:
+      ManyOk{Nil{}}
+    case Con{input, rest}:
+      many_put(resolve(ids, input, prefix), many(rest, ids, prefix))
+
 # S4.45–S4.47 S9.2 (spec twin) what a resolution prints on stderr in plain mode: the refusal, or, for a hit, the id and a newline
 def report(f: Found) -> String:
   match f:
