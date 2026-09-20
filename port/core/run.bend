@@ -7,6 +7,9 @@ import ./bytes.bend as Bytes
 import ./store.bend as Store
 import ./cli.bend as Cli
 import ./help.bend as Help
+import ./model.bend as Model
+import ./query.bend as Query
+import ./render.bend as Render
 
 # S8.1 S8.12 S8.13 (data) what the shell gathered: argv, whether a `.beads` workspace was found, the
 # working directory, and the BYTES of `.beads/issues.jsonl` (empty when there is no workspace)
@@ -37,29 +40,148 @@ def unported() -> Failure.Failure:
 def not_utf8() -> Failure.Failure:
   Failure.Failure{"CONFIG_ERROR", "Configuration error: .beads/issues.jsonl is not valid UTF-8", None{}, False{}, Nil{}, 7}
 
-# S2.26 S2.27 (spec twin) a loaded store: a refusal is the outcome; a good store reaches commands that are not ported yet
-def loaded(st: Store.Loaded, json: Bool) -> Outcome:
-  match st:
-    case Store.LoadBad{f}:
+# S1.1 S1.6 (data) an accepted command line: the words that name the command, its option occurrences in argv
+# order, its positionals, and the output mode (JSON beats Quiet, S1.6)
+type Call is Data:
+  Call{path: String, opts: List<&2, Cli.Occ>, words: List<&2, String>, json: Bool, quiet: Bool}
+
+# S1.6 (spec twin) the output mode of a call: is it JSON
+def wants_json(c: Call) -> Bool:
+  match c:
+    case Call{path, opts, words, json, quiet}:
+      json
+
+# S5.23 S5.106 (spec twin) what a successful read prints: nothing at all under Quiet
+def printed(out: String, note: String, quiet: Bool) -> Outcome:
+  match quiet:
+    case True{}:
+      Outcome{"", "", 0}
+    case False{}:
+      Outcome{out, note, 0}
+
+# S4.133 S5.124 (spec twin) did a filter that runs outside the query take part: only then does the truncation note know the total
+def outside_query(+opts: List<&2, Cli.Occ>) -> Bool:
+  (Cli.given(opts, "id") || Cli.given(opts, "priority-min") || Cli.given(opts, "priority-max") || Cli.given(opts, "desc-contains") || Cli.given(opts, "notes-contains") || Cli.given(opts, "deferred") || Cli.given(opts, "overdue"))
+
+# S4.114 S4.119 S4.120 S5.32 S5.120–S5.125 (spec twin) `list` once its rows are ordered: cut the page, then print it
+# as JSON (the envelope), or as plain lines with the truncation note on stderr
+def list_page(+rows: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, +limit: Nat, +offset: Nat, json: Bool, quiet: Bool) -> Outcome:
+  match json:
+    case True{}:
+      printed(Render.list_json(Query.page(rows, offset, limit), all, List.length(&2, Model.Issue, rows), limit, offset, Query.has_more(List.length(&2, Model.Issue, rows), offset, limit)), "", quiet)
+    case False{}:
+      printed(Render.list_plain(Query.page(rows, offset, limit), Cli.given(opts, "long")), Render.truncation_note(Query.has_more(List.length(&2, Model.Issue, rows), offset, limit), outside_query(opts), List.length(&2, Model.Issue, Query.page(rows, offset, limit)), List.length(&2, Model.Issue, rows)), quiet)
+
+# S4.118 (spec twin) `list` once its filter is built: the sort key is judged next (9 is a key nobody knows)
+def list_sorted(+key: U32, f: Query.Filter, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, bad: Bool) -> Outcome:
+  match bad:
+    case True{}:
+      failed(Query.bad_sort(Maybe.default(&2, String, Cli.value(opts, "sort"), "")), json)
+    case False{}:
+      list_page(Query.ordered(Query.kept(issues, f), key, Cli.given(opts, "reverse")), issues, opts, Query.count_of(Cli.value(opts, "limit")), Query.count_of(Cli.value(opts, "offset")), json, quiet)
+
+# S4.105 S4.107 S4.108 (spec twin) `list` once its options were judged
+def list_built(b: Query.Built, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool) -> Outcome:
+  match b:
+    case Query.BuildBad{f}:
       failed(f, json)
-    case Store.LoadOk{issues}:
+    case Query.BuildOk{f}:
+      list_sorted(Query.sort_key(Cli.value(opts, "sort")), f, opts, issues, json, quiet, U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9))
+
+# S4.147 (spec twin) the grouping selectors that were given, in the fixed order of the refusal
+def selectors(+opts: List<&2, Cli.Occ>) -> List<&2, String>:
+  List.concat(&2, String, [Bool.pick(List<&2, String>, Cli.given(opts, "by"), ["--by"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-status"), ["--by-status"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-priority"), ["--by-priority"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-type"), ["--by-type"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-assignee"), ["--by-assignee"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-label"), ["--by-label"], [])])
+
+# S4.147 (spec twin) the refusal of more than one grouping selector
+def many_selectors(given: List<&2, String>) -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: by: only one count grouping selector can be specified; got " ++ String.join(given, ", "), None{}, True{}, Nil{}, 4}
+
+# S4.147 S4.148 (spec twin) the field from `--by <field>` or from the alias flag; label when nothing else says
+def group_field_pick(+by: String, status: Bool, priority: Bool, kind: Bool, assignee: Bool) -> U32:
+  match status priority kind assignee:
+    case True{} _ _ _:
+      0
+    case False{} True{} _ _:
+      1
+    case False{} False{} True{} _:
+      2
+    case False{} False{} False{} True{}:
+      3
+    case False{} False{} False{} False{}:
+      Bool.pick(U32, String.eq(by, "status"), 0, Bool.pick(U32, String.eq(by, "priority"), 1, Bool.pick(U32, String.eq(by, "type"), 2, Bool.pick(U32, String.eq(by, "assignee"), 3, 4))))
+
+# S4.147 S4.148 (spec twin) the field a count groups by: 0 status, 1 priority, 2 type, 3 assignee, 4 label
+def group_field(+opts: List<&2, Cli.Occ>) -> U32:
+  group_field_pick(Maybe.default(&2, String, Cli.value(opts, "by"), ""), Cli.given(opts, "by-status"), Cli.given(opts, "by-priority"), Cli.given(opts, "by-type"), Cli.given(opts, "by-assignee"))
+
+# S4.150 S5.52 S5.161 S5.162 (spec twin) `count` once its issues are chosen: the total is the number of issues,
+# whatever the groups add up to
+def count_kept(+rows: List<&2, Model.Issue>, by: U32, by_group: Bool, json: Bool, quiet: Bool) -> Outcome:
+  printed(Render.count_text(List.length(&2, Model.Issue, rows), Query.grouped(rows, by, Nil{}), by_group, json), "", quiet)
+
+# S4.144–S4.150 S5.52 S5.161–S5.166 (spec twin) `count` once its filter is built
+def count_built(b: Query.Built, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool) -> Outcome:
+  match b:
+    case Query.BuildBad{f}:
+      failed(f, json)
+    case Query.BuildOk{f}:
+      count_kept(Query.kept(issues, f), group_field(opts), Bool.not(List.is_empty(&2, String, selectors(opts))), json, quiet)
+
+# S4.147 (spec twin) `count`: more than one grouping selector is refused before anything else
+def count_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, many: Bool) -> Outcome:
+  match many:
+    case True{}:
+      failed(many_selectors(selectors(opts)), json)
+    case False{}:
+      count_built(Query.build(opts, issues, False{}, True{}), opts, issues, json, quiet)
+
+# S4.132 S5.127 S5.128 (spec twin) `list`; its `--overdue` (which needs the clock), `--tree` and `--pretty` are not ported yet
+def list_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
+  match later:
+    case True{}:
+      failed(unported(), json)
+    case False{}:
+      list_built(Query.build(opts, issues, True{}, False{}), opts, issues, json, quiet)
+
+# S1 S4 S5 (spec twin) route on the command's words
+def command_pick(is_list: Bool, is_count: Bool, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool) -> Outcome:
+  match is_list is_count:
+    case True{} _:
+      list_cmd(opts, issues, json, quiet, (Cli.given(opts, "overdue") || Cli.given(opts, "tree") || Cli.given(opts, "pretty")))
+    case False{} True{}:
+      count_cmd(opts, issues, json, quiet, Nat.is_gt(List.length(&2, String, selectors(opts)), 1n))
+    case False{} False{}:
       failed(unported(), json)
 
+# S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches; a command that is not ported answers the port's own failure
+def command(c: Call, +issues: List<&2, Model.Issue>) -> Outcome:
+  match c:
+    case Call{+path, +opts, words, json, quiet}:
+      command_pick(String.eq(path, "list"), String.eq(path, "count"), opts, Store.model(issues), json, quiet)
+
+# S2.26 S2.27 (spec twin) a loaded store: a refusal is the outcome; a good store reaches the command
+def loaded(st: Store.Loaded, +c: Call) -> Outcome:
+  match st:
+    case Store.LoadBad{f}:
+      failed(f, wants_json(c))
+    case Store.LoadOk{issues}:
+      command(c, issues)
+
 # S2.24 (spec twin) the store's bytes as code points, then as records
-def decoded(d: Bytes.Decoded, path: String, json: Bool) -> Outcome:
+def decoded(d: Bytes.Decoded, path: String, +c: Call) -> Outcome:
   match d:
     case Bytes.NotUtf8{}:
-      failed(not_utf8(), json)
+      failed(not_utf8(), wants_json(c))
     case Bytes.Utf8{codes}:
-      loaded(Store.load(codes, path), json)
+      loaded(Store.load(codes, path), c)
 
 # S2.1 S9.8 (spec twin) route on the workspace verdict; the store path the messages quote is absolute
-def routed(workspace: Bool, json: Bool, cwd: String, store: List<&2, U32>) -> Outcome:
+def routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
   match workspace:
     case False{}:
-      failed(Failure.not_initialized(), json)
+      failed(Failure.not_initialized(), wants_json(c))
     case True{}:
-      decoded(Bytes.decode(store), cwd ++ "/.beads/issues.jsonl", json)
+      decoded(Bytes.decode(store), cwd ++ "/.beads/issues.jsonl", c)
 
 # S1.29 S1.89 (spec twin) a help request: the text on stdout, exit 0. A level whose help text the port does
 # not carry answers with the port's own refusal (PLAN §3: help texts beyond the captured ones are excluded)
@@ -89,7 +211,7 @@ def ran(p: Cli.Parsed, workspace: Bool, cwd: String, store: List<&2, U32>) -> Ou
     case Cli.Outside{word}:
       outside(word)
     case Cli.Command{path, +opts, words}:
-      routed(workspace, (Cli.given(opts, "json") || Cli.given(opts, "robot")), cwd, store)
+      routed(workspace, Call{path, opts, words, (Cli.given(opts, "json") || Cli.given(opts, "robot")), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot"))))}, cwd, store)
 
 # S1 S4 S5 S9 (spec twin, dispatcher) the single entry the shell calls
 def outcome(inputs: Inputs) -> Outcome:

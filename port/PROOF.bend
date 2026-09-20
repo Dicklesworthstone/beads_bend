@@ -11,6 +11,9 @@ import ./core/time.bend as Time
 import ./core/model.bend as Model
 import ./core/store.bend as Store
 import ./core/cli.bend as Cli
+import ./core/query.bend as Query
+import ./core/render.bend as Render
+import ./core/run.bend as Run
 import ./LAWS.bend as Laws
 
 # S0.1 both twins are the identity; the checker sees it by computation
@@ -160,4 +163,24 @@ def Laws.cli_help_forms():
 
 # S1.79 the checker scores the five listed values against `statu`
 def Laws.cli_similar_value():
+  {==}
+
+# S4.107 the checker reads five priority words
+def Laws.query_priority_words():
+  {==}
+
+# S5.112 the checker sanitizes eight code points
+def Laws.render_inline_controls():
+  {==}
+
+# S4.102 S4.115 S5.116 the checker runs the whole pure program on a two-record store
+def Laws.run_list_two():
+  {==}
+
+# S4.144 S4.149 S5.162 the checker runs `count --by-status` on the same store
+def Laws.run_count_two():
+  {==}
+
+# S4.107 the checker cuts six tokens and spans their ranges
+def Laws.query_priority_ranges():
   {==}

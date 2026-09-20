@@ -83,7 +83,7 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [ ] E3.5 `version` per DISC-006 (`bn version …`), plus the shape canonicalizer for `version_plain` / `version_json` in `scripts/ws_inner.py`, re-captured with `--disc DISC-006`
 
 ### E4. Store completeness — `core/store.bend`
-- [ ] E4.1 load repairs S2.31–S2.36: status/type/dep-type folding and aliases; label sort+dedup; duplicate edges; duplicate comments; `-wisp-` ⇒ ephemeral; `closed_at` repairs; `external_ref` trim; `updated_at` ≥ `created_at`
+- [x] E4.1 (`Model.repaired`, `Store.model`; `show` keeps the raw records) load repairs S2.31–S2.36: status/type/dep-type folding and aliases; label sort+dedup; duplicate edges; duplicate comments; `-wisp-` ⇒ ephemeral; `closed_at` repairs; `external_ref` trim; `updated_at` ≥ `created_at`
 - [ ] E4.2 duplicate-id refusal (S2.40); tombstone protection (S2.42)
 - [ ] E4.3 validation S2.43–S2.56 with verbatim messages (exit 4)
 - [ ] E4.4 `Store.text`: records by id bytes, `\n` each; S5.9 `""` rule; S5.14 dependency defaults (`import`, `{}`, `""`); S5.16 exclusions
@@ -91,8 +91,10 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [ ] E4.6 UTF-8 strictness (overlong, surrogates, > U+10FFFF) after OQ-101
 
 ### E5. Queries — `core/query.bend`, `core/blocked.bend`, `core/graph.bend`
-- [ ] E5.1 visibility, filters, `--limit/--offset`, `total/has_more`; the comparators of S6.6–S6.17 as `le` defs
-- [ ] E5.2 `list` plain / `--long` / JSON (`IssueWithCounts`); `search`; `count` (+ every `--by-*`); `stats`
+- [x] E5.1 visibility, filters (statuses, types, priorities with ranges and comma lists, assignee, ids, labels, bounds, the three `--*-contains`), `--limit/--offset`, `total/has_more`; six `le` comparators over precomputed sort keys (`Query.Row`)
+  - [ ] E5.1a `--overdue` (needs the clock: E6), `--tree`, `--pretty`, `--format json|csv`
+- [x] E5.2a `list` plain / `--long` / JSON (`Model.listed`), `count` and every `--by-*`: all 38 `list_*`/`count_*` cases pass on c-1t and js
+- [ ] E5.2b `search`; `stats`
 - [ ] E5.3 the BLOCKED relation (three ordered steps), `ready` (three sort policies), `blocked`
 - [ ] E5.4 `show` (raw-record path, S2.39), `dep list` (two orders), `dep tree`, `dep cycles`, `epic status`, `label list`, `label list-all`, `comments list`
 - [ ] E5.5 laws: `counts_sum_to_total`; order laws for the comparators

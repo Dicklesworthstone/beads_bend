@@ -19,6 +19,9 @@ import ./core/time.bend as Time
 import ./core/model.bend as Model
 import ./core/store.bend as Store
 import ./core/cli.bend as Cli
+import ./core/query.bend as Query
+import ./core/render.bend as Render
+import ./core/run.bend as Run
 
 # S0.1 the fast twin equals the spec twin, for every input. One `for` per
 # line, the goal last; `+x` when the proof needs x more than once.
@@ -177,3 +180,26 @@ law cli_help_forms:
 # S1.79 closed golden: goldens/usage_enum_similar_value.err — a refused word similar to a listed value earns a tip
 law cli_similar_value:
   {Cli.parse(["count", "--by", "statu"]) == Cli.Refused{"error: invalid value 'statu' for '--by <BY>'\n  [possible values: status, priority, type, assignee, label]\n\n  tip: a similar value exists: 'status'\n\nFor more information, try '--help'.\n"} : Cli.Parsed}
+
+# S4.107 closed facts: a priority word is an optional `P` and one digit 0..4, judged in upper case; 9 is "not a priority"
+law query_priority_words:
+  {[Query.priority_word(Query.shouted("p0")), Query.priority_word("4"), Query.priority_word(Query.shouted("nine")), Query.priority_word("P5"), Query.priority_word("")] == [0, 4, 9, 9, 9] : List<&2, U32>}
+
+# S5.112 closed fact: the inline sanitizer writes tab, line feed and carriage return in their short forms, any other
+# control character in hexadecimal without a leading zero, and leaves everything else alone
+law render_inline_controls:
+  {Render.inline(SCon{Chr{97}, SCon{Chr{9}, SCon{Chr{10}, SCon{Chr{13}, SCon{Chr{27}, SCon{Chr{7}, SCon{Chr{155}, SCon{Chr{233}, SNil{}}}}}}}}}) == "a\\t\\n\\r\\u{1b}\\u{7}\\u{9b}é" : String}
+
+# S4.102 S4.115 S5.116 S5.120 closed golden: `list` over two records of fixture `basic` prints the two lines that
+# goldens/list_plain.out shows for them, the P2 epic before the deferred P4 chore, which `list` does not hide
+law run_list_two:
+  {Run.outcome(Run.Inputs{["list"], True{}, "/mnt/proj", Bytes.utf8("{\"id\":\"proj-7vm\",\"title\":\"Refactor config loader\",\"status\":\"deferred\",\"priority\":4,\"issue_type\":\"chore\",\"created_at\":\"2026-01-01T10:00:05Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T14:00:00Z\",\"defer_until\":\"2027-06-01T09:00:00Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0}\n{\"id\":\"proj-uly\",\"title\":\"Auth epic\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"epic\",\"created_at\":\"2026-01-01T10:00:04Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T10:00:04Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0}\n")}) == Run.Outcome{"○ proj-uly [● P2] [epic] - Auth epic\n❄ proj-7vm [● P4] [chore] - Refactor config loader\n", "", 0} : Run.Outcome}
+
+# S4.144 S4.149 S5.162 closed fact: over the same two records `count --by-status` leaves the deferred one out
+law run_count_two:
+  {Run.outcome(Run.Inputs{["count", "--by-status"], True{}, "/mnt/proj", Bytes.utf8("{\"id\":\"proj-7vm\",\"title\":\"Refactor config loader\",\"status\":\"deferred\",\"priority\":4,\"issue_type\":\"chore\",\"created_at\":\"2026-01-01T10:00:05Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T14:00:00Z\",\"defer_until\":\"2027-06-01T09:00:00Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0}\n{\"id\":\"proj-uly\",\"title\":\"Auth epic\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"epic\",\"created_at\":\"2026-01-01T10:00:04Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-01T10:00:04Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0}\n")}) == Run.Outcome{"Total: 1\nopen: 1\n", "", 0} : Run.Outcome}
+
+# S4.107 closed facts: a token with a `-` and text on both sides is a closed range, low to high inclusive; a reversed
+# range, an end that is not a priority, and a missing end select nothing, which refuses the token
+law query_priority_ranges:
+  {[Query.picks_of(Query.cut_at_dash("0-2", [])), Query.picks_of(Query.cut_at_dash("P1-P3", [])), Query.picks_of(Query.cut_at_dash("2", [])), Query.picks_of(Query.cut_at_dash("3-1", [])), Query.picks_of(Query.cut_at_dash("1-9", [])), Query.picks_of(Query.cut_at_dash("1-", []))] == [[0, 1, 2], [1, 2, 3], [2], [], [], []] : List<&2, List<&2, U32>>}

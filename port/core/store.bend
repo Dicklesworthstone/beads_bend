@@ -3,9 +3,11 @@
 # conflict marker (before any JSON is parsed) or on a line that is not a
 # record, skip blank lines while still counting them. Writing: one
 # Model.line per record, by id in byte order, each ended by one newline.
-# Not here yet, and stated so nothing is assumed: the load repairs of S2.31–
-# S2.36 other than the label sort, the duplicate-id refusal of S2.40, and the
-# validation of S2.43–S2.56. Nothing here consults the original.
+# `load` answers the file's records AS THEY ARE (what `show` reads, S2.38–S2.39);
+# `model` answers the loaded model: every record through the repairs of S2.31–
+# S2.36 and S5.9 (core/model `repaired`), ephemeral records dropped (S2.42).
+# Not here yet, and stated so nothing is assumed: the duplicate-id refusal of
+# S2.40 and the validation of S2.43–S2.56. Nothing here consults the original.
 import Base
 import ./json.bend as Json
 import ./model.bend as Model
@@ -172,3 +174,24 @@ def refusal(st: Loaded) -> String:
     case LoadOk{issues}:
       ""
 
+
+# S2.42 (spec twin) keep a record that is not ephemeral
+def model_put(i: Model.Issue, ephemeral: Bool, rest: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match ephemeral:
+    case True{}:
+      rest
+    case False{}:
+      i <> rest
+
+# S2.42 (spec twin) one repaired record joins the model unless it is ephemeral
+def model_one(+i: Model.Issue, rest: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  model_put(i, Model.is_ephemeral(i), rest)
+
+# S2.36 S2.42 (spec twin) the loaded MODEL of a store: every record repaired, and the ephemeral ones (after the
+# repair that marks a `-wisp-` id) dropped. `show` does not read this: it reads the file's records as they are (S2.38, S2.39)
+def model(issues: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{i, rest}:
+      model_one(Model.repaired(i), model(rest))
