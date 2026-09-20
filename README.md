@@ -41,7 +41,8 @@ As of 2026-09-20 this project is early in Phase 3 of an eight-phase port method 
 | Parity board (Phase 4) | skeleton: 29 in-scope rows (2 `partial`, 27 `missing`) and 13 classed exclusions; `scripts/parity-board.sh` reports `PARTIAL`. No find-fix round has run | `docs/FEATURE_PARITY.md` |
 | Performance (Phase 5) | no measurement of any kind; `perf/EXPERIMENTS.md` is empty | `perf/` |
 | Port report (Phase 6) | template | `docs/PORT_REPORT.md` |
-| Binary, installer, release, license file, git remote | none | |
+| Repository and license | public at https://github.com/Dicklesworthstone/beads_bend; `LICENSE` is MIT with the OpenAI/Anthropic rider, the same text as `br`'s | `LICENSE` |
+| Binary, installer, release | none | |
 
 `docs/PORT_STATE.md` is the live copy of this table: it is rewritten at the end of every working session with the gate lines pasted verbatim, and it wins over this README when the two differ.
 
@@ -587,7 +588,7 @@ Please don't take this the wrong way, but I do not accept outside contributions 
 
 ## License
 
-This repository has no LICENSE file. The license is the owner's decision, and this section names it once that file exists. `br` itself is MIT with an OpenAI/Anthropic rider; see its repository.
+MIT with an OpenAI/Anthropic rider: see [`LICENSE`](LICENSE). It is the same license text as `br` (beads_rust), the project this one ports.
 
 ---
 

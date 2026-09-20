@@ -50,7 +50,7 @@ In this repository "overwrite code/data" includes every file under `goldens/` an
 
 - **All work happens on `main`**
 - **Never reference `master` in code or docs** — if you see `master` anywhere, it's a bug that needs fixing
-- As of 2026-09-20 `git remote -v` prints nothing: this repository has no remote. See "Landing the Plane" for what that means at session end.
+- The remote is `origin` = `https://github.com/Dicklesworthstone/beads_bend.git` (public; created 2026-09-20 on the owner's instruction). See "Landing the Plane": a session ends with `main` pushed.
 - `legacy/` and `toolchain/` are gitignored (`.gitignore`); never force-add them.
 
 ---
@@ -440,7 +440,7 @@ bend2.dev is unofficial. `bend guide`, `bend base`, the repository and the paper
 | `docs/PIN.toml`, `docs/FEATURE_PARITY.md` (board verdict MALFORMED), `docs/NUMERIC_PLAN.md`, `docs/PROPOSED_ARCHITECTURE.md` and `port.env` still hold scaffold placeholders. `port.env` names `ORIGINAL="python3 legacy/ORIGINAL.py"` and `SWITCH=X_SPEC=1`; neither is this port's value, so `scripts/port.sh` is not usable yet | `rg -n '<' docs/PIN.toml`; read `port.env` |
 | DISC-001 through DISC-005 are OPEN, approver pending | `docs/DISCREPANCIES.md` |
 | The gpu lane is MISSING: no CUDA device on this host | PLAN §2b |
-| No `.beads/` directory, no `README.md`, no `.github/workflows/`, no git remote | `ls -a`; `git remote -v` |
+| No `.beads/` directory and no `.github/workflows/`; `README.md`, `LICENSE` and the remote `origin` exist | `ls -a`; `git remote -v` |
 
 ### Phases (PLAN §6)
 
@@ -999,7 +999,7 @@ git push                # Push to remote (once a remote exists)
 4. **Check the state file and the words** - `./scripts/state-check.sh docs/PORT_STATE.md` → OK; `./scripts/claims-lint.sh` on every claim-bearing document touched → clean.
 5. **Update issue status** - Close finished work, update in-progress items
 6. **Sync beads** - `br sync --flush-only` to export to JSONL
-7. **Commit, and push when a remote exists** - the machine-wide rule is that work is NOT complete until `git push` succeeds. As of 2026-09-20 `git remote -v` prints nothing. With no remote: commit, state in the hand-off that nothing was pushed because no remote exists, and never create or choose a remote yourself.
+7. **Commit and PUSH** - the machine-wide rule is that work is NOT complete until `git push` succeeds: `git pull --rebase`, `git push`, then `git status` must show `up to date with 'origin/main'`. The remote is `origin` (`https://github.com/Dicklesworthstone/beads_bend.git`). Never create or choose another remote yourself, and never force-push.
 8. **Hand off** - Provide context for next session; release Agent Mail reservations
 
 Never delete files, never disturb other agents' edits, never edit `goldens/` by hand.

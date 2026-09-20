@@ -2,8 +2,13 @@
 
 <!-- Phase 6 output for a port that will outlive its authors (SHIP-AND-CERTIFY
      "What to ship"). AGENTS.md is the agent-facing mandate; this is the
-     human contributor's version of the same rules. Fill the <placeholders>
-     from PLAN §2 and CODEOWNERS. -->
+     human contributor's version of the same rules. The remaining `<…>` words
+     below are syntax placeholders inside commands, not unfilled fields. -->
+
+> **Outside contributions are not merged.** The owner's policy, stated in `README.md` ("About Contributions"), applies here:
+> issues are welcome, and a PR may illustrate a proposed fix, but it will not be merged. This file is the working
+> agreement for the people and agents who DO change this repository: the owner and the agents working for him.
+> `AGENTS.md` is the agent-facing version of the same rules.
 
 ## 1. The two equivalences
 
@@ -22,7 +27,7 @@ spec gap is an `OQ-` row resolved by running it on a new case.
 1. Add a row to `goldens/cases.tsv`: `name<TAB>args[<TAB>stdin-file]`; the
    name is an identifier and is never renamed later.
 2. `./scripts/cases-lint.sh goldens/cases.tsv` → OK.
-3. `./scripts/golden-capture.sh goldens/cases.tsv goldens --repin "new case <name>" -- <original cmd>`;
+3. `./scripts/golden-capture.sh goldens/cases.tsv goldens --repin "new case <name>" -- scripts/ws-run.sh --oracle br --no-db ::` (`<name>` is the new case's name);
    the printed MANIFEST diff must name only the new case.
 4. Name the case in the spec clause it exercises (`docs/EXISTING_BEADS_RUST_STRUCTURE.md`).
 5. `./scripts/lanes.sh goldens/cases.tsv goldens port/main.bend` → PASS, or the failure is your finding.
@@ -32,7 +37,7 @@ Goldens are never typed or edited by hand.
 ## 3. Proposing a law
 
 Append `# PROPOSED: <law text>` to `port/LAWS.bend` with the clause it
-proves (`# S<n>.<m>`); the law owner (`<name>`) promotes it and the prover
+proves (`# S<n>.<m>`); the law owner (the repository owner, @Dicklesworthstone) promotes it and the prover
 fills `def Laws.<name>` in `port/PROOF.bend`. Laws are never weakened or
 deleted. `./scripts/law-coverage.sh` must stay OK.
 
@@ -41,7 +46,7 @@ deleted. `./scripts/law-coverage.sh` must stay OK.
 Bug-compatibility is the default. A deliberate divergence is an entry in
 `docs/DISCREPANCIES.md` with class, spec clause, original behavior (the
 golden), port behavior, kill-switch, affected cases and measured impact,
-approved by `<approver>` (never its implementer), then re-captured through
+approved by the repository owner, @Dicklesworthstone (never its implementer), then re-captured through
 its wrapper with `--disc DISC-<n>`. Until accepted it is a bug.
 
 ## 5. Proposing a performance lever

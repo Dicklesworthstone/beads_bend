@@ -84,7 +84,7 @@ def run(inner, argv, stamp, oracle, root):
     # harness, argv is a list (no shell), the environment is cleared and the
     # run is time-bounded. UBS python.taint.command flags it by design.
     try:
-        done = subprocess.run(inner + argv, cwd=WS, timeout=STEP_TIMEOUT, check=False, capture_output=True)
+        done = subprocess.run(inner + argv, cwd=WS, timeout=STEP_TIMEOUT, check=False, capture_output=True)  # ubs:ignore[python.taint.command] Running the command named on our own command line is this wrapper's contract (as for env(1) and timeout(1)): list argv, no shell, cleared environment, bounded time. Accepted by the repository owner 2026-09-20.
     except subprocess.TimeoutExpired:
         die(f"step exceeded {STEP_TIMEOUT}s: {argv}")
     except OSError as exc:

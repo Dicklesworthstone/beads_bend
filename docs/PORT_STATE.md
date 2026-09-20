@@ -12,7 +12,8 @@
 | tier | T3 |
 | bend | `bend 2.0.20` (release binary from the official installer, sha256 `fab9e564c578a0a1…`; run through `scripts/bend-cli.sh`); drift vs the skills' 2.0.16: DRIFT, itemized in PLAN §2b and §8 (`bend version` replaces `--version`; operators need their own `( .. : T)`; foreign defs change the verdict text; cookbook probes 32/32 on interpreter and C) |
 | original | `br 0.6.0`, tag `v0.6.0`, commit `b1cfebe`, release binary sha256 `21b967c1ae68df1a…`, run as `scripts/ws-run.sh --oracle br --no-db ::` |
-| last updated | 2026-09-20 by Claude (Fable 5.1), session 1 (rewritten after the Phase 1 and 2 gates) |
+| last updated | 2026-09-20 by Claude (Fable 5.1), session 1 |
+| remote | `origin` = https://github.com/Dicklesworthstone/beads_bend (public); sessions end with `main` pushed. The granular backlog is `docs/BACKLOG.md` |
 
 Every command below assumes: `cd /data/projects/beads_bend; export BEND_NO_TELEMETRY=1 BEND_CLI=$PWD/scripts/bend-cli.sh LANE_WRAP=$PWD/scripts/ws-run.sh`
 
@@ -37,11 +38,9 @@ Reading the table. `lanes` FAIL is the truthful state. The seven passing cases o
 
 | id | what | blocks | owner |
 |---|---|---|---|
-| OQ register | 103 rows, 7 RESOLVED, 96 OPEN (`docs/OPEN_QUESTIONS.md`). Most open rows are the extractors' `(case to add …)` proposals and the six review contradictions (OQ-093…OQ-098); each names the case that settles it | phase 1 passes two and three; phase 4 convergence (every OQ resolved or excluded) | author |
-| OQ-003, OQ-005, OQ-006, OQ-078 | the port's `version` contract; `br --no-db init`; the id-length band edges (fixtures `n163`/`n164`); a non-integer average lead time (needs a multi-limb binary64 routine or a decision) | phase 3 rows `version`, `stats`; S4.9's `[inference]` bands | author; approver for the `version` DISC |
-| DISC-001 … DISC-005 | pinned-instant seam; single-writer; non-atomic write-back; sidecars; ambiguous-id candidate order (canonicalized) — all OPEN | phase 4 (no OPEN DISC at convergence) | approver: the repository owner |
-| UBS | `python.taint.command` on `scripts/ws_inner.py` (argv reaches `subprocess`): the wrapper's contract; not suppressed | commit hygiene (`ubs` exit 1 on that file) | the repository owner decides: a `.ubsignore` entry or a redesign |
-| REMOTE | the repository has no git remote; nothing is pushed | session-end "push" | the repository owner: name the remote |
+| OQ register | 103 rows, 8 RESOLVED, 95 OPEN (`docs/OPEN_QUESTIONS.md`). Most open rows are the extractors' `(case to add …)` proposals and the six review contradictions (OQ-093…OQ-098); each names the case that settles it | phase 1 passes two and three; phase 4 convergence (every OQ resolved or excluded) | author |
+| OQ-005, OQ-006, OQ-078 | `br --no-db init`; the id-length band edges (fixtures `n163`/`n164`); a non-integer average lead time (needs a multi-limb binary64 routine or a decision) | phase 3 row `stats`; S4.9's `[inference]` bands | author |
+| DISC-001 … DISC-006 | all ACCEPTED on 2026-09-20 under the owner's delegation ("You decide on everything. I approve whatever you want to do."); the owner can revoke any of them, which returns it to OPEN. DISC-006 is new: the port's binary is `bn` and its `version` output is its own | none (no OPEN DISC) | the repository owner |
 
 Resolved this session by running the original or the pinned runtime: OQ-001 (chronological order, id tie-break), OQ-002 (every mutation rewrites and normalizes all records), OQ-004 (Bend has no wall clock), OQ-007 (`compacted_at_commit` alone survives as `""`), OQ-009 (custom effects load on all three engines), OQ-015 (`--quiet` suppresses warnings), OQ-092 (`IO.die` always writes to stderr; a custom `Sys.exit` is the exit path). Details: `docs/OPEN_QUESTIONS.md`.
 

@@ -21,7 +21,7 @@ reversal. `RESOLVED` records a repair that restores the original behavior;
 it needs a Resolution field naming the regression artifacts, not approval
 to change the contract. Keep the historical entry and its original evidence.
 
-### DISC-001 — a pinned-instant seam, `BEADS_BEND_NOW`   [2026-09-20 | Nondeterminism | OPEN]
+### DISC-001 — a pinned-instant seam, `BEADS_BEND_NOW`   [2026-09-20 | Nondeterminism | ACCEPTED]
 - Spec clause: S8 (clock effect), S4 (id generation, timestamps)
 - Original behavior (cite the golden): every timestamp and id derives from the wall clock; `br` has no override. `goldens/create_min.out` line 1 shows the pinned instant only because the capture preloads libfaketime: `✓ Created proj-…` with `"created_at":"2026-01-02T03:04:05Z"` in the dump.
 - Port behavior: identical bytes when `BEADS_BEND_NOW=<epoch seconds>` is set; the real clock otherwise.
@@ -29,10 +29,10 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: unset `BEADS_BEND_NOW` (the default): the port reads the real clock, as the original does.
 - Affected cases: none change; the variable is what makes the mutating cases comparable on every lane (`scripts/ws_inner.py` sets it from the case's `@time`).
 - Impact measured: 0 of 231 goldens differ because of it; without it no mutating case is reproducible.
-- Approver: pending (repository owner)
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
 - Amendment 2026-09-20 (same day, after OQ-004 and OQ-009): "the real clock" above cannot mean Bend's `IO.now`, which is a monotonic millisecond ticker on every engine. With the variable unset the port reads a custom effect, `Clock.wall` (`port/probes/clock/`), which delivers nanoseconds on the C lane and milliseconds on the interpreter and JS lanes. An unpinned timestamp therefore prints 9 fraction digits from the native binary and 3 from the JS engines: a separate `Platform` DISC is registered when the clock lands in the port. Counts in DISC-001…DISC-004 were measured on the 231-case corpus that existed when they were written; the corpus has 235 cases since DISC-005.
 
-### DISC-002 — single-writer: no cross-process write locks   [2026-09-20 | Excluded | OPEN]
+### DISC-002 — single-writer: no cross-process write locks   [2026-09-20 | Excluded | ACCEPTED]
 - Spec clause: S8 (lock sidecars), PLAN §3 exclusion "cross-process write locks"
 - Original behavior (cite the golden): a mutating run takes `.beads/.br-jsonl-write-<sha>.lock`, `.br-db-write-<sha>.lock` and `.write.lock` (observed 2026-09-20 in a scratch workspace) and refuses to export when the on-disk JSONL changed since load.
 - Port behavior: no lock files; one invocation loads, mutates and writes back. Two concurrent port writers can lose an update.
@@ -40,9 +40,9 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: none possible inside Bend; serialize writers outside the tool. Repayment: a custom lock effect (C and JS).
 - Affected cases: none of the 231 (the sandbox runs one process at a time; lock sidecars are not part of the dumped state).
 - Impact measured: 0 of 231 cases; the exposure is concurrent agents on one workspace, which the corpus does not exercise.
-- Approver: pending (repository owner)
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
 
-### DISC-003 — write-back is not atomic   [2026-09-20 | Platform | OPEN]
+### DISC-003 — write-back is not atomic   [2026-09-20 | Platform | ACCEPTED]
 - Spec clause: S8 (JSONL publication), PLAN §3 exclusion "temp file + RENAME_EXCHANGE"
 - Original behavior (cite the golden): stages `issues.jsonl.<pid>.tmp`, fsyncs, publishes by rename and keeps a pre-export backup under `.beads/.br_history/`; the published bytes are what `--- .beads/issues.jsonl ---` shows in every mutating golden.
 - Port behavior: the same final bytes, written in place. A kill during the write can leave a truncated store, and no history backup exists.
@@ -50,9 +50,9 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: none inside Bend. Repayment: a custom `file_rename` effect, then the staged publication.
 - Affected cases: none of the 231 (final bytes are equal; crash windows are not observable in the harness).
 - Impact measured: 0 of 231 cases.
-- Approver: pending (repository owner)
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
 
-### DISC-004 — sidecars other than `last-touched` are not produced   [2026-09-20 | Excluded | OPEN]
+### DISC-004 — sidecars other than `last-touched` are not produced   [2026-09-20 | Excluded | ACCEPTED]
 - Spec clause: S8
 - Original behavior (cite the golden): after a mutation `.beads/` also holds the three lock files and a `.br_history/` directory (observed 2026-09-20).
 - Port behavior: writes `issues.jsonl` and `last-touched` only.
@@ -60,9 +60,9 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: none.
 - Affected cases: none (the harness dumps `issues.jsonl` and `last-touched`, the two files other tools read).
 - Impact measured: 0 of 231 cases.
-- Approver: pending (repository owner)
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
 
-### DISC-005 — candidates of an ambiguous partial id are listed in byte order   [2026-09-20 | OrderLeak | OPEN]
+### DISC-005 — candidates of an ambiguous partial id are listed in byte order   [2026-09-20 | OrderLeak | ACCEPTED]
 - Spec clause: S6 (order leaks), S9 (`AMBIGUOUS_ID`, exit 3)
 - Original behavior (cite the golden): the candidate list is hash-random per process. Six runs of `show m` on fixture `basic` on 2026-09-20 printed four different orders, e.g. `Error: Ambiguous ID 'm': matches ["proj-7vm", "proj-mkh", "proj-mta"]` and `… matches ["proj-mkh", "proj-mta", "proj-7vm"]`; `floor.sh --repeat 3` reported `"unstable":["show_partial_ambiguous"]`. The same list appears in the JSON envelope's `message` and in `context.matches`. The exit code (3), the hint and every other byte are stable.
 - Port behavior: the candidates in ascending byte order of the id, in all three places.
@@ -70,4 +70,14 @@ to change the contract. Keep the historical entry and its original evidence.
 - Kill-switch: none is meaningful (there is no single original order to restore).
 - Affected cases: `show_partial_ambiguous`, `error_show_ambiguous_json`, `error_update_ambiguous`; captured through the canonicalizer in `scripts/ws_inner.py` (`canon`: sorts only the lists of an `Ambiguous ID` message, applied identically to the original and the port; the exit code is never canonicalized).
 - Impact measured: 1 of 231 cases unstable before the canonicalizer; five repeated runs byte-identical after it, in plain and JSON form; `list_json` unchanged byte for byte.
-- Approver: pending (repository owner)
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. His words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; he can revoke it, which returns the entry to OPEN
+
+### DISC-006 — the port's `version` output and binary name are its own   [2026-09-20 | Platform | ACCEPTED]
+- Spec clause: S5.200–S5.202, S9.33; OQ-003
+- Original behavior (cite the golden): `goldens/version_plain.out` line 1: `br version 0.6.0 (release) (v0.6.0@b1cfebe)`; `goldens/version_json.out` line 1: `{"version":"0.6.0","build":"release","commit":"b1cfebe05437463e91a353cf2bedafac27266f5b","branch":"v0.6.0","rust_version":"1.100.0-nightly","target":"x86_64-unknown-linux-gnu","features":["self_update"]}`.
+- Port behavior: the port's binary is named `bn`. `bn version` prints `bn version <port version> (bend <bend version>) (port of br 0.6.0@b1cfebe)`; `bn version --json` prints one compact object with the members `version`, `build` (`bend`), `bend_version`, `port_of` (`br 0.6.0`), `oracle_commit`, `features` (an empty list). Everywhere else the port prints the original's bytes, including the literal `br` inside clap's usage texts and inside hints such as `Run: br init`.
+- Why: those bytes are build metadata of a different program (a Rust toolchain version, a target triple, a git branch). Printing them would be a false statement about the binary the user is running.
+- Kill-switch: none is meaningful: there is no truthful way to restore the original's bytes.
+- Affected cases: `version_plain`, `version_json`. When `version` is ported (backlog item E3.5) the comparison of these two cases goes through a canonicalizer in `scripts/ws_inner.py`, applied identically to both sides and only when the case's command is `version`: plain output is reduced to its shape (`<name> version <version> …`, one line), JSON output to "one object with a string member `version`"; the exit code is never canonicalized. Until then both cases fail on every lane like every other unported command.
+- Impact measured: 2 of 235 cases.
+- Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation (the words quoted under DISC-001); decided by the porting agent under that delegation
