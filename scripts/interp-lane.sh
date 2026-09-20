@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # interp-lane: run `bend <file.bend> -- <args>` as the interpreter lane and drop
-# the one stderr line the CLI prints BEFORE the program runs when the book has
-# @unsafe defs or (2.0.16+) template instances:
+# the note the CLI prints on stderr BEFORE the program runs: in 2.0.16 one line
+# when the book has @unsafe defs or template instances,
 #   "All terms check, with N unsafe annotation(s)."
+# and since 2.0.18 a block when a def reaches @unsafe or FOREIGN code (this
+# port's shell reaches its custom effects),
+#   "All terms check, but N defs rely on unsafe or foreign code:" + "- <def>" lines.
 # That line is the checker's note, not the program's stderr; the goldens were
 # captured from the original, which never prints it. Everything else on
 # stderr, all of stdout and the exit code pass through unchanged. When the
@@ -34,13 +37,24 @@ note=""
 if [[ -n "$file" && $emit -eq 0 && ${#cli[@]} -gt 0 ]]; then
   if "${cli[@]}" "$file" -o "$TMP/check.js" >"$TMP/check.out" 2>"$TMP/check.err"; then
     first="$(head -1 "$TMP/check.err")"
-    [[ "$first" =~ ^All\ terms\ check,\ with\ [1-9][0-9]*\ unsafe\ annotations?\.$ ]] && note="$first"
+    # 2.0.16: one line, "All terms check, with N unsafe annotation(s)."
+    # 2.0.18+ (this port's pin is 2.0.20; VERSION-DRIFT, OQ-009): a BLOCK,
+    #   "All terms check, but N defs rely on unsafe or foreign code:" and then
+    #   one "- <def>" line per def. The note is whatever the check-only
+    #   emission printed, whole; its line count is `lines`.
+    if [[ "$first" =~ ^All\ terms\ check,\ with\ [1-9][0-9]*\ unsafe\ annotations?\.$ ]]; then
+      note="$first"; lines=1
+    elif [[ "$first" =~ ^All\ terms\ check,\ but\ [1-9][0-9]*\ defs?\ rel(y|ies)\ on\ unsafe\ or\ foreign\ code:$ ]]; then
+      note="$(cat "$TMP/check.err")"; lines="$(wc -l < "$TMP/check.err")"
+    fi
   fi
 fi
 "$@" 2>"$TMP/err"; ec=$?
-if [[ -n "$note" && "$(head -1 "$TMP/err")" == "$note" ]]; then
+# Remove the note only when the run's stderr BEGINS with exactly the lines the
+# compiler printed for this book; anything else passes through untouched.
+if [[ -n "$note" && "$(head -n "${lines:-1}" "$TMP/err")" == "$note" ]]; then
   { printf '%s\n' "$note" >&3; } 2>/dev/null || true
-  tail -n +2 "$TMP/err" >&2
+  tail -n +"$(( ${lines:-1} + 1 ))" "$TMP/err" >&2
 else
   cat "$TMP/err" >&2
 fi

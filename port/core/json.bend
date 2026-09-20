@@ -286,3 +286,175 @@ def finish(st: Lex) -> Lexed:
 # S2.24 S2.27 (spec twin) the tokens of one line, or serde_json's message and byte column
 def lex(cs: List<&2, U32>) -> Lexed:
   finish(lex_go(cs, Lex{MDefault{}, 0, Nil{}, 0, 0, Nil{}, NoErr{}}))
+
+# ------------------------------------------------------------------ members
+# The second pass: the tokens of ONE object become (key, value tokens) pairs.
+# It is reused at each nesting level (issue, dependency, comment) by plain
+# calls, so no def here recurses into another. A value's own tokens are
+# collected with a depth counter; they are interpreted by whoever knows the
+# member's shape (core/decode), and an unknown member's value is never
+# interpreted at all (S2.29: unknown members are accepted and dropped).
+
+# S2.24 (data) one member of an object: its key, its value's tokens in order, the key's byte column
+type Member is Data:
+  Member{key: String, value: List<&2, Tok>, at: U32}
+
+# S2.27 (data) the members of an object, or serde_json's message and byte column
+type Split is Data:
+  SplitBad{msg: String, at: U32}
+  SplitOk{members: List<&2, Member>}
+
+# S2.24 (data) where the splitter stands in `{ "k" : v , "k" : v }`
+type Phase is Data:
+  PStart{}
+  PKeyFirst{}
+  PKey{}
+  PColon{}
+  PVal{}
+  PAfter{}
+  PDone{}
+
+# S2.24 (data) the splitter's state: phase, nesting depth inside the current value, the current key and
+# its column, the current value's tokens (REVERSED), the members so far (REVERSED), the sticky error
+type Sp is Data:
+  Sp{phase: Phase, depth: Nat, key: String, kat: U32, cur: List<&2, Tok>, out: List<&2, Member>, err: LexErr}
+
+# S2.27 (spec twin) the state with an error set
+def sp_fail(msg: String, at: U32) -> Sp:
+  Sp{PDone{}, 0n, "", 0, Nil{}, Nil{}, ErrAt{msg, at}}
+
+# S2.24 (spec twin) before anything: the object must open with `{`
+def sp_start(kind: TokKind, at: U32) -> Sp:
+  match kind:
+    case KLBrace{}:
+      Sp{PKeyFirst{}, 0n, "", 0, Nil{}, Nil{}, NoErr{}}
+    case _:
+      sp_fail("expected value", at)
+
+# S2.24 (spec twin) where a key may stand: a string opens a member; `}` closes an EMPTY object only
+def sp_key(kind: TokKind, at: U32, out: List<&2, Member>, may_close: Bool) -> Sp:
+  match kind may_close:
+    case KStr{text} _:
+      Sp{PColon{}, 0n, text, at, Nil{}, out, NoErr{}}
+    case KRBrace{} True{}:
+      Sp{PDone{}, 0n, "", 0, Nil{}, out, NoErr{}}
+    case KRBrace{} False{}:
+      sp_fail("trailing comma", at)
+    case _ _:
+      sp_fail("key must be a string", at)
+
+# S2.24 (spec twin) after a key: `:`
+def sp_colon(kind: TokKind, at: U32, key: String, kat: U32, out: List<&2, Member>) -> Sp:
+  match kind:
+    case KColon{}:
+      Sp{PVal{}, 0n, key, kat, Nil{}, out, NoErr{}}
+    case _:
+      sp_fail("expected `:`", at)
+
+# S2.24 (spec twin) the first token of a value: a scalar is the whole value, a bracket opens a nested one
+def sp_val_first(kind: TokKind, +at: U32, key: String, kat: U32, out: List<&2, Member>) -> Sp:
+  match kind:
+    case KStr{text}:
+      Sp{PAfter{}, 0n, key, kat, Tok{KStr{text}, at} <> Nil{}, out, NoErr{}}
+    case KLit{text}:
+      Sp{PAfter{}, 0n, key, kat, Tok{KLit{text}, at} <> Nil{}, out, NoErr{}}
+    case KLBrace{}:
+      Sp{PVal{}, 1n, key, kat, Tok{KLBrace{}, at} <> Nil{}, out, NoErr{}}
+    case KLBrack{}:
+      Sp{PVal{}, 1n, key, kat, Tok{KLBrack{}, at} <> Nil{}, out, NoErr{}}
+    case _:
+      sp_fail("expected value", at)
+
+# S2.24 (spec twin) inside a nested value: brackets move the depth, and the bracket that returns it to zero ends the value
+def sp_val_deep(kind: TokKind, +at: U32, depth: Nat, key: String, kat: U32, cur: List<&2, Tok>, out: List<&2, Member>) -> Sp:
+  match kind depth:
+    case KLBrace{} d:
+      Sp{PVal{}, 1n+d, key, kat, Tok{KLBrace{}, at} <> cur, out, NoErr{}}
+    case KLBrack{} d:
+      Sp{PVal{}, 1n+d, key, kat, Tok{KLBrack{}, at} <> cur, out, NoErr{}}
+    case KRBrace{} 1n+0n:
+      Sp{PAfter{}, 0n, key, kat, Tok{KRBrace{}, at} <> cur, out, NoErr{}}
+    case KRBrack{} 1n+0n:
+      Sp{PAfter{}, 0n, key, kat, Tok{KRBrack{}, at} <> cur, out, NoErr{}}
+    case KRBrace{} 1n+d:
+      Sp{PVal{}, d, key, kat, Tok{KRBrace{}, at} <> cur, out, NoErr{}}
+    case KRBrack{} 1n+d:
+      Sp{PVal{}, d, key, kat, Tok{KRBrack{}, at} <> cur, out, NoErr{}}
+    case other d:
+      Sp{PVal{}, d, key, kat, Tok{other, at} <> cur, out, NoErr{}}
+
+# S2.24 (spec twin) a value position: its first token, or one more token of a nested value
+def sp_val(kind: TokKind, at: U32, depth: Nat, key: String, kat: U32, cur: List<&2, Tok>, out: List<&2, Member>) -> Sp:
+  match depth:
+    case 0n:
+      sp_val_first(kind, at, key, kat, out)
+    case 1n+d:
+      sp_val_deep(kind, at, 1n+d, key, kat, cur, out)
+
+# S2.24 (spec twin) after a complete value: `,` continues, `}` closes; the member is recorded either way
+def sp_after(kind: TokKind, at: U32, key: String, kat: U32, cur: List<&2, Tok>, out: List<&2, Member>) -> Sp:
+  match kind:
+    case KComma{}:
+      Sp{PKey{}, 0n, "", 0, Nil{}, Member{key, List.reverse(&2, Tok, cur), kat} <> out, NoErr{}}
+    case KRBrace{}:
+      Sp{PDone{}, 0n, "", 0, Nil{}, Member{key, List.reverse(&2, Tok, cur), kat} <> out, NoErr{}}
+    case _:
+      sp_fail("expected `,` or `}`", at)
+
+# S2.24 (spec twin) route one token by the phase
+def sp_phase(phase: Phase, kind: TokKind, at: U32, depth: Nat, key: String, kat: U32, cur: List<&2, Tok>, out: List<&2, Member>) -> Sp:
+  match phase:
+    case PStart{}:
+      sp_start(kind, at)
+    case PKeyFirst{}:
+      sp_key(kind, at, out, True{})
+    case PKey{}:
+      sp_key(kind, at, out, False{})
+    case PColon{}:
+      sp_colon(kind, at, key, kat, out)
+    case PVal{}:
+      sp_val(kind, at, depth, key, kat, cur, out)
+    case PAfter{}:
+      sp_after(kind, at, key, kat, cur, out)
+    case PDone{}:
+      sp_fail("trailing characters", at)
+
+# S2.27 (spec twin) a set error is sticky
+def sp_step(st: Sp, tok: Tok) -> Sp:
+  match st tok:
+    case Sp{phase, depth, key, kat, cur, out, ErrAt{msg, at}} _:
+      Sp{phase, depth, key, kat, cur, out, ErrAt{msg, at}}
+    case Sp{phase, depth, key, kat, cur, out, NoErr{}} Tok{kind, at}:
+      sp_phase(phase, kind, at, depth, key, kat, cur, out)
+
+# S2.24 (spec twin) the loop: the token list is the measure
+def sp_go(toks: List<&2, Tok>, st: Sp) -> Sp:
+  match toks:
+    case Nil{}:
+      st
+    case Con{tok, rest}:
+      sp_go(rest, sp_step(st, tok))
+
+# S2.27 (spec twin) the end of the tokens: only a closed object is complete. `eof` is the line's byte length,
+# the column serde_json reports for an input that ends too early
+def sp_end(phase: Phase, out: List<&2, Member>, eof: U32) -> Split:
+  match phase:
+    case PDone{}:
+      SplitOk{List.reverse(&2, Member, out)}
+    case PStart{}:
+      SplitBad{"EOF while parsing a value", eof}
+    case _:
+      SplitBad{"EOF while parsing an object", eof}
+
+# S2.27 (spec twin) a sticky error wins over the end-of-input verdict
+def sp_finish(st: Sp, eof: U32) -> Split:
+  match st:
+    case Sp{phase, depth, key, kat, cur, out, ErrAt{msg, at}}:
+      SplitBad{msg, at}
+    case Sp{phase, depth, key, kat, cur, out, NoErr{}}:
+      sp_end(phase, out, eof)
+
+# S2.24 S2.27 (spec twin) the members of the object these tokens spell
+def members(toks: List<&2, Tok>, eof: U32) -> Split:
+  sp_finish(sp_go(toks, Sp{PStart{}, 0n, "", 0, Nil{}, Nil{}, NoErr{}}), eof)
+
