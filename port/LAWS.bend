@@ -16,6 +16,7 @@ import ./core/bytes.bend as Bytes
 import ./core/sha256.bend as Sha
 import ./core/id.bend as Id
 import ./core/time.bend as Time
+import ./core/model.bend as Model
 
 # S0.1 the fast twin equals the spec twin, for every input. One `for` per
 # line, the goal last; `+x` when the proof needs x more than once.
@@ -122,3 +123,8 @@ law time_refuses_no_zone:
 # S4.64 the same instant with the offset spelling the `defer` and `close` payloads use
 law time_offset_suffix:
   {Time.reprint(Time.parse("2027-06-01T09:00:00Z"), "+00:00") == "2027-06-01T09:00:00+00:00" : String}
+
+# S5.2 S5.4 S5.5 S5.6 closed golden: the store line goldens/create_min.out shows after `create "First issue"`
+# (the pinned instant 2026-01-02T03:04:05Z is day 739923 from 0000-03-01, second 11045 of the day)
+law store_line_create_min:
+  {Model.line(Model.fresh("proj-fyw", "First issue", "tester", Time.Instant{739923, 11045, 0}, "proj", "/mnt/proj")) == "{\"id\":\"proj-fyw\",\"title\":\"First issue\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-02T03:04:05Z\",\"created_by\":\"tester\",\"updated_at\":\"2026-01-02T03:04:05Z\",\"source_repo\":\"proj\",\"source_repo_path\":\"/mnt/proj\",\"compaction_level\":0,\"original_size\":0}" : String}

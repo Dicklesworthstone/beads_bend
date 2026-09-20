@@ -8,6 +8,7 @@ import ./core/bytes.bend as Bytes
 import ./core/sha256.bend as Sha
 import ./core/id.bend as Id
 import ./core/time.bend as Time
+import ./core/model.bend as Model
 import ./LAWS.bend as Laws
 
 # S0.1 both twins are the identity; the checker sees it by computation
@@ -112,4 +113,8 @@ def Laws.time_refuses_no_zone():
 
 # S4.64 the suffix is a formatter argument
 def Laws.time_offset_suffix():
+  {==}
+
+# S5.2 S5.4 S5.5 S5.6 the checker renders the record and compares it with the captured line
+def Laws.store_line_create_min():
   {==}
