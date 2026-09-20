@@ -1,9 +1,10 @@
-captured: 2026-09-20T05:57:45.649207+00:00
+captured: 2026-09-20T06:03:15.048050+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (231 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"367c0b9f990e0a8d7bfdb0c03b91d2b03b99d8ff69ce4795e05c752cd6749baa"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"b5ced8aaf6482db0324a1788cafd000e552631784d27cfb6fcba1b7a1f560b12"},"case_files":[],"stdin_files":[]}
+cases: goldens/cases.tsv (235 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"367c0b9f990e0a8d7bfdb0c03b91d2b03b99d8ff69ce4795e05c752cd6749baa"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"2629bda22a8101a0fae49c49f55d73a5810e370555508c9fe0797497707f1b1d"},"case_files":[],"stdin_files":[]}
+recapture: disc: DISC-005
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -261,7 +262,7 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  show_partial_hash.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  show_partial_hash.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  show_partial_ambiguous.out
-  caae11aa5fe88220ea0ce0d5db651df1e24ace6b77f020412e1b1014d564ae30  show_partial_ambiguous.err
+  0706249286c357e68c0ca59d3f4a065887940f686c8ea04c8c67827c40beb8db  show_partial_ambiguous.err
   1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  show_partial_ambiguous.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_show_missing.out
   c9b2cf18ca3d082bcdebd0a3743ff84a7418e6d4962cc810a21041d98f33fac7  error_show_missing.err
@@ -686,6 +687,18 @@ sha256:
   0ebc84a661fdd8a1e9c2a12d8199fda6dcf4406787d96185e792c8f020108dd8  error_malformed_jsonl_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_malformed_jsonl_json.err
   10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  error_malformed_jsonl_json.exit
+  8e6e21979357546c211c8ba6a8e035e39458133a17e5cc7d0964c52928e91c40  error_show_ambiguous_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_show_ambiguous_json.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_show_ambiguous_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_ambiguous.out
+  0706249286c357e68c0ca59d3f4a065887940f686c8ea04c8c67827c40beb8db  error_update_ambiguous.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_update_ambiguous.exit
+  45490520878455c8d5bfc43218f91b2c3a72d8d8c467539c24b40dbf34fe614a  version_plain.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  version_plain.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  version_plain.exit
+  816a9e6fe76f988118acea4c884fbcb752f9d111810bb6788dafec9aa6793885  version_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  version_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  version_json.exit
   d482a6cbf1e9bbae8098fe80a9e7b4f13554082d025dd797431b74e2befbca35  scn_lifecycle.out
   15b9fdca181ebfd8a69c86625317c4ed57439738d7e8ceb6d3fb825ea8e325af  scn_lifecycle.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_lifecycle.exit
