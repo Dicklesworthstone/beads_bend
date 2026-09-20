@@ -1,0 +1,34 @@
+# docs/PIN.toml — the pin as data: PLAN §2 (the original) and §2b (Bend) in a
+# form scripts/pin-check.sh can verify at every RESUME and before every gate.
+# Phase 0 fills it (RUNBOOK "Minute 14–25: truth pack"), right after PLAN §2.
+# PLAN §2 stays the prose copy; when the two disagree, pin-check is RED until
+# they agree again. Placeholders are <angle brackets>; one left in place is a
+# YELLOW. This is TOML, parsed with Python 3.11+ tomllib: quoted `#` and
+# multiline arrays are supported; malformed or empty lane contracts are RED.
+schema = "p2b.pin.v1"
+
+[original]
+name = "BEADS_RUST"
+path = "legacy/BEADS_RUST"                  # gitignored; an oracle to run, never a template to read
+vcs = "<git | none>"
+commit = "<sha, or none when the original has no VCS>"
+version_cmd = "<python3 legacy/BEADS_RUST/x.py --version | go version | ./bin --version; empty when the original has no --version>"
+version_expect = "<substring the version output must contain, e.g. ledgerstat 1.4.2 or Python 3.14>"
+run_cmd = ["<executable>", "<arg>"]  # exactly MANIFEST.txt original_argv; preserves spaces and empty args
+# A shell-quoted string is also accepted, e.g. 'python3 "legacy/tool name.py"'.
+# No shell is invoked for run_cmd. The legacy `original:` display is lossy.
+build_cmd = "<the strongest build, LANGUAGE-GUIDES last table; empty for an interpreted original>"
+threads = 1
+
+[bend]
+version = "<2.0.16>"                 # bend --version at capture and proof time (VERSION-DRIFT)
+checkout_sha = "<sha, or empty>"     # when the CLI is a checkout run as bun <dir>/bend2/main.ts (--version is a constant; the sha is the pin)
+cli = ""                             # BEND_CLI when bend is not on PATH; the environment's BEND_CLI wins over this line
+clang_min = "14"                     # >= 19 for the device toolchain
+
+[lanes]
+required = ["interpreter", "c-1t", "c-Nt", "js"]   # add "gpu" only with a bang in the program and a device host below
+gpu_host = ""                        # hostname where the gpu lane runs, or "" (the lane is then recorded MISSING with that reason)
+
+[approver]
+disc = "<name>"                      # who approves DISC entries; never the agent that implemented the divergence

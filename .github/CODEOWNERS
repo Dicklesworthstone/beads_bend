@@ -1,0 +1,13 @@
+# CODEOWNERS for the Bend 2 port of BEADS_RUST (Phase 6; copy to .github/CODEOWNERS).
+# Ownership follows MULTI-AGENT "Roles": one owner per file per session; goldens
+# belong to the capture script and its keeper; LAWS.bend is human-owned; a DISC
+# is approved by someone who did not implement it. Replace the <handles>.
+goldens/                    <@harness-keeper>
+goldens/MANIFEST.txt        <@harness-keeper>
+port/LAWS.bend              <@law-owner>
+port/PROOF.bend             <@prover>
+docs/DISCREPANCIES.md       <@disc-approver>
+docs/PLAN_TO_PORT_*.md      <@lead>
+docs/PIN.toml               <@lead>
+perf/                       <@perf-owner>
+.github/workflows/          <@lead>

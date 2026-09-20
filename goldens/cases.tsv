@@ -1,0 +1,13 @@
+# BEADS_RUST conformance cases: name<TAB>args (space-separated; empty for none)<TAB>stdin file (optional)
+# One row per behavior the spec numbers. Cover every class before Phase 3:
+#   happy path (each command / mode)        edge (empty input, one element, max size)
+#   error (bad input → message + exit code)  usage (no args, extra args, bad flag value, unknown command)
+#   missing file / unreadable                unicode / long lines / trailing newline variants
+#   determinism (the same case twice under different names is allowed)
+# Names are identifiers (they become file names). Paths are relative to the
+# directory conform.sh runs from (the project root).
+# Capture:  scripts/golden-capture.sh goldens/cases.tsv goldens -- <original command>
+# Floor:    scripts/floor.sh goldens/cases.tsv goldens --repeat 3 -- <original command>
+# Check:    scripts/lanes.sh goldens/cases.tsv goldens port/main.bend
+usage_none
+usage_cmd	frobnicate
