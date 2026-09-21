@@ -1,10 +1,10 @@
-captured: 2026-09-21T00:43:03.945545+00:00
+captured: 2026-09-21T00:44:22.662332+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (379 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"72f992fdb3d3cc1a9fb9b02e394bebeb4b665056b381853828aa484d71a964f1"},"case_files":[],"stdin_files":[]}
-recapture: repin: find-fix round 4, second batch: close_quiet and reopen_quiet settle whether S5.107's rendering short-circuit covers close and reopen, which its list omits
+cases: goldens/cases.tsv (381 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"dab8f7960dcdfe8d16d1a8f171d4d9dbeb648d33f0cec7efd1e9f1f54c40b177"},"case_files":[],"stdin_files":[]}
+recapture: repin: find-fix round 4, third batch: defer_quiet and undefer_quiet, the two S5.107 names left unmeasured beside close_quiet and reopen_quiet
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -570,6 +570,9 @@ sha256:
   0343755dbefab05ec1bfcb14fb7d98d1c8ad02a97b37e0434075221be3bebf15  defer_until_date.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  defer_until_date.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  defer_until_date.exit
+  1d6ab2d6e8381b57f981471dec5703f5f8c71e96e4428b7638ef6bc82e91c849  defer_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  defer_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  defer_quiet.exit
   094b0923c8bf5bf268e8892c5300c63073a0d33abc7d09bbba07975cc9104172  defer_no_until.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  defer_no_until.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  defer_no_until.exit
@@ -582,6 +585,9 @@ sha256:
   134f1dbd970d24a0785293c9be2b8f16ec65bd282d2a7645d1900da67c746cbf  undefer_basic.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  undefer_basic.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  undefer_basic.exit
+  662b022a810d572ac76a1aa9db2ebe426f616d97bfc49d096c62e0dba97e6669  undefer_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  undefer_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  undefer_quiet.exit
   286e80491629499336c2291263e90f2b0265687b13fa35bd9497f0a779849831  undefer_not_deferred.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  undefer_not_deferred.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  undefer_not_deferred.exit

@@ -337,7 +337,7 @@ The corpus must cover:
 | `edge_` | boundary inputs: the `precision` fixture (OQ-001, OQ-002), the maximum title |
 | `scn_` | multi-step scenarios from `goldens/scenarios/` |
 
-The case count is `grep -vc '^#' goldens/cases.tsv` and must equal the count in the `goldens/MANIFEST.txt` header (381 on 2026-09-20).
+The case count is `grep -vc '^#' goldens/cases.tsv` and must equal the count in the `goldens/MANIFEST.txt` header (384 on 2026-09-20).
 
 ### Test Fixtures
 
@@ -396,7 +396,7 @@ Law: <fast_is_spec> — <verdict line> (unsafe <k> = <a> @unsafe + <b> instances
 Not claimed: <refused captures with predicates>
 ```
 
-Anything that does not fit these shapes is not said. **As of 2026-09-20 neither shape can be filled: no find-fix round has run, convergence is not computed, and nothing has been measured. What may be said is the lane line the gates print — 381 of 381 cases on c-1t, c-8t and js, `All terms check.` with 50 laws — never that the port is complete, fast, certified or verified.**
+Anything that does not fit these shapes is not said. **As of 2026-09-20 neither shape can be filled: no find-fix round has run, convergence is not computed, and nothing has been measured. What may be said is the lane line the gates print — 384 of 384 cases on c-1t, c-8t and js, `All terms check.` with 50 laws — never that the port is complete, fast, certified or verified.**
 
 ---
 
@@ -434,7 +434,7 @@ bend2.dev is unofficial. `bend guide`, `bend base`, the repository and the paper
 
 | fact | how to check |
 |---|---|
-| **The Bend implementation answers every command the corpus exercises and writes the store, and is not certified.** `port/main.bend` is the IO shell (three custom effects: `Sys.exit`, `Sys.cwd`, `Sys.remove`); `port/core/` holds the pure core: UTF-8, SHA-256, the id hash, instants, the JSON line lexer and decoder, the 44-member record, the store loader and `Store.text`, failures, the argument parser (`surface.bend` tables, `cli.bend` algorithm, `help.bend` generated texts), the queries, the graph, the mutations (`create`, `update`, the status transitions, `edges`, `labels`, `remove`) and the dispatcher `run.bend`. **381 of 381 cases pass on c-1t, c-8t and js**; forms no case captures answer the port's own "not ported yet" failure instead of a guess | `ls port/core`; `docs/PORT_STATE.md` "Last gate outputs" |
+| **The Bend implementation answers every command the corpus exercises and writes the store, and is not certified.** `port/main.bend` is the IO shell (three custom effects: `Sys.exit`, `Sys.cwd`, `Sys.remove`); `port/core/` holds the pure core: UTF-8, SHA-256, the id hash, instants, the JSON line lexer and decoder, the 44-member record, the store loader and `Store.text`, failures, the argument parser (`surface.bend` tables, `cli.bend` algorithm, `help.bend` generated texts), the queries, the graph, the mutations (`create`, `update`, the status transitions, `edges`, `labels`, `remove`) and the dispatcher `run.bend`. **384 of 384 cases pass on c-1t, c-8t and js**; forms no case captures answer the port's own "not ported yet" failure instead of a guess | `ls port/core`; `docs/PORT_STATE.md` "Last gate outputs" |
 | Phases −1, 0, 1 (first pass) and 2 are done; Phase 3 is at its exit gate (the interpreter lane is the open item). The corpus is `grep -vc '^#' goldens/cases.tsv` cases | `docs/PORT_STATE.md`; `git log --oneline` |
 | The spec is merged from `docs/spec-parts/` by `scripts/merge-spec-parts.py`: edit a part, then merge; never edit `docs/EXISTING_BEADS_RUST_STRUCTURE.md` directly | `python3 -B scripts/merge-spec-parts.py --check` |
 | `port/core/help.bend` is generated from the spec appendix `docs/spec-parts/HELP_TEXTS.md` (clause S1.89) by `scripts/gen-help-bend.py`; `port/core/model.bend` and `port/core/decode.bend` were generated once and are now the source | `python3 -B scripts/gen-help-bend.py --check` |
