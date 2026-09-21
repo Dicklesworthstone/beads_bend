@@ -122,13 +122,26 @@ def env_all(names: List<&2, String>) -> IO(List<&2, Run.Var>):
         more : List<&2, Run.Var> <- env_all(rest)
         return Run.Var{name, env_value(r)} <> more
 
+# S8.34 S9.11 (shell) drop ONE trailing newline, and nothing else. `String.trim_end` also eats the trailing
+# SPACE of `Error: Invalid issue ID format: ` (golden error_show_empty_id), which is part of the message
+def drop_one_newline_rev(s: String) -> String:
+  match s:
+    case SNil{}:
+      ""
+    case SCon{Chr{+c}, +rest}:
+      Bool.pick(String, U32.is_eq(c, 10), rest, SCon{Chr{c}, rest})
+
+# S8.34 (shell) the text without its own final newline; `IO.print_err` adds one back
+def without_last_newline(text: String) -> String:
+  String.reverse(drop_one_newline_rev(String.reverse(text)))
+
 # S8.34 (shell) stderr, when there is any: print_err ends the text with one newline, as every error text does
 def emit_err(text: String, empty: Bool) -> IO(Unit):
   match empty:
     case True{}:
       IO.pure(Unit, Unit{})
     case False{}:
-      IO.print_err(String.trim_end(text))
+      IO.print_err(without_last_newline(text))
 
 # S8.36 (shell) exit 0 is a normal return; anything else leaves through Sys.exit
 def leave(+code: U32, zero: Bool) -> IO(Unit):

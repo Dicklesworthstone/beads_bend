@@ -28,9 +28,9 @@ def canonical(+word: String) -> String:
 def bad_type(+word: String) -> Failure.Failure:
   Failure.Failure{"VALIDATION_FAILED", "Validation failed: type: Unknown dependency type: '" ++ word ++ "'. Allowed types: " ++ String.join(Model.known_dep_types(), ", "), Some{"Use --type with one of: " ++ String.join(Model.known_dep_types(), ", ") ++ "."}, True{}, [Failure.CtxMember{"field", Failure.CStr{"type"}}, Failure.CtxMember{"reason", Failure.CStr{"Unknown dependency type: '" ++ word ++ "'. Allowed types: " ++ String.join(Model.known_dep_types(), ", ")}}, Failure.CtxMember{"hint", Failure.CStr{"Use --type with one of: " ++ String.join(Model.known_dep_types(), ", ") ++ "."}}], 4}
 
-# S4.356 S9 (spec twin) an issue cannot depend on itself
+# S4.356 S9.22 (spec twin) an issue cannot depend on itself; the context key is `id` (golden error_dep_add_self_json), not `issue_id`
 def self_edge(+id: String) -> Failure.Failure:
-  Failure.Failure{"SELF_DEPENDENCY", "Issue cannot depend on itself: " ++ id, Some{"An issue cannot depend on itself"}, False{}, [Failure.CtxMember{"issue_id", Failure.CStr{id}}], 5}
+  Failure.Failure{"SELF_DEPENDENCY", "Issue cannot depend on itself: " ++ id, Some{"An issue cannot depend on itself"}, False{}, [Failure.CtxMember{"id", Failure.CStr{id}}], 5}
 
 # S4.355 S9 (spec twin) the cycle refusal, which never prints a path
 def cycle_found(+dependent: String, +target: String) -> Failure.Failure:

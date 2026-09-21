@@ -1,10 +1,10 @@
-captured: 2026-09-20T23:57:31.862912+00:00
+captured: 2026-09-21T00:44:22.662332+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (362 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"bc4d740b4d3ba68722c0b44f17b1960c2c497257cff390c5fb0104290a5b8e5a"},"case_files":[],"stdin_files":[]}
-recapture: repin: scn_delete_twice: S4.341 says a second delete of the same id rewrites no field, which no case pinned (find-fix round 1, lens: spec clauses the corpus does not reach)
+cases: goldens/cases.tsv (381 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"dab8f7960dcdfe8d16d1a8f171d4d9dbeb648d33f0cec7efd1e9f1f54c40b177"},"case_files":[],"stdin_files":[]}
+recapture: repin: find-fix round 4, third batch: defer_quiet and undefer_quiet, the two S5.107 names left unmeasured beside close_quiet and reopen_quiet
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -270,6 +270,12 @@ sha256:
   bf1bafc2fd16ff1126de85491f78593576bffa74e08aadd1de71a27f045ae201  error_show_missing_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_show_missing_json.err
   1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_show_missing_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_show_empty_id.out
+  0695caf5d9b0bf899a3f614907371bcd1f2adaf24a68d7202e38adcbb2762981  error_show_empty_id.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_show_empty_id.exit
+  4feaf2d82dea0e540b395c325158e7a14a585b73fe38ffa6e18c6e458ced1ecd  error_show_empty_id_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_show_empty_id_json.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_show_empty_id_json.exit
   675cd1bdb832519dcdb3b31ee9d23cd1ccd638d9ba3c8175266e13dd976f89c5  search_plain.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  search_plain.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  search_plain.exit
@@ -399,6 +405,9 @@ sha256:
   2b0cfcd997fea144e10aa0c0312e4c94cb5d92158716d6d1d51aa170e9f0039d  create_silent.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_silent.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_silent.exit
+  e0e8e0e463a4c9e4d50f1d6cdbe6117ccd3dfb3790179b0d496082286f94f038  create_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_quiet.exit
   2064769e2922d100cc7ddadfc5bef75d8acb9aaa1db5b3b4b1aa980d7ef03626  create_dry_run.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_dry_run.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_dry_run.exit
@@ -510,6 +519,9 @@ sha256:
   d63004162125ee05179f46a578ec1dc1f72571d3acd1312502faca47eb902bf5  close_basic.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  close_basic.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  close_basic.exit
+  3b5607c8332a40d7f2e29567381aa2e52e44ed67544655c9e2066a572ff08fe2  close_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  close_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  close_quiet.exit
   8054c1fb6a8cebca44f0fd3b81b86643b7c876770bb7454dafbb2de6be4ab302  close_reason_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  close_reason_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  close_reason_json.exit
@@ -522,6 +534,9 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_close_blocked.out
   2541f1239798df65209f655571c598e83cd0e5e2152d7b4824014a9fbb33748d  error_close_blocked.err
   1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_close_blocked.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  close_blocked_quiet.out
+  d67cdc48a77201aabb72ddbcfe09df2bac6dbe51128425f03d7490dccb77901a  close_blocked_quiet.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  close_blocked_quiet.exit
   fab6ed82fd3cebcbde6e6a6e1d421f1b660686b428285aeb3ded45d8bc525fee  error_close_blocked_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_close_blocked_json.err
   1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_close_blocked_json.exit
@@ -540,6 +555,9 @@ sha256:
   70964b29fb7b6ab6771038f83efa2a3ac351ef3b157a6c95db24efbc2d69a721  reopen_closed.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  reopen_closed.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  reopen_closed.exit
+  70964b29fb7b6ab6771038f83efa2a3ac351ef3b157a6c95db24efbc2d69a721  reopen_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  reopen_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  reopen_quiet.exit
   ba3961c8dd04fe6fb1830b6c7180dd05d73a4f914baefda2af416f72843493bc  reopen_closed_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  reopen_closed_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  reopen_closed_json.exit
@@ -552,6 +570,9 @@ sha256:
   0343755dbefab05ec1bfcb14fb7d98d1c8ad02a97b37e0434075221be3bebf15  defer_until_date.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  defer_until_date.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  defer_until_date.exit
+  1d6ab2d6e8381b57f981471dec5703f5f8c71e96e4428b7638ef6bc82e91c849  defer_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  defer_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  defer_quiet.exit
   094b0923c8bf5bf268e8892c5300c63073a0d33abc7d09bbba07975cc9104172  defer_no_until.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  defer_no_until.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  defer_no_until.exit
@@ -564,12 +585,18 @@ sha256:
   134f1dbd970d24a0785293c9be2b8f16ec65bd282d2a7645d1900da67c746cbf  undefer_basic.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  undefer_basic.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  undefer_basic.exit
+  662b022a810d572ac76a1aa9db2ebe426f616d97bfc49d096c62e0dba97e6669  undefer_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  undefer_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  undefer_quiet.exit
   286e80491629499336c2291263e90f2b0265687b13fa35bd9497f0a779849831  undefer_not_deferred.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  undefer_not_deferred.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  undefer_not_deferred.exit
   c4a94d19c477bf89c726997f4fe2394499f98742e4ba0dc3b77eac4b1d8d4e4c  delete_basic.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_basic.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_basic.exit
+  43d8eed5d86656f5951d84374ff2311f4ae060ba0c80c8f890cb115c341b53a7  delete_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_quiet.exit
   dff299c7cb4d4147829b5579ce423ccb2f6c0d60b6019ebe039a65e7cb8c76c7  delete_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_json.exit
@@ -591,6 +618,9 @@ sha256:
   3f47a297d69701a869f79ad1f13d91fd9e0f5d7202fa765df63bd38a65504596  dep_add_blocks.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_add_blocks.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_add_blocks.exit
+  a61982b926d9beecfa1269cd5c500b4bde066cb544f2bce91aa79ce24171f0f6  dep_add_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_add_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_add_quiet.exit
   f189220bff95f0baa76ec5a95a34600f80957baf022e1105be53bde097bb3a82  dep_add_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_add_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_add_json.exit
@@ -609,6 +639,9 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_dep_add_self.out
   42d30f692a3e5348859d6c66f1b93edca58b48dd6f3dcf2f2bee67a5609fe82f  error_dep_add_self.err
   f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec582a06  error_dep_add_self.exit
+  a5f4de78fbd3c199c376e89e183fc21801271d273991504d0e777b55b0ed8372  error_dep_add_self_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_dep_add_self_json.err
+  f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec582a06  error_dep_add_self_json.exit
   813b1e61095df7505c198853e139de2790f77281f96a1246043b51fc4a18d1ce  dep_add_duplicate.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_add_duplicate.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_add_duplicate.exit
@@ -618,6 +651,9 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_dep_add_second_parent.out
   548158121e6c7f1a852d3a7ab06a1cb130d2d510dc5ef617138b3db38d4f0918  error_dep_add_second_parent.err
   7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_dep_add_second_parent.exit
+  d054f28708503d62640fc29dbe54feda7d5f2c7221af2ea8d54f37d7be449bf7  error_dep_add_second_parent_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_dep_add_second_parent_json.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_dep_add_second_parent_json.exit
   ce2d179ce0c15d6ea47e8f85798a09a08c0a700107b0f71cf3423f1df8c19f28  dep_add_external.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_add_external.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_add_external.exit
@@ -630,24 +666,39 @@ sha256:
   2bf28416caff695d03dcf133c7a67ca1456d692ff093d208e80d58b36801bf7e  dep_remove_absent.out
   576e190e0af267b60f2e052d93be833edd87548a234e888d33544c889cbac279  dep_remove_absent.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_remove_absent.exit
+  9c2db659daa3b642855f990d8e3dbf794da2d0c0a23463527c915ae613511f98  dep_remove_absent_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_remove_absent_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_remove_absent_json.exit
   81b584fc76ac200bf7d6d957eeb5ba7999b664cc48c5948cf78e1fd302a60cd5  label_add.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_add.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_add.exit
+  cbe150405f85b3e4c69833b8652613bc60761c47773f7e92503c2ca4cbc11a04  label_add_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_add_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_add_quiet.exit
   90d3ba9c41ed874d43a3c81a359d33beee318dbfe2b86b8b476a207cec9a1bd8  label_add_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_add_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_add_json.exit
   5f398fd3b8625f36bbe4b0beb6d8e7854878e6881a764daca762f2f213115f45  label_add_existing.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_add_existing.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_add_existing.exit
+  b517337b811931a7ec09ef9e2e2c92b309c7cc319924f3975c26f1cdf154558b  label_add_existing_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_add_existing_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_add_existing_json.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_label_add_invalid.out
   3e8cfebef587184fe2c1ca8c9bed5974170c1cf21ee0543c481899b8a5c97166  error_label_add_invalid.err
   7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_label_add_invalid.exit
+  f1153234f35d205725a7c81b94b190bf69ba6737b8c3a63ce4300b621f39970d  error_label_add_invalid_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_label_add_invalid_json.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_label_add_invalid_json.exit
   7b523997cf9431a3a6899ac29ac56e57459600979be4d900c2a8121a5729bb05  label_remove.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_remove.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_remove.exit
   f4c655da7457e2fd8c71bd50dcad5faa67284f335cf31ae7aa5cd01d35975301  label_remove_absent.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_remove_absent.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_remove_absent.exit
+  02b284d659ddd80913a5edc6cd02a9d2db3a4a4729d8a461ac13c4cec7d747db  label_remove_absent_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_remove_absent_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_remove_absent_json.exit
   25c771f325135874145148c5dff8f513cdaf5d2cd68dfaddc4c5be353482c7a3  label_rename.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  label_rename.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  label_rename.exit
@@ -666,6 +717,9 @@ sha256:
   e941e9659942e1900b7dcd7b46d2b688b8a57aced9c12b33fea1f43cf9edc576  comments_add.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  comments_add.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  comments_add.exit
+  7f4e539483d72600257255788409239cd00b81078a23c2d3ef9bbce7856d9206  comments_add_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  comments_add_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  comments_add_quiet.exit
   00d48b7797aeadc616e58d5f967abd0aa3900197ce5d55822f1daddbfeb0e3ac  comments_add_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  comments_add_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  comments_add_json.exit
@@ -681,6 +735,9 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_comments_add_empty.out
   f018bcea64434f8202f93c623ee24c23b8d174d256adb2063d88c184a5a1da60  error_comments_add_empty.err
   7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_comments_add_empty.exit
+  3d93d6956decaab58a3f6f616801a7c30fe3eff27b85100bc05b644a01753c83  error_comments_add_empty_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_comments_add_empty_json.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_comments_add_empty_json.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_comments_add_missing.out
   c9b2cf18ca3d082bcdebd0a3743ff84a7418e6d4962cc810a21041d98f33fac7  error_comments_add_missing.err
   1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_comments_add_missing.exit

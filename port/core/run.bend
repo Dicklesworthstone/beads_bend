@@ -568,23 +568,24 @@ def close_text(+elements: List<&2, String>, lines: List<&2, String>, +skips: Lis
     case True{}:
       Bool.pick(String, (List.is_empty(&2, Status.Skip, skips) && Bool.not(suggest)), "[" ++ String.join(elements, ",") ++ "]\n", String.concat(["{\"closed\":[", String.join(elements, ","), "]", Bool.pick(String, List.is_empty(&2, Status.Skip, skips), "", ",\"skipped\":[" ++ String.concat(Status.skip_objects(skips, True{})) ++ "]"), Bool.pick(String, suggest, ",\"unblocked\":[" ++ String.concat(unblocked_text(freed, True{}, True{})) ++ "]", ""), "}\n"]))
 
-# S4.293 S4.294 S5.22 (spec twin) a `close` with skips fails AFTER its output and its writes: every id skipped is
+# S4.293 S4.294 S5.22 S9.26 (spec twin) a `close` with skips fails AFTER its output and its writes; `--quiet`
+# drops the success lines and the per-item warnings (golden close_blocked_quiet) and keeps the error. Every id skipped is
 # `NOTHING_TO_DO`, some skipped is `CLOSE_INCOMPLETE`; JSON mode prints the payload and then the envelope on stdout and
 # nothing on stderr; plain mode prints the warnings and the error on stderr
-def close_failed(out: String, +skips: List<&2, Status.Skip>, +closed: Nat, writes: List<&2, Write>, json: Bool) -> Outcome:
+def close_failed(out: String, +skips: List<&2, Status.Skip>, +closed: Nat, writes: List<&2, Write>, json: Bool, +quiet: Bool) -> Outcome:
   match json:
     case True{}:
       Outcome{out ++ Failure.json_text(Bool.pick(Failure.Failure, Nat.is_eq(closed, 0n), Status.nothing_to_do(skips), Status.close_incomplete(closed, skips))), "", 3, writes}
     case False{}:
-      Outcome{out, String.concat(Status.warning_lines(skips)) ++ Failure.plain_text(Bool.pick(Failure.Failure, Nat.is_eq(closed, 0n), Status.nothing_to_do(skips), Status.close_incomplete(closed, skips))), 3, writes}
+      Outcome{Bool.pick(String, quiet, "", out), Bool.pick(String, quiet, "", String.concat(Status.warning_lines(skips))) ++ Failure.plain_text(Bool.pick(Failure.Failure, Nat.is_eq(closed, 0n), Status.nothing_to_do(skips), Status.close_incomplete(closed, skips))), 3, writes}
 
 # S4.293 S4.294 (spec twin) a `close` without skips succeeds; one with skips fails after its output and writes
-def close_done(out: String, skips: List<&2, Status.Skip>, closed: Nat, writes: List<&2, Write>, json: Bool, quiet: Bool) -> Outcome:
+def close_done(out: String, skips: List<&2, Status.Skip>, closed: Nat, writes: List<&2, Write>, json: Bool, +quiet: Bool) -> Outcome:
   match skips:
     case Nil{}:
       wrote(out, writes, quiet)
     case Con{s, rest}:
-      close_failed(out, s <> rest, closed, writes, json)
+      close_failed(out, s <> rest, closed, writes, json, quiet)
 
 # S4.290–S4.299 (spec twin) what a `close` batch answered; `before` is the blocked ids of the store before the batch
 def closed_batch(b: Status.Batch, before: List<&2, String>, suggest: Bool, +json: Bool, quiet: Bool) -> Outcome:
@@ -600,15 +601,17 @@ def close_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model
     case Resolve.ManyOk{+ids}:
       Bool.pick(Outcome, (Cli.given(opts, "suggest-next") && Nat.is_gt(List.length(&2, String, ids), 1n)), failed(Create.invalid("suggest-next", "--suggest-next only works with a single issue ID"), json), closed_batch(Status.close_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, Blocked.relation(model), now, Maybe.default(&2, String, Cli.value(opts, "reason"), "done"), Cli.given(opts, "force")), Blocked.keys(Blocked.relation(model)), Cli.given(opts, "suggest-next"), json, quiet))
 
-# S4.314 S4.326 S5.42 S5.43 (spec twin) what `reopen`, `defer` or `undefer` answered: the successes before the skips;
+# S4.314 S4.326 S5.42 S5.43 S5.107 (spec twin) what `reopen`, `defer` or `undefer` answered: the successes before
+# the skips; `hush` is `--quiet` for `defer` and `undefer`, which S5.107 short-circuits, and False for `reopen`,
+# which prints its line even under `--quiet` (golden reopen_quiet);
 # as JSON one object whose first member is named after the command, `skipped` omitted when empty; exit 0 even when
 # every id was skipped; `nothing` is the line for a batch in which literally nothing happened
-def gated_batch(b: Status.Batch, name: String, nothing: String, json: Bool, quiet: Bool) -> Outcome:
+def gated_batch(b: Status.Batch, name: String, nothing: String, json: Bool, hush: Bool) -> Outcome:
   match b json:
     case Status.Batch{model, plain, elements, +skips, last} True{}:
-      wrote(String.concat(["{\"", name, "\":[", String.join(List.reverse(&2, String, elements), ","), "]", Bool.pick(String, List.is_empty(&2, Status.Skip, skips), "", ",\"skipped\":[" ++ String.concat(Status.skip_objects(List.reverse(&2, Status.Skip, skips), True{})) ++ "]"), "}\n"]), batch_writes(model, last), quiet)
+      wrote(String.concat(["{\"", name, "\":[", String.join(List.reverse(&2, String, elements), ","), "]", Bool.pick(String, List.is_empty(&2, Status.Skip, skips), "", ",\"skipped\":[" ++ String.concat(Status.skip_objects(List.reverse(&2, Status.Skip, skips), True{})) ++ "]"), "}\n"]), batch_writes(model, last), hush)
     case Status.Batch{model, +plain, elements, +skips, last} False{}:
-      wrote(Bool.pick(String, (List.is_empty(&2, String, plain) && List.is_empty(&2, Status.Skip, skips)), nothing, String.concat(List.reverse(&2, String, plain)) ++ String.concat(Status.skip_lines(List.reverse(&2, Status.Skip, skips)))), batch_writes(model, last), quiet)
+      wrote(Bool.pick(String, (List.is_empty(&2, String, plain) && List.is_empty(&2, Status.Skip, skips)), nothing, String.concat(List.reverse(&2, String, plain)) ++ String.concat(Status.skip_lines(List.reverse(&2, Status.Skip, skips)))), batch_writes(model, last), hush)
 
 # S4.310–S4.315 (spec twin) `reopen` once every id is resolved
 def reopen_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
@@ -616,7 +619,7 @@ def reopen_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Mode
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{ids}:
-      gated_batch(Status.reopen_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, now, Cli.value(opts, "reason"), actor), "reopened", "No issues to reopen.\n", json, quiet)
+      gated_batch(Status.reopen_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, now, Cli.value(opts, "reason"), actor), "reopened", "No issues to reopen.\n", json, False{})
 
 # S4.321–S4.326 (spec twin) `defer` (`deferring` true) or `undefer` once every id is resolved
 def gate_many(m: Resolve.Many, +model: List<&2, Model.Issue>, now: Time.Instant, until: Maybe<&2, Time.Instant>, +deferring: Bool, +json: Bool, quiet: Bool) -> Outcome:

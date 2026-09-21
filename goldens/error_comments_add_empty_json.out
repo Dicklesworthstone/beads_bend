@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: text: comment text cannot be empty",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "text",
+      "reason": "comment text cannot be empty"
+    }
+  }
+}
