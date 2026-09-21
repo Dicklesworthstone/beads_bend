@@ -1,0 +1,3 @@
+$ ["delete", "proj-5u2"]
+$ ["delete", "proj-5u2"]
+$ ["show", "proj-5u2", "--json"]

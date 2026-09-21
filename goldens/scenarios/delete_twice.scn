@@ -1,0 +1,7 @@
+# delete_twice: deleting an already-tombstoned id is a silent no-op for that id (S4.341)
+@fx=basic
+@time=2026-02-01 09:00:00
+["delete","proj-5u2"]
+@time=2026-02-01 10:00:00
+["delete","proj-5u2"]
+["show","proj-5u2","--json"]

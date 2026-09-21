@@ -120,7 +120,8 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 ### E8. Phase 3 exit
 - [ ] E8.1 lanes PASS on interpreter, c-1t, c-8t, js (gpu MISSING with reason)
 - [ ] E8.2 every def tagged; `law-coverage.sh` OK; `port-lint.py` no errors
-- [ ] E8.3 stack safety on the JS lane for a 5k-record store (B7) — MEASURED 2026-09-20 and registered as DISC-008 (OPEN): the JS lane faults above about 30 KB of store (80 records answer `count`, 96 fault); the C lane answers on 5,000 records (1.6 MB). `bun --stack-size` does not move it. Next: the reproducer upstream (G1), or chunked store paths in the core
+- [x] E8.3 stack safety on the JS lane for a large store (B7) — the fault was the port's own `joined_bytes` (`List.concat` over the read chunks, one JS stack frame per element), not a runtime wall: `port/probes/jsdepth/` reads 1,638,750 bytes three ways on the JS lane without faulting. The shell now answers a single chunk as it is and reads 64 MiB at a time; the JS lane carries 5,000 records. Locked in by fixture `large` and the cases `edge_large_count`, `edge_large_list_limit`, `edge_large_create` (DISC-008 RESOLVED)
+  - [ ] E8.3a the other 180 PL-02 infos: the core still walks store-sized lists in non-tail positions (`Model.repaired`, the renderers, `Store.text_lines`). 512 records and 5,000 records pass on every lane today; find the size at which the core itself faults, and decide there whether the port needs accumulator twins
 
 ## F. Phases 4–6
 

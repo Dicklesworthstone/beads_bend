@@ -1,10 +1,10 @@
-captured: 2026-09-20T23:13:25.802158+00:00
+captured: 2026-09-20T23:57:31.862912+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (358 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"384ed0be9ec21dd119b7c7f92c6700968fa5fa8986865230bf1d85d90bc58515"},"case_files":[],"stdin_files":[]}
-recapture: repin: three more epic close-eligible cases: the JSON of an empty run and of a dry run (S4.392, S4.393) and the plain text of a real one (S4.391), none of which any case pinned
+cases: goldens/cases.tsv (362 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"bc4d740b4d3ba68722c0b44f17b1960c2c497257cff390c5fb0104290a5b8e5a"},"case_files":[],"stdin_files":[]}
+recapture: repin: scn_delete_twice: S4.341 says a second delete of the same id rewrites no field, which no case pinned (find-fix round 1, lens: spec clauses the corpus does not reach)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -711,6 +711,15 @@ sha256:
   b137d387f1477093a45f0d69ce03eec6a59a106b4753fca5b2b3202e6b06bd43  edge_precision_rewrite.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_precision_rewrite.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_precision_rewrite.exit
+  579c81f568f7c29e169413de59514e21afa79aa0787df62272e11a71fd42dabc  edge_large_count.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_large_count.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_large_count.exit
+  a0fa0cf79bc097b12ea87e851186fff74bfd7c38b6c844e432e3792aa5ce3cd9  edge_large_list_limit.out
+  8bf73fefa082d7c73d3e5fb091bdcf39c027989f0668e0082bcbf4c159d5fddf  edge_large_list_limit.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_large_list_limit.exit
+  7526b52bc68d0136e0622a4c2f891d8013f2b48aa4c08b470e4b665c650580eb  edge_large_create.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_large_create.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_large_create.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_conflict_markers.out
   f7d129b90e289b4f4335f1128084e29cb7a0d74a2ccf2986bcfc4b487149bdf4  error_conflict_markers.err
   10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  error_conflict_markers.exit
@@ -1071,6 +1080,9 @@ sha256:
   2cf089f674f71d2cb362351879eeb46b1a34244ec0aa4102e3a2cdbfd431bfb3  scn_epic_close_eligible_plain.out
   0bc0001ab7705eab57891acfa9674bd051194c53ddd83fc6ef4875573cd0a17e  scn_epic_close_eligible_plain.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_epic_close_eligible_plain.exit
+  2ec4c5282319098b95bf84d45f47c57ea50143fd7c5cedf4a919ce41eae873cb  scn_delete_twice.out
+  b3786d094a0028f5e4109410db0df8eb6d4496c40d1a3c01827a02aa7ef88bb7  scn_delete_twice.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_delete_twice.exit
   c85331456cdeed0ff56334db5f55e1a9c05d2c75cd9777903b9ad0c3e09d9936  scn_last_touched.out
   fd0dfc921aeb9a0c4cb7227e9df230a861c97946bf59bad951ac8df5e662cb08  scn_last_touched.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_last_touched.exit

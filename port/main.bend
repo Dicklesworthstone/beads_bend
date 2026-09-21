@@ -49,13 +49,19 @@ def probe(path: String) -> IO(Bool):
     found : Bool <- probed(r)
     return found
 
-# S8.13 (shell) the chunks read so far (REVERSED) as one byte string
+# S8.13 DISC-008 (shell) the chunks read so far (REVERSED) as one byte string. ONE chunk is answered as it
+# is: `List.concat` and `++` walk their left operand with one JavaScript stack frame per element in the
+# emitted runtime, which faults above about 30 000 elements (DISC-008), and a store that arrives in one read
+# is the only shape the corpus and any plausible workspace produce
 def joined_bytes(chunks: List<&2, List<&2, U32>>) -> List<&2, U32>:
-  List.concat(&2, U32, List.reverse(&2, List<&2, U32>, chunks))
+  match chunks:
+    case Con{one, Nil{}}:
+      one
+    case other:
+      List.concat(&2, U32, List.reverse(&2, List<&2, U32>, other))
 
-# S8.13 (shell) read a file to its end in 1 MiB chunks. The loop takes the PREVIOUS read's answer
-# as a parameter and recurses on itself (no mutual recursion); fuel bounds it at 1024 chunks of 1 MiB
-# (1 GiB). The fuel literal is kept SMALL on purpose: a Nat literal is a Peano numeral to the checker, and
+# S8.13 (shell) read a file to its end in 64 MiB chunks (DISC-008: one chunk, no join). The loop takes the PREVIOUS read's answer
+# as a parameter and recurses on itself (no mutual recursion); fuel bounds it at 1024 chunks of 64 MiB. The fuel literal is kept SMALL on purpose: a Nat literal is a Peano numeral to the checker, and
 # `65536n` here cost 15 s of every type-check (and so of every interpreter-lane case and every proof run).
 # An unreadable file, or one past the budget, answers the empty byte string after closing the handle.
 def read_chunks(fuel: Nat, got: File & Result<&1, &1, U32 & String, List<&2, U32>>, chunks: List<&2, List<&2, U32>>) -> IO(List<&2, U32>):
@@ -78,7 +84,7 @@ def read_chunks(fuel: Nat, got: File & Result<&1, &1, U32 & String, List<&2, U32
             return joined_bytes(chunks)
         case (f, Done{c <> rest}):
           do IO<List<&2, U32>>:
-            got2 : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, 1048576)
+            got2 : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, 67108864)
             read_chunks(g, got2, (c <> rest) <> chunks)
 
 # S8.13 (shell) the bytes of an opened file, or nothing when it did not open
@@ -88,7 +94,7 @@ def read_opened(r: Result<&1, &1, U32 & String, File>) -> IO(List<&2, U32>):
       IO.pure(List<&2, U32>, Nil{})
     case Done{file}:
       do IO<List<&2, U32>>:
-        got : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(file, 1048576)
+        got : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(file, 67108864)
         read_chunks(1024n, got, Nil{})
 
 # S8.13 (shell) the bytes of a file

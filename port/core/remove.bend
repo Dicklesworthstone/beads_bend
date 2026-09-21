@@ -70,10 +70,11 @@ def bumped(i: Model.Issue, now: Time.Instant) -> Model.Issue:
     case Model.Issue{head, texts, people, Model.Times{created_at, updated_at, c, d, e, f, g}, closing, source, deletion, compaction, meta, flags, labels, dependencies, comments}:
       Model.Issue{head, texts, people, Model.Times{created_at, now, c, d, e, f, g}, closing, source, deletion, compaction, meta, flags, labels, dependencies, comments}
 
-# S4.330 S4.331 (spec twin) one record after the delete: a deleted id becomes a tombstone without edges, another
+# S4.330 S4.331 S4.341 (spec twin) one record after the delete: a deleted id that is still live becomes a
+# tombstone without edges; an id that is ALREADY a tombstone is a silent no-op, not a second tombstone; another
 # issue loses its edges to deleted ids (and has its `updated_at` bumped only when it lost one)
 def applied_one(+i: Model.Issue, +ids: List<&2, String>, +now: Time.Instant, actor: String, reason: String, +kept: List<&2, Model.Dependency>) -> Model.Issue:
-  Bool.pick(Model.Issue, Blocked.among(ids, Model.id_of(i)), tombstoned(without_edges(i), now, actor, reason), Bool.pick(Model.Issue, Nat.is_eq(List.length(&2, Model.Dependency, kept), List.length(&2, Model.Dependency, Model.deps_of(i))), i, bumped(with_edges(i, kept), now)))
+  Bool.pick(Model.Issue, (Blocked.among(ids, Model.id_of(i)) && Bool.not(String.eq(Model.status_of(i), "tombstone"))), tombstoned(without_edges(i), now, actor, reason), Bool.pick(Model.Issue, Nat.is_eq(List.length(&2, Model.Dependency, kept), List.length(&2, Model.Dependency, Model.deps_of(i))), i, bumped(with_edges(i, kept), now)))
 
 # S4.330 S4.331 (spec twin) the model after the delete
 def applied(issues: List<&2, Model.Issue>, +ids: List<&2, String>, +now: Time.Instant, +actor: String, +reason: String) -> List<&2, Model.Issue>:
@@ -150,12 +151,13 @@ def deleted_set(+issues: List<&2, Model.Issue>, +ids: List<&2, String>, cascade:
 # ---------------------------------------------------------------- what one run answered (S4.333–S4.338)
 
 # S4.333–S4.338 (data) the refusal, the text of a run that writes nothing (the dependents preview and `--dry-run`),
-# or the text with the model to write and the ids that were deleted (`.beads/last-touched` is removed when it
-# names one of them, S4.210)
+# or the text with the model to write, the ids that were deleted and whether any record actually changed
+# (a second delete of the same id changes nothing, S4.341; `.beads/last-touched` is removed when it names one
+# of the deleted ids either way, S4.210)
 type Done is Data:
   DelBad{failure: Failure.Failure}
   DelPreview{out: String}
-  DelDone{out: String, model: List<&2, Model.Issue>, deleted: List<&2, String>}
+  DelDone{out: String, model: List<&2, Model.Issue>, deleted: List<&2, String>, changed: Bool}
 
 # S4.333 S4.337 (spec twin) `  - <id>` per id, one line each
 def id_lines(ids: List<&2, String>) -> String:
@@ -214,10 +216,19 @@ def quoted_all(ids: List<&2, String>) -> List<&2, String>:
 def json_text(+ids: List<&2, String>, links: U32, orphans: List<&2, String>) -> String:
   String.concat(["{\"deleted\":[", String.join(quoted_all(ids), ","), "],\"deleted_count\":", Nat.show(List.length(&2, String, ids)), ",\"dependencies_removed\":", U32.show(links), ",\"labels_removed\":0,\"events_removed\":0,\"references_updated\":0,\"orphaned_issues\":[", String.join(quoted_all(orphans), ","), "]}\n"])
 
+# S4.341 (spec twin) is any named id still a live record: a set of ids that are all tombstones already changes
+# nothing, so the store is not rewritten at all
+def any_live(issues: List<&2, Model.Issue>, +ids: List<&2, String>) -> Bool:
+  match issues:
+    case Nil{}:
+      False{}
+    case Con{+i, rest}:
+      ((Blocked.among(ids, Model.id_of(i)) && Bool.not(String.eq(Model.status_of(i), "tombstone"))) || any_live(rest, ids))
+
 # S4.330 S4.331 S4.336 (spec twin) the delete itself: the edges of the whole set go first, then the tombstones,
 # and the report names the ids, the links that went and the orphans `--force` left behind
 def deleted(+model: List<&2, Model.Issue>, +set: List<&2, String>, +orphans: List<&2, String>, now: Time.Instant, actor: String, reason: String, json: Bool) -> Done:
-  DelDone{Bool.pick(String, json, json_text(set, links_removed(model, set, 0), orphans), plain_text(set, links_removed(model, set, 0), orphans)), applied(model, set, now, actor, reason), set}
+  DelDone{Bool.pick(String, json, json_text(set, links_removed(model, set, 0), orphans), plain_text(set, links_removed(model, set, 0), orphans)), applied(model, set, now, actor, reason), set, (any_live(model, set) || Bool.not(U32.is_eq(links_removed(model, set, 0), 0)))}
 
 # S4.338 (spec twin) a `--dry-run` that reached this far writes nothing and prints what it would have deleted
 def dry_run(+model: List<&2, Model.Issue>, +set: List<&2, String>, orphans: List<&2, String>, now: Time.Instant, actor: String, reason: String, json: Bool, dry: Bool) -> Done:

@@ -1020,10 +1020,11 @@ def epic_close_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, +mode
 def no_delete_ids() -> Failure.Failure:
   Create.invalid("ids", "no issue IDs provided")
 
-# S4.210 S5.18 (spec twin) the file changes of a delete: the store, and the REMOVAL of `.beads/last-touched` when
-# the id it names is one of the deleted ones
-def delete_writes(+model: List<&2, Model.Issue>, deleted: List<&2, String>, +touched: String) -> List<&2, Write>:
-  Bool.pick(List<&2, Write>, (Bool.not(String.is_empty(touched)) && Blocked.among(deleted, touched)), Write{".beads/issues.jsonl", Some{Store.text(model)}} <> Write{".beads/last-touched", None{}} <> Nil{}, Write{".beads/issues.jsonl", Some{Store.text(model)}} <> Nil{})
+# S4.210 S4.341 S5.18 (spec twin) the file changes of a delete: the store when a record actually changed (a
+# second delete of the same id changes nothing), and the REMOVAL of `.beads/last-touched` when the id it names
+# is one of the deleted ones
+def delete_writes(+model: List<&2, Model.Issue>, deleted: List<&2, String>, +touched: String, +changed: Bool) -> List<&2, Write>:
+  List.append(&2, Write, Bool.pick(List<&2, Write>, changed, Write{".beads/issues.jsonl", Some{Store.text(model)}} <> Nil{}, Nil{}), Bool.pick(List<&2, Write>, (Bool.not(String.is_empty(touched)) && Blocked.among(deleted, touched)), Write{".beads/last-touched", None{}} <> Nil{}, Nil{}))
 
 # S4.333 S4.337 S4.338 (spec twin) what a delete answered: a preview writes nothing, a delete writes the store
 def deleted_out(d: Remove.Done, +touched: String, json: Bool, quiet: Bool) -> Outcome:
@@ -1032,8 +1033,8 @@ def deleted_out(d: Remove.Done, +touched: String, json: Bool, quiet: Bool) -> Ou
       failed(f, json)
     case Remove.DelPreview{out}:
       printed(out, "", quiet)
-    case Remove.DelDone{out, model, ids}:
-      wrote(out, delete_writes(model, ids, touched), quiet)
+    case Remove.DelDone{out, model, ids, changed}:
+      wrote(out, delete_writes(model, ids, touched, changed), quiet)
 
 # S4.333 S4.335 (spec twin) `delete` once its ids are resolved and its dependents are known. The JSON shape of a
 # preview and of a dry run, and a dry run under `--force`/`--cascade`, are not captured by any case
