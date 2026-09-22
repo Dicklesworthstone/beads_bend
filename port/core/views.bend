@@ -738,14 +738,30 @@ def epic_status(+all: List<&2, Model.Issue>, eligible_only: Bool, +json: Bool) -
 
 # ---------------------------------------------------------------- where (S5.56, S5.200)
 
+# S2.15 S5.56 (spec twin) the `prefix` member of `where --json`, absent when there is no prefix to report (`where_empty_json`)
+def prefix_member(prefix: Maybe<&2, String>) -> String:
+  match prefix:
+    case None{}:
+      ""
+    case Some{p}:
+      ",\"prefix\":" ++ Failure.quoted(p)
+
+# S2.15 S5.200 (spec twin) the `  prefix:` line of plain `where`, absent when there is no prefix to report (`where_empty`)
+def prefix_line(prefix: Maybe<&2, String>) -> String:
+  match prefix:
+    case None{}:
+      ""
+    case Some{p}:
+      "  prefix: " ++ p ++ "\n"
+
 # S5.56 S5.200 (spec twin) `where`: the `.beads` directory, the prefix, the path `beads.db` would have (printed even
 # though `--no-db` never creates it), and the store
-def whereabouts(+cwd: String, +prefix: String, json: Bool) -> View:
+def whereabouts(+dir: String, prefix: Maybe<&2, String>, json: Bool) -> View:
   match json:
     case True{}:
-      ViewOk{String.concat(["{\"path\":", Failure.quoted(cwd ++ "/.beads"), ",\"prefix\":", Failure.quoted(prefix), ",\"database_path\":", Failure.quoted(cwd ++ "/.beads/beads.db"), ",\"jsonl_path\":", Failure.quoted(cwd ++ "/.beads/issues.jsonl"), "}\n"])}
+      ViewOk{String.concat(["{\"path\":", Failure.quoted(dir), prefix_member(prefix), ",\"database_path\":", Failure.quoted(dir ++ "/beads.db"), ",\"jsonl_path\":", Failure.quoted(dir ++ "/issues.jsonl"), "}\n"])}
     case False{}:
-      ViewOk{String.concat([cwd, "/.beads\n  prefix: ", prefix, "\n  database: ", cwd, "/.beads/beads.db\n  jsonl: ", cwd, "/.beads/issues.jsonl\n"])}
+      ViewOk{String.concat([dir, "\n", prefix_line(prefix), "  database: ", dir, "/beads.db\n  jsonl: ", dir, "/issues.jsonl\n"])}
 
 # S4.186–S4.188 (spec twin) `dep cycles`: a graph with a cycle needs the witness search, which is not ported yet
 def dep_cycles(+all: List<&2, Model.Issue>, blocking_only: Bool, include_closed: Bool, json: Bool) -> View:

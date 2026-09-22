@@ -23,6 +23,7 @@ import ./blocked.bend as Blocked
 import ./edges.bend as Edges
 import ./labels.bend as Labels
 import ./remove.bend as Remove
+import ./prefix.bend as Prefix
 
 # S8.5 (data) one environment variable as the shell read it: its name and its value ("" when it is not set)
 type Var is Data:
@@ -37,9 +38,10 @@ type Inputs is Data:
 # `env` is one Var per name of `env_names`, in that order
 
 # S1.57–S1.67 S8.5 (data) the environment variables the core reads, in the order the shell reads them:
-# the actor ladders (S1.64, S1.65), the output format (S1.61), and the pinned instant of DISC-001
+# the actor ladders (S1.64, S1.65), the output format (S1.61), the pinned instant of DISC-001, and the workspace
+# override of S2.4
 def env_names() -> List<&2, String>:
-  ["USER", "BD_ACTOR", "BEADS_ACTOR", "LOGNAME", "USERNAME", "BR_OUTPUT_FORMAT", "TOON_DEFAULT_FORMAT", "BEADS_BEND_NOW"]
+  ["USER", "BD_ACTOR", "BEADS_ACTOR", "LOGNAME", "USERNAME", "BR_OUTPUT_FORMAT", "TOON_DEFAULT_FORMAT", "BEADS_BEND_NOW", "BEADS_DIR"]
 
 # S8.5 (spec twin) the value of a variable; one that is not set, or was not read, is the empty string
 def env_of(env: List<&2, Var>, +name: String) -> String:
@@ -118,20 +120,20 @@ def list_page(+rows: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, +opts: 
       printed(Render.list_plain(Query.page(rows, offset, limit), Cli.given(opts, "long")), Render.truncation_note(Query.has_more(List.length(&2, Model.Issue, rows), offset, limit), outside_query(opts), List.length(&2, Model.Issue, Query.page(rows, offset, limit)), List.length(&2, Model.Issue, rows)), quiet)
 
 # S4.118 (spec twin) `list` once its filter is built: the sort key is judged next (9 is a key nobody knows)
-def list_sorted(+key: U32, f: Query.Filter, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, bad: Bool) -> Outcome:
+def list_sorted(+key: U32, f: Query.Filter, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, bad: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
   match bad:
     case True{}:
       failed(Query.bad_sort(Maybe.default(&2, String, Cli.value(opts, "sort"), "")), json)
     case False{}:
-      list_page(Query.ordered(Query.kept(issues, f), key, Cli.given(opts, "reverse")), issues, opts, Query.count_of(Cli.value(opts, "limit")), Query.count_of(Cli.value(opts, "offset")), json, quiet)
+      list_page(Query.ordered(Work.overdue_only(Cli.given(opts, "overdue"), now, Query.kept(issues, f)), key, Cli.given(opts, "reverse")), issues, opts, Query.count_of(Cli.value(opts, "limit")), Query.count_of(Cli.value(opts, "offset")), json, quiet)
 
 # S4.105 S4.107 S4.108 (spec twin) `list` once its options were judged
-def list_built(b: Query.Built, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool) -> Outcome:
+def list_built(b: Query.Built, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
   match b:
     case Query.BuildBad{f}:
       failed(f, json)
     case Query.BuildOk{f}:
-      list_sorted(Query.sort_key(Cli.value(opts, "sort")), f, opts, issues, json, quiet, U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9))
+      list_sorted(Query.sort_key(Cli.value(opts, "sort")), f, opts, issues, json, quiet, U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9), now)
 
 # S4.147 (spec twin) the grouping selectors that were given, in the fixed order of the refusal
 def selectors(+opts: List<&2, Cli.Occ>) -> List<&2, String>:
@@ -180,13 +182,14 @@ def count_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bo
     case False{}:
       count_built(Query.build(opts, issues, False{}, True{}), opts, issues, json, quiet)
 
-# S4.132 S5.127 S5.128 (spec twin) `list`; its `--overdue` (which needs the clock), `--tree` and `--pretty` are not ported yet
-def list_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
+# S4.132 S5.127 S5.128 (spec twin) `list`; `--overdue` also hides deferred records unless a status, `--deferred` or
+# `--all` asks for them (S4.132); `--tree` and `--pretty` are not ported yet
+def list_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, later: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
   match later:
     case True{}:
       failed(unported(), json)
     case False{}:
-      list_built(Query.build(opts, issues, True{}, False{}), opts, issues, json, quiet)
+      list_built(Query.build(opts, issues, Bool.not(Cli.given(opts, "overdue")), False{}), opts, issues, json, quiet, now)
 
 # S4.141 S4.142 S5.34 S5.156–S5.159 (spec twin) `search` once its rows are ordered: the page, the `has_more` verdict,
 # the hidden closed matches, as JSON or as plain text
@@ -352,10 +355,6 @@ def touched_text(d: Bytes.Decoded) -> String:
     case Bytes.Utf8{codes}:
       String.trim(Cli.text(codes))
 
-# S2.10 (spec twin) the workspace's default prefix: the name of the workspace directory. The `issue_prefix` of
-# `.beads/config.yaml` and the directory-name rules of S2.11–S2.15 are not read yet (backlog E3.2)
-def prefix_of(cwd: String) -> String:
-  Resolve.remainder_of(Resolve.cut_last(cwd, 47))
 
 # S5.105 S5.155 (spec twin) what `show` answered, as an outcome
 def shown(s: Show.Shown, json: Bool, quiet: Bool) -> Outcome:
@@ -386,8 +385,8 @@ def seed_digits(text: String) -> String:
   seed_parts(String.split(String.trim(text), Chr{46}))
 
 # S4.200 S4.220 (spec twin) what a mutation knows of the world, once the invocation instant is known
-def world_of(now: Time.Instant, digits: String, +opts: List<&2, Cli.Occ>, raw: List<&2, Model.Issue>, env: List<&2, Var>, +cwd: String) -> Create.World:
-  Create.World{Show.ids_of(raw), actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), now, seed_digits(digits), prefix_of(cwd), cwd}
+def world_of(now: Time.Instant, digits: String, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, +env: List<&2, Var>, +cwd: String) -> Create.World:
+  Create.World{Show.ids_of(raw), actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), now, seed_digits(digits), Prefix.text_of(Prefix.minted(Prefix.configured(env_of(env, ".beads/config.yaml")), raw, cwd)), cwd}
 
 # S5.1 S5.17 S5.18 (spec twin) the file changes of a mutation that acted on `id`: the whole store re-rendered (unless
 # the store is to be left alone), then the sidecar
@@ -1104,71 +1103,76 @@ def delete_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: Li
     case Some{at} Con{w, rest} False{}:
       delete_resolved(Resolve.many(Model.dedup(List.sort(~String, ~String.is_le, w <> rest)), Show.ids_of(raw), prefix), Store.model(raw), opts, at, actor, json, quiet, touched)
 
+# S2.2 S2.4 S5.56 (spec twin) the workspace directory as discovery found it (`<root>/_beads`, or `BEADS_DIR` as
+# given), which the shell passes as `BEADS_BEND_DIR`; `<root>/.beads` when it is not given (a law's inputs)
+def beads_dir_of(+env: List<&2, Var>, +cwd: String) -> String:
+  Bool.pick(String, String.is_empty(env_of(env, "BEADS_BEND_DIR")), cwd ++ "/.beads", env_of(env, "BEADS_BEND_DIR"))
+
 # S1 S4 S5 (spec twin) one ported command on a loaded store. `show` reads the file's records as they are
 # (S2.38, S2.39); every other command reads the loaded model (Store.model). `n` is the command's number
 # (`command_number`); 0 is a command that is not ported, which answers the port's own failure
-def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
+def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) -> Outcome:
   match n c:
     case 1 Call{path, +opts, words, json, quiet, touched, env, cwd}:
-      list_cmd(opts, Store.model(issues), json, quiet, (Cli.given(opts, "overdue") || Cli.given(opts, "tree") || Cli.given(opts, "pretty")))
+      list_cmd(opts, Store.model(issues), json, quiet, (Cli.given(opts, "tree") || Cli.given(opts, "pretty")), Show.pinned(now_of(env)))
     case 2 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       count_cmd(opts, Store.model(issues), json, quiet, Nat.is_gt(List.length(&2, String, selectors(opts)), 1n))
     case 3 Call{path, opts, words, +json, quiet, touched, +env, cwd}:
-      shown(Show.run(words, issues, touched_text(Bytes.decode(touched)), env_of(env, "USER"), now_of(env), prefix_of(cwd), json), json, quiet)
+      shown(Show.run(words, issues, touched_text(Bytes.decode(touched)), env_of(env, "USER"), now_of(env), prefix, json), json, quiet)
     case 4 Call{path, +opts, +words, json, quiet, touched, env, cwd}:
       search_cmd(opts, Store.model(issues), first_word(words), json, quiet, String.is_empty(first_word(words)), U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9))
     case 5 Call{path, +opts, words, json, quiet, touched, env, cwd}:
-      ready_cmd(opts, Store.model(issues), env, json, quiet, prefix_of(cwd))
+      ready_cmd(opts, Store.model(issues), env, json, quiet, prefix)
     case 6 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       blocked_cmd(opts, Store.model(issues), json, quiet, Cli.given(opts, "detailed"))
     case 7 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       stats_cmd(opts, Store.model(issues), env, json, quiet, (Cli.given(opts, "by-type") || Cli.given(opts, "by-priority") || Cli.given(opts, "by-assignee") || Cli.given(opts, "by-label") || Cli.given(opts, "activity")))
     case 8 Call{path, opts, words, json, quiet, touched, env, cwd}:
-      dep_list_cmd(opts, Store.model(issues), first_word(words), prefix_of(cwd), json, quiet)
+      dep_list_cmd(opts, Store.model(issues), first_word(words), prefix, json, quiet)
     case 9 Call{path, opts, words, json, quiet, touched, env, cwd}:
-      dep_tree_cmd(opts, Store.model(issues), first_word(words), prefix_of(cwd), json, quiet)
+      dep_tree_cmd(opts, Store.model(issues), first_word(words), prefix, json, quiet)
     case 10 Call{path, +opts, words, +json, quiet, touched, env, cwd}:
       viewed(Views.dep_cycles(Store.model(issues), Cli.given(opts, "blocking-only"), Cli.given(opts, "include-closed"), json), json, quiet)
     case 11 Call{path, opts, words, json, quiet, touched, env, cwd}:
-      label_list_cmd(Store.model(issues), words, prefix_of(cwd), json, quiet)
+      label_list_cmd(Store.model(issues), words, prefix, json, quiet)
     case 12 Call{path, opts, words, +json, quiet, touched, env, cwd}:
       viewed(Views.label_list_all(Store.model(issues), json), json, quiet)
     case 13 Call{path, opts, words, json, quiet, touched, env, cwd}:
-      comments_list_cmd(Store.model(issues), words, prefix_of(cwd), json, quiet)
+      comments_list_cmd(Store.model(issues), words, prefix, json, quiet)
     case 14 Call{path, opts, words, +json, quiet, touched, env, cwd}:
       viewed(Views.epic_status(Store.model(issues), Cli.given(opts, "eligible-only"), json), json, quiet)
-    case 15 Call{path, opts, words, +json, quiet, touched, env, +cwd}:
-      viewed(Views.whereabouts(cwd, prefix_of(cwd), json), json, quiet)
+    case 15 Call{path, opts, words, +json, quiet, touched, +env, +cwd}:
+      viewed(Views.whereabouts(beads_dir_of(env, cwd), Prefix.reported(Prefix.configured(env_of(env, ".beads/config.yaml")), issues), json), json, quiet)
     case 16 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, (Cli.given(opts, "file") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context")), False{})
     case 17 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, False{}, True{})
     case 19 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(0, Show.pinned(now_of(env)), (Cli.given(opts, "transition-comment") || Cli.given(opts, "session") || Cli.given(opts, "bypass-policy") || Cli.given(opts, "bypass-reason")), Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      transition(0, Show.pinned(now_of(env)), (Cli.given(opts, "transition-comment") || Cli.given(opts, "session") || Cli.given(opts, "bypass-policy") || Cli.given(opts, "bypass-reason")), Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 20 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(1, Show.pinned(now_of(env)), False{}, Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      transition(1, Show.pinned(now_of(env)), False{}, Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 21 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(2, Show.pinned(now_of(env)), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      transition(2, Show.pinned(now_of(env)), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 22 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(3, Show.pinned(now_of(env)), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      transition(3, Show.pinned(now_of(env)), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 18 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      update_cmd(Show.pinned(now_of(env)), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "append-notes") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
+      update_cmd(Show.pinned(now_of(env)), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "append-notes") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
     case 23 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      edge_cmd(True{}, Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      edge_cmd(True{}, Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 24 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      edge_cmd(False{}, Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      edge_cmd(False{}, Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 25 Call{path, opts, words, json, quiet, touched, +env, cwd}:
-      label_cmd(True{}, Show.pinned(now_of(env)), opts, words, issues, prefix_of(cwd), json, quiet)
+      label_cmd(True{}, Show.pinned(now_of(env)), opts, words, issues, prefix, json, quiet)
     case 26 Call{path, opts, words, json, quiet, touched, +env, cwd}:
-      label_cmd(False{}, Show.pinned(now_of(env)), opts, words, issues, prefix_of(cwd), json, quiet)
+      label_cmd(False{}, Show.pinned(now_of(env)), opts, words, issues, prefix, json, quiet)
     case 27 Call{path, opts, words, json, quiet, touched, +env, cwd}:
       rename_cmd(Show.pinned(now_of(env)), words, issues, json, quiet)
     case 28 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      comment_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, Cli.given(opts, "file"))
+      comment_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, Cli.given(opts, "file"))
     case 30 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       epic_close_cmd(Show.pinned(now_of(env)), opts, Store.model(issues), json, quiet, Cli.given(opts, "transition-comment"))
     case 29 Call{path, +opts, words, json, quiet, +touched, +env, cwd}:
-      delete_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, touched_text(Bytes.decode(touched)), (Cli.given(opts, "hard") || Cli.given(opts, "from-file")))
+      delete_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, touched_text(Bytes.decode(touched)), (Cli.given(opts, "hard") || Cli.given(opts, "from-file")))
     case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 
@@ -1182,9 +1186,99 @@ def path_of(c: Call) -> String:
 def command_number(+path: String) -> U32:
   Bool.pick(U32, String.eq(path, "list"), 1, Bool.pick(U32, String.eq(path, "count"), 2, Bool.pick(U32, String.eq(path, "show"), 3, Bool.pick(U32, String.eq(path, "search"), 4, Bool.pick(U32, String.eq(path, "ready"), 5, Bool.pick(U32, String.eq(path, "blocked"), 6, Bool.pick(U32, String.eq(path, "stats"), 7, Bool.pick(U32, String.eq(path, "dep list"), 8, Bool.pick(U32, String.eq(path, "dep tree"), 9, Bool.pick(U32, String.eq(path, "dep cycles"), 10, Bool.pick(U32, String.eq(path, "label list"), 11, Bool.pick(U32, String.eq(path, "label list-all"), 12, Bool.pick(U32, (String.eq(path, "comments list") || String.eq(path, "comments")), 13, Bool.pick(U32, String.eq(path, "epic status"), 14, Bool.pick(U32, String.eq(path, "where"), 15, Bool.pick(U32, String.eq(path, "create"), 16, Bool.pick(U32, String.eq(path, "q"), 17, Bool.pick(U32, String.eq(path, "update"), 18, Bool.pick(U32, String.eq(path, "close"), 19, Bool.pick(U32, String.eq(path, "reopen"), 20, Bool.pick(U32, String.eq(path, "defer"), 21, Bool.pick(U32, String.eq(path, "undefer"), 22, Bool.pick(U32, String.eq(path, "dep add"), 23, Bool.pick(U32, String.eq(path, "dep remove"), 24, Bool.pick(U32, String.eq(path, "label add"), 25, Bool.pick(U32, String.eq(path, "label remove"), 26, Bool.pick(U32, String.eq(path, "label rename"), 27, Bool.pick(U32, String.eq(path, "comments add"), 28, Bool.pick(U32, String.eq(path, "delete"), 29, Bool.pick(U32, String.eq(path, "epic close-eligible"), 30, 0))))))))))))))))))))))))))))))
 
-# S1 S4 S5 (spec twin, dispatcher) the command a loaded store reaches
-def command(+c: Call, issues: List<&2, Model.Issue>) -> Outcome:
-  command_at(command_number(path_of(c)), c, issues)
+# S2.18 (spec twin) the text of `.beads/config.yaml`, as the shell gathered it
+def config_of(c: Call) -> String:
+  match c:
+    case Call{path, opts, words, json, quiet, touched, env, cwd}:
+      env_of(env, ".beads/config.yaml")
+
+# S2.12 (spec twin) the workspace directory of a call
+def cwd_of(c: Call) -> String:
+  match c:
+    case Call{path, opts, words, json, quiet, touched, env, cwd}:
+      cwd
+
+# S5.20 (spec twin) whether a call answers in JSON
+def json_of(c: Call) -> Bool:
+  match c:
+    case Call{path, opts, words, json, quiet, touched, env, cwd}:
+      json
+
+# S2.18 S8.13 (spec twin) a side file the shell read, as a named value the core can look up (`.beads/config.yaml`);
+# a file that is absent, empty or not UTF-8 is the empty text
+def file_var(name: String, bytes: List<&2, U32>) -> Var:
+  Var{name, touched_text(Bytes.decode(bytes))}
+
+# ---------------------------------------------------------------- workspace discovery (S2.1–S2.4)
+
+# S2.2 (spec twin) the directory above one: `/a/b` → `/a`, `/a` → `` (the root)
+def parent_dir(d: String) -> String:
+  Prefix.cut_left(Resolve.cut_last(d, 47))
+
+# S2.2 (spec twin) a directory and each ancestor up to the root, nearest first; the root is the empty text. The fuel
+# is one per code point of the path plus one, and every step removes at least one
+def ancestors(fuel: Nat, +dir: String) -> List<&2, String>:
+  match fuel:
+    case Zero{}:
+      Nil{}
+    case Succ{f}:
+      dir <> Bool.pick(List<&2, String>, String.is_empty(dir), Nil{}, ancestors(f, parent_dir(dir)))
+
+# S2.2 S2.3 (spec twin) the two names tested at each level, `.beads` before `_beads`
+def beads_names(dirs: List<&2, String>) -> List<&2, String>:
+  match dirs:
+    case Nil{}:
+      Nil{}
+    case Con{+d, rest}:
+      (d ++ "/.beads") <> (d ++ "/_beads") <> beads_names(rest)
+
+# S2.4 (spec twin) `BEADS_DIR` as a path: an absolute value as given, a relative one against the working directory
+def absolute(+path: String, +cwd: String) -> String:
+  Bool.pick(String, String.starts_with(path, "/"), path, cwd ++ "/" ++ path)
+
+# S2.1 S2.2 S2.4 (spec twin) the directories the shell tests, in order: `BEADS_DIR` alone when it does not trim to
+# empty (it short-circuits the walk), else `.beads` and `_beads` at the working directory and at every ancestor. The
+# `--db` and `BD_DB`-family overrides name a database, which `--no-db` never opens, and are not read
+def discovery(+cwd: String, +beads_dir: String) -> List<&2, String>:
+  Bool.pick(List<&2, String>, String.is_empty(String.trim(beads_dir)), beads_names(ancestors((String.length(cwd) + 1n : Nat), cwd)), absolute(String.trim(beads_dir), cwd) <> Nil{})
+
+# S2.2 (spec twin) the first tested directory that opened; the empty text when none did (NOT_INITIALIZED, S2.8).
+# Bend 2.0.20 has no directory test: the shell opens each path for reading, which succeeds on a directory and fails
+# on a missing path on every engine (`port/probes/dir`); a regular FILE named `.beads` would also open
+def found(dirs: List<&2, String>, oks: List<&2, Bool>) -> String:
+  match dirs oks:
+    case Con{d, drest} Con{ok, orest}:
+      Bool.pick(String, ok, d, found(drest, orest))
+    case _ _:
+      ""
+
+# S2.2 S2.12 (spec twin) the workspace root the core works in: the directory that holds `.beads` (the source path new
+# records carry, and whose name gives the default prefix); the working directory when none was found
+def root_of(+ws: String, cwd: String) -> String:
+  Bool.pick(String, String.is_empty(ws), cwd, parent_dir(ws))
+
+# S8.12 S8.13 (spec twin) a file inside the workspace directory; the empty path (which opens nothing) when there is none
+def inside(+ws: String, name: String) -> String:
+  Bool.pick(String, String.is_empty(ws), "", ws ++ "/" ++ name)
+
+# S5.1 S8.30 (spec twin) where a file change lands: the core names `.beads/<file>`, the shell writes it inside the
+# directory discovery found (which may be `_beads`, or `BEADS_DIR`)
+def relocated(+ws: String, +path: String) -> String:
+  Bool.pick(String, String.starts_with(path, ".beads/"), inside(ws, String.drop(path, 7n)), path)
+
+# S2.10 S2.14 (spec twin) the command, once the prefix new ids take is known: a configured prefix that sanitizes to
+# nothing refuses every command but `where`, which reports the raw value (`error_prefix_config_bad_list`,
+# `prefix_config_bad_where`)
+def prefixed(m: Prefix.Minted, +c: Call, issues: List<&2, Model.Issue>) -> Outcome:
+  match m:
+    case Prefix.MintOk{+prefix}:
+      command_at(command_number(path_of(c)), c, issues, prefix)
+    case Prefix.MintBad{raw}:
+      Bool.pick(Outcome, String.eq(path_of(c), "where"), command_at(15, c, issues, ""), failed(Prefix.refusal(raw), json_of(c)))
+
+# S1 S4 S5 S2.10 (spec twin, dispatcher) the command a loaded store reaches, once the prefix new ids take is known
+def command(+c: Call, +issues: List<&2, Model.Issue>) -> Outcome:
+  prefixed(Prefix.minted(Prefix.configured(config_of(c)), issues, cwd_of(c)), c, issues)
 
 # S2.26 S2.27 (spec twin) a loaded store: a refusal is the outcome; a good store reaches the command
 def loaded(st: Store.Loaded, +c: Call) -> Outcome:

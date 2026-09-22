@@ -180,43 +180,65 @@ def write_opened(r: Result<&1, &1, U32 & String, File>, text: String) -> IO(Unit
         written(got)
 
 # S5.1 S5.17 S8.30 (shell) one file change: the whole new text (the file is created or truncated), or a removal
-def change(w: Run.Write) -> IO(Unit):
+def change(+dir: String, w: Run.Write) -> IO(Unit):
   match w:
     case Run.Write{path, None{}}:
-      Sys.remove(path)
+      Sys.remove(Run.relocated(dir, path))
     case Run.Write{path, Some{text}}:
       do IO<Unit>:
-        r : Result<&1, &1, U32 & String, File> <- File.open(path, "w")
+        r : Result<&1, &1, U32 & String, File> <- File.open(Run.relocated(dir, path), "w")
         write_opened(r, text)
 
 # S5.18 S8.30 (shell) the file changes in the order the core gave them: the store before the sidecar
-def change_all(ws: List<&2, Run.Write>) -> IO(Unit):
+def change_all(+dir: String, ws: List<&2, Run.Write>) -> IO(Unit):
   match ws:
     case Nil{}:
       IO.pure(Unit, Unit{})
     case Con{w, rest}:
       do IO<Unit>:
-        change(w)
-        change_all(rest)
+        change(dir, w)
+        change_all(dir, rest)
 
 # S8.30 S8.34 S8.36 (shell) perform the outcome: the files, then stdout, then stderr, then the exit code
-def perform(o: Run.Outcome) -> IO(Unit):
+def perform(+dir: String, o: Run.Outcome) -> IO(Unit):
   match o:
     case Run.Outcome{out, +err, +code, writes}:
       do IO<Unit>:
-        change_all(writes)
+        change_all(dir, writes)
         IO.write(out)
         emit_err(err, String.is_empty(err))
         leave(code, U32.is_eq(code, 0))
 
-# S8.1 S8.12 (shell) gather, call the core once, perform
+# S2.2 (shell) open each candidate directory in turn; the core picks the first that opened (Run.found)
+def probe_all(paths: List<&2, String>) -> IO(List<&2, Bool>):
+  match paths:
+    case Nil{}:
+      IO.pure(List<&2, Bool>, Nil{})
+    case Con{p, rest}:
+      do IO<List<&2, Bool>>:
+        ok : Bool <- probe(p)
+        oks : List<&2, Bool> <- probe_all(rest)
+        return ok <> oks
+
+# S8.1 S8.12 S8.13 (shell) read the workspace's files, call the core once, perform
+def run_in(args: List<String>, +cwd: String, env: List<&2, Run.Var>, +dir: String) -> IO(Unit):
+  do IO<Unit>:
+    store : List<&2, U32> <- read_all(Run.inside(dir, "issues.jsonl"))
+    touched : List<&2, U32> <- read_all(Run.inside(dir, "last-touched"))
+    config : List<&2, U32> <- read_all(Run.inside(dir, "config.yaml"))
+    wall : String <- Clock.wall()
+    perform(dir, Run.outcome(Run.Inputs{args_list(args), Bool.not(String.is_empty(dir)), Run.root_of(dir, cwd), store, touched, Run.Var{"BEADS_BEND_WALL", wall} <> Run.Var{"BEADS_BEND_DIR", dir} <> Run.file_var(".beads/config.yaml", config) <> env}))
+
+# S2.1 S2.2 (shell) test the directories discovery names, then run in the first that opened
+def discover(args: List<String>, +cwd: String, +env: List<&2, Run.Var>) -> IO(Unit):
+  do IO<Unit>:
+    oks : List<&2, Bool> <- probe_all(Run.discovery(cwd, Run.env_of(env, "BEADS_DIR")))
+    run_in(args, cwd, env, Run.found(Run.discovery(cwd, Run.env_of(env, "BEADS_DIR")), oks))
+
+# S8.1 S8.12 (shell) gather what discovery needs, then discover
 def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
-    workspace : Bool <- probe(".beads/issues.jsonl")
     cwd : String <- Sys.cwd()
-    store : List<&2, U32> <- read_all(".beads/issues.jsonl")
-    touched : List<&2, U32> <- read_all(".beads/last-touched")
     env : List<&2, Run.Var> <- env_all(Run.env_names())
-    wall : String <- Clock.wall()
-    perform(Run.outcome(Run.Inputs{args_list(args), workspace, cwd, store, touched, Run.Var{"BEADS_BEND_WALL", wall} <> env}))
+    discover(args, cwd, env)

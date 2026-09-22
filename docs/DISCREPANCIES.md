@@ -105,6 +105,16 @@ to change the contract. Keep the historical entry and its original evidence.
 - Impact measured: unpinned only: a JS-lane timestamp carries microseconds, not nanoseconds; an id minted unpinned is equally valid (any seed yields a well-formed id) but differs from the one the original would mint at the same instant, as it would between any two runs.
 - Approver: none yet. OPEN until the repository owner accepts or rejects it.
 
+### DISC-010 — with both `issue_prefix` and `prefix` configured, the original picks one at random   [2026-09-22 | Nondeterminism | OPEN]
+- Spec clause: S2.10, S2.15, S2.20
+- Original behavior (cite the golden): fixture `cfg_both` configures `prefix: pp` and `issue_prefix: ii`. Eight runs of `create Prefixed` through the sandbox minted `pp-gv0` five times and `ii-gv0` three times; `where` reported `prefix: ii` in six runs of six. `scripts/floor.sh` over the 17 prefix cases at `--repeat 5`: `{"repeat":5,"stable":16,"unstable":["prefix_config_both"],"inconclusive":[],"oracle_identity_checked":true,"verdict":"UNSTABLE"}`. `goldens/prefix_config_both.out` holds one draw (`pp-gv0`); it is not a reproducible golden.
+- Port behavior: always `issue_prefix` (`ii-gv0`), the order S2.10 states and the answer `where` gives in every run.
+- Why: there is no single original answer to reproduce; the port takes the one that agrees with the original's own `where`.
+- Kill-switch: none (configure one key only, and the original and the port agree: `prefix_config_create`, `prefix_config_quoted`).
+- Affected cases: `prefix_config_both`, which fails on every lane against its captured draw and fails the floor against itself.
+- Impact measured: 1 of 476 cases; a workspace that sets both keys to different values.
+- Approver: none yet. OPEN until the repository owner decides between removing the case, keeping it as a documented failure, or a canonicalizing wrapper (as DISC-005 did for the ambiguous-id order).
+
 ### DISC-008 — the JS lane faults on a store above about 30 KB   [2026-09-20 | Platform | RESOLVED]
 - Spec clause: S2.24 (load), S8.13 (the store read); PLAN §7 risk B7 (JS deep recursion)
 - Original behavior (cite the golden): `br --no-db count` answers on a store of any size the filesystem holds; the original's own `.beads/issues.jsonl` is 4.5 MB (PLAN §7). No captured case exercises a large store — the corpus's biggest fixture is 8 records — so no golden shows this; it was measured with a probe.

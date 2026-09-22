@@ -164,6 +164,36 @@ def policy_of(given: Maybe<&2, String>) -> U32:
 def ready_issues(+all: List<&2, Model.Issue>, now: Maybe<&2, Time.Instant>, with_deferred: Bool, assignee: Maybe<&2, String>, unassigned: Bool, labels_all: List<&2, String>, labels_any: List<&2, String>, types: List<&2, String>, priorities: List<&2, U32>, policy: U32) -> List<&2, Model.Issue>:
   Query.issues_of(ready_sorted(Query.rows_of(ready_kept(candidates(all, Blocked.keys(Blocked.relation(all)), now, with_deferred), assignee, unassigned, labels_all, labels_any, types, priorities), 1), policy))
 
+# S4.132 (spec twin) is a due date strictly before the instant
+def due_before(due: Maybe<&2, Time.Instant>, +now: Time.Instant) -> Bool:
+  match due:
+    case None{}:
+      False{}
+    case Some{d}:
+      Bool.not(Time.le(now, d))
+
+# S4.132 S4.113 (spec twin) is a record overdue: a `due_at` strictly before the invocation instant and a status that
+# is not terminal
+def overdue(+i: Model.Issue, now: Time.Instant) -> Bool:
+  (due_before(Model.due_of(i), now) && Bool.not(Blocked.terminal(Model.status_of(i))))
+
+# S4.132 (spec twin) the overdue records, in their order
+def overdue_rows(issues: List<&2, Model.Issue>, +now: Time.Instant) -> List<&2, Model.Issue>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      ready_put(i, overdue(i, now), overdue_rows(rest, now))
+
+# S4.132 S4.133 (spec twin) `--overdue` narrows the filtered records (it runs after the query, before the page);
+# without the flag, or with no instant, they pass unchanged
+def overdue_only(on: Bool, now: Maybe<&2, Time.Instant>, issues: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match on now:
+    case True{} Some{t}:
+      overdue_rows(issues, t)
+    case _ _:
+      issues
+
 # S4.173 (spec twin) keep an id when the flag says so
 def id_keep(x: String, keep: Bool, rest: List<&2, String>) -> List<&2, String>:
   match keep:
