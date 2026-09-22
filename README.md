@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Status](https://img.shields.io/badge/status-Phase%203%3A%20every%20corpus%20command%20runs%2C%20384%20of%20384%20cases-orange.svg)](#status)
+[![Status](https://img.shields.io/badge/status-Phase%203%3A%20every%20corpus%20command%20runs%2C%20414%20of%20414%20cases-orange.svg)](#status)
 [![Bend](https://img.shields.io/badge/bend-2.0.20%20%28pinned%29-blue.svg)](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md)
 [![Oracle](https://img.shields.io/badge/oracle-br%200.6.0%20%28pinned%29-orange.svg)](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md)
 
@@ -15,28 +15,28 @@ A port of [`br` (beads_rust)](https://github.com/Dicklesworthstone/beads_rust), 
 <div align="center">
 <h3>There is nothing to install</h3>
 
-<p><em>There is no release, no installer and no binary to download, and the port has not been through its parity gate, its performance phase or its certification. What exists is a Bend program you can build yourself (<code>bend port/main.bend -o bn</code>) that reproduces the pinned original byte for byte on all 384 captured conformance cases, on three executors (native C at 1 and 8 threads, and JavaScript), plus the evidence base a port is judged against. Read <a href="#status">Status</a> before anything else.</em></p>
+<p><em>There is no release, no installer and no binary to download, and the port has not been through its parity gate, its performance phase or its certification. What exists is a Bend program you can build yourself (<code>bend port/main.bend -o bn</code>) that reproduces the pinned original byte for byte on all 414 captured conformance cases, on three executors (native C at 1 and 8 threads, and JavaScript), plus the evidence base a port is judged against. Read <a href="#status">Status</a> before anything else.</em></p>
 </div>
 
 ---
 
 ## Status
 
-As of 2026-09-20 this project is at the end of Phase 3 of an eight-phase port method (fit screen, truth pack, spec, architecture, reference port, parity gate, performance, certify). The fit screen, the truth pack, a first pass of the spec and the architecture are done; the reference port now answers every command the 384-case corpus exercises, reads and writes the store, and reproduces the pinned original byte for byte on three of the four lanes. Nothing after Phase 3 has started: no find-fix round, no parity claim, no measurement, no certification. I would rather publish an honest account of a half-finished port than a README that describes software that does not exist.
+As of 2026-09-21 this project is at the end of Phase 3 of an eight-phase port method (fit screen, truth pack, spec, architecture, reference port, parity gate, performance, certify). The fit screen, the truth pack, a first pass of the spec and the architecture are done; the reference port now answers every command the 384-case corpus exercises, reads and writes the store, and reproduces the pinned original byte for byte on three of the four lanes. Nothing after Phase 3 has started: no find-fix round, no parity claim, no measurement, no certification. I would rather publish an honest account of a half-finished port than a README that describes software that does not exist.
 
 | Artifact | State | Where |
 |----------|-------|-------|
 | The original, pinned | `br 0.6.0`, tag `v0.6.0`, commit `b1cfebe05437463e91a353cf2bedafac27266f5b`; the published release binary, 27,772,512 bytes, sha256 `21b967c1ae68df1a2e8eb2256d13b8e57d293d89e331933919076104832ddbc0` | [PLAN §2](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md) |
 | Bend, pinned | `bend 2.0.20` from the official installer; binary sha256 `fab9e564c578a0a15880d5fea561ac1612dba01265a5a219906b5888f3381d8c`; bun `1.4.2`; clang `21.1.8` | [PLAN §2b](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md) |
 | Hermetic oracle sandbox | exists: `scripts/ws-run.sh` and `scripts/ws_inner.py` (bubblewrap, tmpfs workspace, cleared environment, pinned instant) | `scripts/ws-run.sh --help` |
-| Conformance cases | 384 cases in `goldens/cases.tsv` (8 added 2026-09-20 for the label-rename, typed dep-remove, single-parent, `-l` label and comment-text forms); `scripts/cases-lint.sh` verdict `OK` (0 errors, 0 notes) | `goldens/` |
-| Goldens | 384 captured `.out` / `.err` / `.exit` triples from the pinned original; digests in `goldens/MANIFEST.txt`; 70 of them carry a dump of the resulting `.beads/issues.jsonl`. Three (`version_plain`, `version_json`, `usage_version_flag`) are compared through the DISC-006 shape canonicalizer, which reduces both sides to `<name> version <version> <details>` | `goldens/` |
-| Reproducibility floor | `{"repeat":3,"stable":384,"unstable":[],"inconclusive":[],"oracle_identity_checked":true,"verdict":"STABLE"}`, after the one hash-random output of the original was canonicalized (DISC-005) | `docs/PORT_STATE.md` |
-| Fixtures and scenarios | 7 fixtures (`basic`, `basic_touched`, `conflict`, `empty`, `large`, `malformed`, `precision`) and 5 multi-step scenarios; the realistic fixtures are the original's own output | `goldens/fixtures/`, `goldens/scenarios/` |
+| Conformance cases | 414 cases in `goldens/cases.tsv` (30 added 2026-09-21 for the dependency graph: real tree depth, a diamond, an ancestor back edge, `repeat` and `truncated`, `--max-depth`, the `up` and `both` directions, and the BLOCKED relation with two blockers and a blocking cycle); `scripts/cases-lint.sh` verdict `OK` (0 errors, 0 notes) | `goldens/` |
+| Goldens | 414 captured `.out` / `.err` / `.exit` triples from the pinned original; digests in `goldens/MANIFEST.txt`; 70 of them carry a dump of the resulting `.beads/issues.jsonl`. Three (`version_plain`, `version_json`, `usage_version_flag`) are compared through the DISC-006 shape canonicalizer, which reduces both sides to `<name> version <version> <details>` | `goldens/` |
+| Reproducibility floor | `{"repeat":3,"stable":384,"unstable":[],"inconclusive":[],"oracle_identity_checked":true,"verdict":"STABLE"}` over the 384 cases of 2026-09-20, and `{"repeat":3,"stable":30,"unstable":[],"inconclusive":[],"oracle_identity_checked":true,"verdict":"STABLE"}` over the 30 added on 2026-09-21, after the one hash-random output of the original was canonicalized (DISC-005) | `docs/PORT_STATE.md` |
+| Fixtures and scenarios | 9 fixtures (`basic`, `basic_touched`, `conflict`, `empty`, `graph`, `hierarchy`, `large`, `malformed`, `precision`) and their build scenarios; the realistic fixtures are the original's own output, `graph` and `hierarchy` included | `goldens/fixtures/`, `goldens/scenarios/` |
 | Spec (Phase 1) | **first pass done**: 899 numbered clauses with `file:line` provenance and a golden case each (25 of them, S1.68–S1.92, written from measured output while the argument parser was built), merged from eight part files by `scripts/merge-spec-parts.py`; `scripts/spec-lint.py` reports 0 findings; a blind self-containment review predicted 10 of 10 sampled cases byte for byte from the spec alone (`docs/reviews/self-containment-1/`) and still found six clause contradictions, now open questions. The method's second and third extraction passes and the capture of the extractors' proposed cases have not run | `docs/EXISTING_BEADS_RUST_STRUCTURE.md`, `docs/spec-parts/`, `docs/OPEN_QUESTIONS.md` |
 | Architecture, numeric plan (Phase 2) | written: one pure function `run : Inputs -> Outcome` and a thin IO shell; every one of the 764 behavior clauses has a home def (`scripts/arch-lint.py`: PASS); no `F32` anywhere and no budgeted output class | `docs/PROPOSED_ARCHITECTURE.md`, `docs/NUMERIC_PLAN.md` |
 | Bend implementation (Phase 3) | **every command the corpus exercises runs, on a store it also writes; not certified**: twenty-four pure modules under `port/core/` (UTF-8, SHA-256, the id hash, instants, the JSON line lexer and member splitter, the 44-member record with its store line and load repairs, the line decoder, store loading and write-back, error rendering, the command-line tables, the argument parser, the carried help texts, the listing relation, the renderers, the partial-id resolver, `show`, the BLOCKED relation, `ready`/`blocked`/`stats`, the small views, `create`, `update`, the status transitions, the date grammar, the dependency edges, labels and comments, `delete`, the dispatcher) and the IO shell `port/main.bend` with three custom effects (`Sys.exit`, `Sys.cwd`, `Sys.remove`). **384 of 384 conformance cases pass, the same on the single-thread C lane, the 8-thread C lane and the JS lane** (`scripts/conform.sh` per lane, 2026-09-20). The interpreter lane is checked on a 12-case sample: one interpreter run type-checks the whole book, measured at 2 min 28 s, so the full corpus would take about 14.5 hours there. Forms no case captures are refused with the port's own failure rather than guessed: `--hard` and `--from-file` on `delete`, a `--json` delete preview, `comments add -f`, a label split over more than two positionals, a tombstoned dependency endpoint, `--metadata`, the `stats` breakdowns, `list --overdue/--tree/--pretty`, `ready --parent/--recursive/--epic`, `blocked --detailed`, and the help text of the 30 levels no case prints | `port/`, `docs/PORT_STATE.md` |
-| Laws and proofs | 50 closed laws, all proved by the checker computing both sides: SHA-256 against three published vectors, seven captured ids from their seeds (including `q`'s empty-creator seed and the nonce ladder), the id-length table, fifteen timestamp facts (the five spellings of fixture `precision` as the original wrote them back, calendar borrows and carries, refusals), the exact store line of `create_min`, the refusal of fixture `malformed`, eight facts of the argument parser (five captured refusal texts, three accepted command lines, the help forms, the similar-value tip), priority tokens and ranges, the control-character sanitizer, the partial-id resolver on the eight ids of fixture `basic` (two captured refusal texts among its six facts), and five whole-program facts: the pure program run on a two-record store prints the lines the `list` golden shows for those records, `count --by-status` leaves the deferred one out, and `blocked` on three records of fixture `basic` prints `goldens/blocked_plain.out` byte for byte, `dep add` on an edge that is already there rewrites nothing and still writes the sidecar, and `delete` of a depended-on issue prints the six-block preview and writes nothing; two more pin the rounding of the average lead time (`23.25` days prints `23.2`, and a tie binary64 does not hold exactly is refused). `bend port/PROOF.bend` prints `All terms check.` with 0 `@unsafe` under `bend 2.0.20`. A closed law covers one value; none of these is a quantified property | `port/LAWS.bend`, `port/PROOF.bend` |
+| Laws and proofs | 51 closed laws, all proved by the checker computing both sides: SHA-256 against three published vectors, seven captured ids from their seeds (including `q`'s empty-creator seed and the nonce ladder), the id-length table, fifteen timestamp facts (the five spellings of fixture `precision` as the original wrote them back, calendar borrows and carries, refusals), the exact store line of `create_min`, the refusal of fixture `malformed`, eight facts of the argument parser (five captured refusal texts, three accepted command lines, the help forms, the similar-value tip), priority tokens and ranges, the control-character sanitizer, the partial-id resolver on the eight ids of fixture `basic` (two captured refusal texts among its six facts), and five whole-program facts: the pure program run on a two-record store prints the lines the `list` golden shows for those records, `count --by-status` leaves the deferred one out, and `blocked` on three records of fixture `basic` prints `goldens/blocked_plain.out` byte for byte, `dep add` on an edge that is already there rewrites nothing and still writes the sidecar, and `delete` of a depended-on issue prints the six-block preview and writes nothing; two more pin the rounding of the average lead time (`23.25` days prints `23.2`, and a tie binary64 does not hold exactly is refused). `bend port/PROOF.bend` prints `All terms check.` with 0 `@unsafe` under `bend 2.0.20`. A closed law covers one value; none of these is a quantified property | `port/LAWS.bend`, `port/PROOF.bend` |
 | Feasibility probes | a wall-clock custom effect (OQ-009: it loads on the interpreter, C and JS engines; Bend 2.0.20 itself has no wall clock, OQ-004) and a SHA-256 over `U32` words whose four digests equal `hashlib`'s on all three engines (PLAN §8). Probes are not the port | `port/probes/` |
 | Parity board (Phase 4) | 29 in-scope rows: 4 `present`, 24 `partial`, 1 `missing` (`epic close-eligible`, the one in-scope command with no captured case), plus 13 classed exclusions; `scripts/parity-board.sh` reports `PARTIAL`. No find-fix round has run | `docs/FEATURE_PARITY.md` |
 | Performance (Phase 5) | no measurement of any kind; `perf/EXPERIMENTS.md` is empty | `perf/` |
@@ -127,7 +127,7 @@ The port is checked with the same wrapper on every lane:
 LANE_WRAP=scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend"
 ```
 
-At this commit the three fast lanes report `PASS` with 384 of 384 cases each (c-1t, c-8t, js). The interpreter lane is not run over the whole corpus: it type-checks the book on every case, 2 min 28 s per run at this size, so the 384 cases would take about 14.5 hours; a 12-case sample across the command families passes 12 of 12 and stands in until a long checkpoint run is scheduled, and the gpu lane is `MISSING` (no device).
+At this commit the three fast lanes report `PASS` with 414 of 414 cases each (c-1t, c-8t, js). The interpreter lane is not run over the whole corpus: it type-checks the book on every case, several minutes per run at this size; a 6-case sample at HEAD, four of them the new tree traversal, passes 6 of 6 and stands in until a long checkpoint run is scheduled, and the gpu lane is `MISSING` (no device).
 
 ---
 
@@ -206,7 +206,7 @@ No such claim exists for this project today. Phase 4 produces the first one. The
 | Atomic JSONL publication | Temp file, fsync, rename, history backup | Same | Excluded: written in place (DISC-003) |
 | Output modes | Rich, Plain, JSON, TOON, Quiet | Same | Plain, JSON, Quiet |
 | Reads git history | Reporting commands only | Same | Excluded (no subprocess effect in Bend) |
-| Evidence of behavior | Its own test suites | 384 captured cases in this repository | Those same 384 cases on three lanes (c-1t, c-8t, js), plus 50 laws |
+| Evidence of behavior | Its own test suites | 414 captured cases in this repository | Those same 414 cases on three lanes (c-1t, c-8t, js), plus 51 laws |
 
 **When to use `br`:** always, today. It is the working tool.
 
@@ -251,13 +251,13 @@ Results are the lines pasted in `docs/PORT_STATE.md` on 2026-09-20.
 
 | Gate | Command | Last result |
 |------|---------|-------------|
-| Case table syntax | `scripts/cases-lint.sh goldens/cases.tsv` | `OK`: 384 cases, 0 errors, 0 notes |
+| Case table syntax | `scripts/cases-lint.sh goldens/cases.tsv` | `OK`: 414 cases, 0 errors, 0 notes |
 | One case through the original | `scripts/ws-run.sh --oracle br --no-db :: [@fx=<fixture>] <br args…>` | The original's bytes in the sandbox |
 | Capture | `scripts/golden-capture.sh goldens/cases.tsv goldens --timeout 60 -- scripts/ws-run.sh --oracle br --no-db ::` | A re-capture needs `--repin` or `--disc`; the last `--repin` (a sandbox fix) changed 0 of 705 golden hash lines |
-| Floor | `scripts/floor.sh goldens/cases.tsv goldens --repeat 3 --timeout 60 -- scripts/ws-run.sh --oracle br --no-db ::` | `STABLE`, 384 of 384 |
-| Laws | `(cd port && $BEND_CLI PROOF.bend)` | `All terms check.` (0 `@unsafe`; 50 closed laws) |
-| Lanes | `LANE_WRAP=$PWD/scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend" --threads 8 --timeout 60 --interpreter-timeout 600` | `PASS` on c-1t, c-8t and js (384 of 384 each, run lane by lane with `scripts/conform.sh`); the interpreter lane needs about 14.5 hours for the corpus and is sampled instead (`PASS` 12/12); gpu `MISSING` (no device) |
-| Parity board | `scripts/parity-board.sh docs/FEATURE_PARITY.md` | `PARTIAL`: 16 partial, 13 missing, 13 excluded |
+| Floor | `scripts/floor.sh goldens/cases.tsv goldens --repeat 3 --timeout 60 -- scripts/ws-run.sh --oracle br --no-db ::` | `STABLE`, 384 of 384 (2026-09-20); `STABLE`, 30 of 30 over the cases added 2026-09-21 |
+| Laws | `(cd port && $BEND_CLI PROOF.bend)` | `All terms check.` (0 `@unsafe`; 51 closed laws) |
+| Lanes | `LANE_WRAP=$PWD/scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend" --threads 8 --timeout 60 --interpreter-timeout 600` | `PASS` on c-1t, c-8t and js (414 of 414 each, run lane by lane with `scripts/conform.sh`); the interpreter lane needs many hours for the corpus and is sampled instead (`PASS` 6/6 at HEAD); gpu `MISSING` (no device) |
+| Parity board | `scripts/parity-board.sh docs/FEATURE_PARITY.md` | `PARTIAL`: 4 present, 25 partial, 0 missing, 13 excluded |
 | Wording | `scripts/claims-lint.sh docs/*.md perf/*.md README.md` | Scans claim-bearing documents for hedges and deferrals |
 
 Not run, because there is nothing to run them on: `scripts/converge.sh` (no find-fix rounds before Phase 4) and `scripts/incumbent-bench.sh` (no port binary to measure before Phase 5). Each script prints its contract with `--help`.
@@ -325,7 +325,7 @@ The surface in scope, from PLAN §3. "Cases" counts the rows of `goldens/cases.t
 | Command | Contract (`br --no-db`) | Example (captured) | Cases |
 |---------|-------------------------|--------------------|-------|
 | `dep add` / `dep remove` | Typed edges; refuses cycles (exit 5), self-dependency, missing ids, a second parent; duplicate and `external:` edges | `dep add proj-ptp proj-mta -t related` | 12 / 3 |
-| `dep list` / `dep tree` / `dep cycles` | Read the graph | `dep tree proj-uly --json` | 3 / 3 / 3 |
+| `dep list` / `dep tree` / `dep cycles` | Read the graph. `dep tree` walks depth-first in pre-order, orders siblings by priority, status rank, title and id, marks a re-reached node `repeat` and a cut one `truncated`, and takes `--max-depth` (default 10) and `--direction` | `dep tree proj-697 --json` | 5 / 22 / 4 |
 | `label add/remove/list/list-all/rename` | Label charset and limits | `label rename backend server --json` | 15 in total |
 | `comments add` / `comments list` | Comment identity, `--author`, `-m` | `comments add proj-mta "Looks good."` | 9 / 3 |
 | `epic status` | Epic rollups | `epic status --json` | 2 |
@@ -417,7 +417,7 @@ Case pseudo-arguments: `@fx=<name>` selects `goldens/fixtures/<name>.jsonl` (`no
                  │  scripts/golden-capture.sh
                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│  goldens/   384 cases: <case>.out .err .exit, MANIFEST.txt           │
+│  goldens/   414 cases: <case>.out .err .exit, MANIFEST.txt           │
 └──────────────────────────────────────────────────────────────────────┘
                  │  original == spec        GOLDEN-TESTED, every lane
                  ▼
@@ -539,7 +539,7 @@ These hold by design or by what Bend 2.0.20 offers, and they apply to the port o
 | **Non-atomic write-back** | No rename or fsync effect (DISC-003). A kill during the write can truncate `issues.jsonl`; keep the file under version control |
 | **No `beads.db`** | No SQLite binding. Everything that exists to manage the database (sync modes, doctor, history, migration) is excluded |
 | **Unpinned timestamps differ by lane** | No wall clock in Bend 2.0.20; the custom effect is nanosecond on C and millisecond on the interpreter and JS (OQ-009). Its C side uses runtime internals with no ABI promise, so it is rebuilt and re-probed on every Bend pin move (PLAN §8) |
-| **Conformance is bounded by the corpus** | 384 cases is what "golden-tested" means here; behavior outside them is unclaimed, and the forms the port refuses with its own failure are listed in `docs/OPEN_QUESTIONS.md` |
+| **Conformance is bounded by the corpus** | 414 cases is what "golden-tested" means here; behavior outside them is unclaimed, and the forms the port refuses with its own failure are listed in `docs/OPEN_QUESTIONS.md` |
 | **No gpu lane on this host** | No CUDA device; the lane is recorded `MISSING` with that reason |
 
 ---
@@ -548,7 +548,7 @@ These hold by design or by what Bend 2.0.20 offers, and they apply to the port o
 
 ### Q: Can I use this instead of `br` today?
 
-No. You can build it (`bend port/main.bend -o bn`) and it reproduces the original on all 384 captured cases, but that is a corpus, not a certification: the parity gate, the find-fix rounds, the performance phase and the report have not run, the exclusions below are real (no `beads.db`, no locks, no atomic write-back), and several uncaptured forms answer the port's own "not ported" failure instead of guessing. Use [`br`](https://github.com/Dicklesworthstone/beads_rust).
+No. You can build it (`bend port/main.bend -o bn`) and it reproduces the original on all 414 captured cases, but that is a corpus, not a certification: the parity gate, the find-fix rounds, the performance phase and the report have not run, the exclusions below are real (no `beads.db`, no locks, no atomic write-back), and several uncaptured forms answer the port's own "not ported" failure instead of guessing. Use [`br`](https://github.com/Dicklesworthstone/beads_rust).
 
 ### Q: How does its speed compare with `br`?
 
@@ -560,7 +560,7 @@ The contract is that the port writes the same `.beads/issues.jsonl` bytes as `br
 
 ### Q: If goldens are empirical, what do the proofs buy?
 
-They split the risk. Goldens say the *simple* code matches the original on 384 captured cases. Laws say the *optimized* code equals the simple code for every input in the law's domain. So an optimization cannot introduce a behavior the goldens miss, and the goldens only ever have to vouch for code that is literal enough to review. The proofs do not cover compiler backends, effects, or the corpus's blind spots, and this README does not say they do.
+They split the risk. Goldens say the *simple* code matches the original on 414 captured cases. Laws say the *optimized* code equals the simple code for every input in the law's domain. So an optimization cannot introduce a behavior the goldens miss, and the goldens only ever have to vouch for code that is literal enough to review. The proofs do not cover compiler backends, effects, or the corpus's blind spots, and this README does not say they do.
 
 ### Q: Where is data stored?
 
