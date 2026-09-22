@@ -1,0 +1,15 @@
+# build_due: the scenario that PRODUCES goldens/fixtures/due.jsonl (scripts/make-fixture.sh due build_due);
+# ids from probe_due_ids.scn. Due dates on both sides of a case instant of 2026-06-01, for `list --overdue`
+# (S4.132): proj-j1m past due and open; proj-cxc due in the future; proj-dil with no due date; proj-upa past due
+# but closed; proj-84a past due but deferred; proj-vuy past due and in progress.
+@fx=empty
+@time=2026-03-01 08:00:00
+["create","Past due open","--due","2026-04-01"]
+["create","Future due","--due","2026-09-01"]
+["create","No due date"]
+["create","Past due closed","--due","2026-04-01"]
+["create","Past due deferred","--due","2026-04-01"]
+["create","Past due busy","-p","0","--due","2026-05-01"]
+["close","proj-upa"]
+["defer","proj-84a","--until","2026-12-01"]
+["update","proj-vuy","--status","in_progress"]

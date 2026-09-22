@@ -1,0 +1,9 @@
+# probe_due_ids: exploration only — the ids the original mints for build_due.scn
+@fx=empty
+@time=2026-03-01 08:00:00
+["create","Past due open","--due","2026-04-01"]
+["create","Future due","--due","2026-09-01"]
+["create","No due date"]
+["create","Past due closed","--due","2026-04-01"]
+["create","Past due deferred","--due","2026-04-01"]
+["create","Past due busy","-p","0","--due","2026-05-01"]
