@@ -1,10 +1,10 @@
-captured: 2026-09-22T20:27:28.165105+00:00
+captured: 2026-09-22T20:50:15.728893+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (492 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"3ea7aed1f663835ecaf06b039456d38a6042fb294319c997fa3682b00909b4f3"},"case_files":[],"stdin_files":[]}
-recapture: repin: new scenario append_notes and cases update_append_notes*, error_update_append_empty*, usage_update_notes_append (update --append-notes)
+cases: goldens/cases.tsv (501 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"97c48da4f72f78ae06fd747774b71f77906507248100ee888827806d4df75e6b"},"case_files":[],"stdin_files":[]}
+recapture: repin: new cases update_parent*, error_update_parent_* (update --parent, S4.270)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1482,3 +1482,30 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_update_notes_append.out
   bf87cda58565fb5e7f87090c5c324da7e08c9352ac328307e838a310c6f9cc7a  usage_update_notes_append.err
   53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  usage_update_notes_append.exit
+  d01e05e0f491afac9d7b900f5a4a375af0c61069ca9ff44809b6df9dca89ab20  update_parent.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  update_parent.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  update_parent.exit
+  96e8c3f16a922328e097d2eb3612e72df60a44f2d563b1108f21b62255633782  update_parent_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  update_parent_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  update_parent_json.exit
+  e865fda106a9fc0729f5d7f7f20f6fd0e4ae0a9269a433f334442827182e39b3  update_parent_move.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  update_parent_move.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  update_parent_move.exit
+  098ab9794f545a6afdec6b23bcead759a6287545bbddebeb1e5991bc3c181703  update_parent_clear.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  update_parent_clear.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  update_parent_clear.exit
+  d01e05e0f491afac9d7b900f5a4a375af0c61069ca9ff44809b6df9dca89ab20  update_parent_partial.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  update_parent_partial.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  update_parent_partial.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_parent_cycle.out
+  a523519778b5b3e6dc050af7c2ad8629280c5fad9576ccaa82caadefa9b54b43  error_update_parent_cycle.err
+  f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec582a06  error_update_parent_cycle.exit
+  3ee4171520cdaa6808ede64b4a37b2ae6e258afbf8952fc059a14ed826c41d10  error_update_parent_cycle_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_parent_cycle_json.err
+  f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec582a06  error_update_parent_cycle_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_parent_self.out
+  42d30f692a3e5348859d6c66f1b93edca58b48dd6f3dcf2f2bee67a5609fe82f  error_update_parent_self.err
+  f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec582a06  error_update_parent_self.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_parent_missing.out
+  1988bbb477f5133a776ae90defe36c3daa060db0067fdc99902b2884bfc28d22  error_update_parent_missing.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_update_parent_missing.exit
