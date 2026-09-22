@@ -19,6 +19,13 @@ def Sys.exit(code: U32) -> IO(Unit):
   import "./effs/sys_exit.c"
   import "./effs/sys_exit.js"
 
+# S4.113 DISC-001 DISC-009 (shell) the wall clock as "<epoch seconds>.<nine digits>"; Bend 2.0.20 has none (IO.now
+# is a monotonic ticker, OQ-004). Nanoseconds on C, microseconds on JS and the interpreter (DISC-009). Read once
+# per run and handed to the core, which uses it only when BEADS_BEND_NOW is unset
+def Clock.wall() -> IO(String):
+  import "./effs/clock_wall.c"
+  import "./effs/clock_wall.js"
+
 # S8.12 (shell) the current directory; Base has no effect for it
 def Sys.cwd() -> IO(String):
   import "./effs/sys_cwd.c"
@@ -211,4 +218,5 @@ def main() -> IO(Unit):
     store : List<&2, U32> <- read_all(".beads/issues.jsonl")
     touched : List<&2, U32> <- read_all(".beads/last-touched")
     env : List<&2, Run.Var> <- env_all(Run.env_names())
-    perform(Run.outcome(Run.Inputs{args_list(args), workspace, cwd, store, touched, env}))
+    wall : String <- Clock.wall()
+    perform(Run.outcome(Run.Inputs{args_list(args), workspace, cwd, store, touched, Run.Var{"BEADS_BEND_WALL", wall} <> env}))

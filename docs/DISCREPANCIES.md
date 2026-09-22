@@ -31,6 +31,7 @@ to change the contract. Keep the historical entry and its original evidence.
 - Impact measured: 0 of 231 goldens differ because of it; without it no mutating case is reproducible.
 - Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation. Their words: "You decide on everything. I approve whatever you want to do." The acceptance itself was decided by the porting agent under that delegation; they can revoke it, which returns the entry to OPEN
 - Amendment 2026-09-20 (same day, after OQ-004 and OQ-009): "the real clock" above cannot mean Bend's `IO.now`, which is a monotonic millisecond ticker on every engine. With the variable unset the port reads a custom effect, `Clock.wall` (`port/probes/clock/`), which delivers nanoseconds on the C lane and milliseconds on the interpreter and JS lanes. An unpinned timestamp therefore prints 9 fraction digits from the native binary and 3 from the JS engines: a separate `Platform` DISC is registered when the clock lands in the port. Counts in DISC-001…DISC-004 were measured on the 231-case corpus that existed when they were written; the corpus has 235 cases since DISC-005.
+- Amendment 2026-09-22 (session 5): the port now does what "Port behavior" and "Kill-switch" above say. Until this date a mutation with `BEADS_BEND_NOW` unset was refused (`beads_bend: no wall clock yet …`, exit 1), so outside the sandbox the port could not create or change anything. The shell now reads `Clock.wall` once per run (`port/main.bend`, `port/effs/clock_wall.{c,js}`) and passes the reading to the core as `BEADS_BEND_WALL`; the core uses it only when `BEADS_BEND_NOW` is unset (`Run.now_of`) and still reads no clock itself. `BEADS_BEND_NOW` also accepts a fraction (`<epoch seconds>.<1–9 digits>`), and the id seed takes the fraction's nanoseconds (S4.2), where it used to append nine zeros to whole seconds. Evidence: the five `*_fraction` cases (captured with a fractional `@time`, `scripts/ws_inner.py`) pass on js; an unpinned `create`/`update`/`close`/`q`/`list` in a fresh workspace answers like `br` (the precision and the one-read difference are DISC-009).
 
 ### DISC-002 — single-writer: no cross-process write locks   [2026-09-20 | Excluded | ACCEPTED]
 - Spec clause: S8 (lock sidecars), PLAN §3 exclusion "cross-process write locks"
@@ -93,6 +94,16 @@ to change the contract. Keep the historical entry and its original evidence.
 - Affected cases: none of the 344. No case passes `--no-db` at the top level, because the harness would capture it as `br --no-db --no-db …`; `usage_no_db_explicit_sub` (`count --no-db`, accepted by the original too) covers the command level.
 - Impact measured: 0 of 344 cases.
 - Approver: Jeffrey Emanuel (repository owner), 2026-09-20, by delegation (the words quoted under DISC-001); decided by the porting agent under that delegation
+
+### DISC-009 — the wall clock's precision is the engine's, and a run reads it once   [2026-09-22 | Platform | OPEN]
+- Spec clause: S4.54 (the 0/3/6/9 fraction rule), S4.2 (the id seed's nanoseconds), S8 (the clock effect); DISC-001
+- Original behavior (cite the golden): unpinned, `br 0.6.0` stamps nanoseconds (`"created_at":"2026-09-22T19:28:57.409086967Z"`, three unpinned `create`s in a scratch workspace, 2026-09-22), and reads the clock more than once in one command: an unpinned `close` wrote `closed_at` `…19:39:15.448110686Z` and `updated_at` `…19:39:15.448474134Z`. No golden can show either: every case pins the instant.
+- Port behavior: the native binary (c-1t, c-Nt) reads `CLOCK_REALTIME` to the nanosecond; the JS lane and the interpreter (whose engine is JS) read `performance.timeOrigin + performance.now()` to the microsecond, so their timestamps print six fraction digits (`…19:39:07.741046Z`) where the original prints nine, and the id seed's last three digits are `000`. One reading serves the whole run, so `closed_at` equals `updated_at`.
+- Why: Bend 2.0.20 has no wall clock (OQ-004); JavaScript's finest wall clock is microseconds; reading once keeps the core a pure function of its inputs.
+- Kill-switch: `BEADS_BEND_NOW=<epoch seconds>[.<fraction>]` pins the instant on every lane, and then every lane and the original agree byte for byte (the whole corpus runs that way).
+- Affected cases: 0 of 459 (every case pins the instant).
+- Impact measured: unpinned only: a JS-lane timestamp carries microseconds, not nanoseconds; an id minted unpinned is equally valid (any seed yields a well-formed id) but differs from the one the original would mint at the same instant, as it would between any two runs.
+- Approver: none yet. OPEN until the repository owner accepts or rejects it.
 
 ### DISC-008 — the JS lane faults on a store above about 30 KB   [2026-09-20 | Platform | RESOLVED]
 - Spec clause: S2.24 (load), S8.13 (the store read); PLAN §7 risk B7 (JS deep recursion)

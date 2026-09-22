@@ -49,6 +49,12 @@ def env_of(env: List<&2, Var>, +name: String) -> String:
     case Con{Var{n, v}, rest}:
       Bool.pick(String, String.eq(n, name), v, env_of(rest, name))
 
+# S4.113 DISC-001 DISC-009 (spec twin) the instant a command runs at, as text: `BEADS_BEND_NOW` when it is set (the
+# one test seam), otherwise the wall-clock reading the shell passes as `BEADS_BEND_WALL`. The core never reads a
+# clock; it only chooses between two values it was given
+def now_of(+env: List<&2, Var>) -> String:
+  Bool.pick(String, String.is_empty(env_of(env, "BEADS_BEND_NOW")), env_of(env, "BEADS_BEND_WALL"), env_of(env, "BEADS_BEND_NOW"))
+
 # S5.1 S5.17 S8.30 (data) one file the shell must change, by its path relative to the workspace: the whole new
 # text of the file, or no text at all, which means "remove the file" (`delete` and `.beads/last-touched`, S4.210)
 type Write is Data:
@@ -274,7 +280,7 @@ def ready_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, +issues: List<&2, Mo
     case Query.PickBad{f}:
       failed(f, json)
     case Query.PickOk{values}:
-      ready_page(Work.scoped(scope, Work.ready_issues(issues, Show.pinned(env_of(env, "BEADS_BEND_NOW")), Cli.given(opts, "include-deferred"), ready_assignee(Cli.value(opts, "assignee"), actor_of(Cli.value(opts, "actor"), env_of(env, "USER"))), Cli.given(opts, "unassigned"), Cli.values(opts, "label"), Cli.values(opts, "label-any"), Query.folded_all(Cli.values(opts, "type")), values, Work.policy_of(Cli.value(opts, "sort")))), Query.count_of(Cli.value(opts, "limit")), Work.any_active(issues), (Cli.given(opts, "assignee") || Cli.given(opts, "unassigned") || Cli.given(opts, "label") || Cli.given(opts, "label-any") || Cli.given(opts, "type") || Cli.given(opts, "priority") || Cli.given(opts, "parent") || Cli.given(opts, "epic")), json, quiet)
+      ready_page(Work.scoped(scope, Work.ready_issues(issues, Show.pinned(now_of(env)), Cli.given(opts, "include-deferred"), ready_assignee(Cli.value(opts, "assignee"), actor_of(Cli.value(opts, "actor"), env_of(env, "USER"))), Cli.given(opts, "unassigned"), Cli.values(opts, "label"), Cli.values(opts, "label-any"), Query.folded_all(Cli.values(opts, "type")), values, Work.policy_of(Cli.value(opts, "sort")))), Query.count_of(Cli.value(opts, "limit")), Work.any_active(issues), (Cli.given(opts, "assignee") || Cli.given(opts, "unassigned") || Cli.given(opts, "label") || Cli.given(opts, "label-any") || Cli.given(opts, "type") || Cli.given(opts, "priority") || Cli.given(opts, "parent") || Cli.given(opts, "epic")), json, quiet)
 
 # S4.173 (spec twin) the id `--parent` or `--epic` names (the parser refuses the two together, S1.49)
 def parent_named(parent: Maybe<&2, String>, epic: Maybe<&2, String>) -> Maybe<&2, String>:
@@ -328,7 +334,7 @@ def stats_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, env: List
     case True{}:
       failed(unported(), json)
     case False{}:
-      stats_figures(Work.figures(issues, Show.pinned(env_of(env, "BEADS_BEND_NOW"))), json, quiet)
+      stats_figures(Work.figures(issues, Show.pinned(now_of(env))), json, quiet)
 
 # S1.34 (spec twin) the one positional of `search`, trimmed
 def first_word(words: List<&2, String>) -> String:
@@ -359,14 +365,29 @@ def shown(s: Show.Shown, json: Bool, quiet: Bool) -> Outcome:
     case Show.ShowOk{out}:
       printed(out, "", quiet)
 
-# S8.5 DISC-001 (spec twin) a mutation without a pinned instant: the port has no wall-clock effect yet, and says so (exit 1)
+# S8.5 DISC-001 (spec twin) a mutation with no usable instant: `BEADS_BEND_NOW` is not `<seconds>[.<fraction>]`,
+# or it is unset and the shell's wall-clock reading is missing or malformed (exit 1)
 def no_clock() -> Failure.Failure:
-  Failure.Failure{"INTERNAL_ERROR", "beads_bend: no wall clock yet: set BEADS_BEND_NOW=<epoch seconds> (DISC-001, backlog E6)", None{}, False{}, Nil{}, 1}
+  Failure.Failure{"INTERNAL_ERROR", "beads_bend: no usable clock: BEADS_BEND_NOW must be <epoch seconds>[.<fraction>] (DISC-001)", None{}, False{}, Nil{}, 1}
 
-# S4.200 S4.220 (spec twin) what a mutation knows of the world, once the invocation instant is known; the id seed's
-# instant is its nanoseconds since the epoch, which for whole pinned seconds is the digits followed by nine zeros
+# S4.2 (spec twin) the id seed's instant from `<seconds>` or `<seconds>.<fraction>`: nanoseconds since the epoch in
+# decimal, the seconds' digits followed by the fraction padded to nine digits (a whole second gets nine zeros)
+def seed_parts(parts: List<&2, String>) -> String:
+  match parts:
+    case Con{s, Nil{}}:
+      s ++ "000000000"
+    case Con{s, Con{+f, Nil{}}}:
+      s ++ f ++ String.repeat("0", Nat.sub(9n, String.length(f)))
+    case _:
+      ""
+
+# S4.2 (spec twin) the id seed's instant from the text the instant was read from
+def seed_digits(text: String) -> String:
+  seed_parts(String.split(String.trim(text), Chr{46}))
+
+# S4.200 S4.220 (spec twin) what a mutation knows of the world, once the invocation instant is known
 def world_of(now: Time.Instant, digits: String, +opts: List<&2, Cli.Occ>, raw: List<&2, Model.Issue>, env: List<&2, Var>, +cwd: String) -> Create.World:
-  Create.World{Show.ids_of(raw), actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), now, String.trim(digits) ++ "000000000", prefix_of(cwd), cwd}
+  Create.World{Show.ids_of(raw), actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), now, seed_digits(digits), prefix_of(cwd), cwd}
 
 # S5.1 S5.17 S5.18 (spec twin) the file changes of a mutation that acted on `id`: the whole store re-rendered (unless
 # the store is to be left alone), then the sidecar
@@ -466,9 +487,9 @@ def create_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: Li
     case Some{at} True{} _:
       failed(unported(), json)
     case Some{at} False{} False{}:
-      create_in(world_of(at, env_of(env, "BEADS_BEND_NOW"), opts, raw, env, cwd), opts, words, raw, json, quiet)
+      create_in(world_of(at, now_of(env), opts, raw, env, cwd), opts, words, raw, json, quiet)
     case Some{at} False{} True{}:
-      quick(Create.make(q_request(opts, words), world_of(at, env_of(env, "BEADS_BEND_NOW"), opts, raw, env, cwd)), Store.model(raw), json, quiet)
+      quick(Create.make(q_request(opts, words), world_of(at, now_of(env), opts, raw, env, cwd)), Store.model(raw), json, quiet)
 
 # S4.269 (spec twin) is a status word terminal
 def terminal_word(+word: String) -> Bool:
@@ -1093,7 +1114,7 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
     case 2 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       count_cmd(opts, Store.model(issues), json, quiet, Nat.is_gt(List.length(&2, String, selectors(opts)), 1n))
     case 3 Call{path, opts, words, +json, quiet, touched, +env, cwd}:
-      shown(Show.run(words, issues, touched_text(Bytes.decode(touched)), env_of(env, "USER"), env_of(env, "BEADS_BEND_NOW"), prefix_of(cwd), json), json, quiet)
+      shown(Show.run(words, issues, touched_text(Bytes.decode(touched)), env_of(env, "USER"), now_of(env), prefix_of(cwd), json), json, quiet)
     case 4 Call{path, +opts, +words, json, quiet, touched, env, cwd}:
       search_cmd(opts, Store.model(issues), first_word(words), json, quiet, String.is_empty(first_word(words)), U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9))
     case 5 Call{path, +opts, words, json, quiet, touched, env, cwd}:
@@ -1119,35 +1140,35 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
     case 15 Call{path, opts, words, +json, quiet, touched, env, +cwd}:
       viewed(Views.whereabouts(cwd, prefix_of(cwd), json), json, quiet)
     case 16 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      create_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, env, cwd, json, quiet, (Cli.given(opts, "file") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context")), False{})
+      create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, (Cli.given(opts, "file") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context")), False{})
     case 17 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      create_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, env, cwd, json, quiet, False{}, True{})
+      create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, False{}, True{})
     case 19 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(0, Show.pinned(env_of(env, "BEADS_BEND_NOW")), (Cli.given(opts, "transition-comment") || Cli.given(opts, "session") || Cli.given(opts, "bypass-policy") || Cli.given(opts, "bypass-reason")), Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      transition(0, Show.pinned(now_of(env)), (Cli.given(opts, "transition-comment") || Cli.given(opts, "session") || Cli.given(opts, "bypass-policy") || Cli.given(opts, "bypass-reason")), Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
     case 20 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(1, Show.pinned(env_of(env, "BEADS_BEND_NOW")), False{}, Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      transition(1, Show.pinned(now_of(env)), False{}, Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
     case 21 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(2, Show.pinned(env_of(env, "BEADS_BEND_NOW")), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      transition(2, Show.pinned(now_of(env)), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
     case 22 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(3, Show.pinned(env_of(env, "BEADS_BEND_NOW")), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      transition(3, Show.pinned(now_of(env)), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
     case 18 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      update_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "append-notes") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
+      update_cmd(Show.pinned(now_of(env)), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "append-notes") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
     case 23 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      edge_cmd(True{}, Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      edge_cmd(True{}, Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
     case 24 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      edge_cmd(False{}, Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
+      edge_cmd(False{}, Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet)
     case 25 Call{path, opts, words, json, quiet, touched, +env, cwd}:
-      label_cmd(True{}, Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, prefix_of(cwd), json, quiet)
+      label_cmd(True{}, Show.pinned(now_of(env)), opts, words, issues, prefix_of(cwd), json, quiet)
     case 26 Call{path, opts, words, json, quiet, touched, +env, cwd}:
-      label_cmd(False{}, Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, prefix_of(cwd), json, quiet)
+      label_cmd(False{}, Show.pinned(now_of(env)), opts, words, issues, prefix_of(cwd), json, quiet)
     case 27 Call{path, opts, words, json, quiet, touched, +env, cwd}:
-      rename_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), words, issues, json, quiet)
+      rename_cmd(Show.pinned(now_of(env)), words, issues, json, quiet)
     case 28 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      comment_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, Cli.given(opts, "file"))
+      comment_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, Cli.given(opts, "file"))
     case 30 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      epic_close_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, Store.model(issues), json, quiet, Cli.given(opts, "transition-comment"))
+      epic_close_cmd(Show.pinned(now_of(env)), opts, Store.model(issues), json, quiet, Cli.given(opts, "transition-comment"))
     case 29 Call{path, +opts, words, json, quiet, +touched, +env, cwd}:
-      delete_cmd(Show.pinned(env_of(env, "BEADS_BEND_NOW")), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, touched_text(Bytes.decode(touched)), (Cli.given(opts, "hard") || Cli.given(opts, "from-file")))
+      delete_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix_of(cwd), json, quiet, touched_text(Bytes.decode(touched)), (Cli.given(opts, "hard") || Cli.given(opts, "from-file")))
     case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 

@@ -230,18 +230,33 @@ def comment_section(items: List<&2, Model.Comment>) -> String:
     case Con{c, rest}:
       "\nComments:\n" ++ String.concat(comment_lines(c <> rest))
 
-# S4.113 DISC-001 (spec twin) the pinned instant from its epoch seconds; none when it is not given or not a number.
-# Day 719468 of the instant calendar (days since 0000-03-01) is 1970-01-01
-def pinned_pick(secs: Maybe<&2, U32>) -> Maybe<&2, Time.Instant>:
-  match secs:
-    case None{}:
+# S4.113 DISC-001 (spec twin) the instant from its epoch seconds and nanoseconds; none when either is missing or
+# not a number. Day 719468 of the instant calendar (days since 0000-03-01) is 1970-01-01
+def pinned_pick(secs: Maybe<&2, U32>, nanos: Maybe<&2, U32>) -> Maybe<&2, Time.Instant>:
+  match secs nanos:
+    case Some{+s} Some{n}:
+      Some{Time.Instant{((s / 86400 : U32) + 719468 : U32), (s % 86400 : U32), n}}
+    case _ _:
       None{}
-    case Some{+s}:
-      Some{Time.Instant{((s / 86400 : U32) + 719468 : U32), (s % 86400 : U32), 0}}
 
-# S4.113 DISC-001 (spec twin) the pinned instant from the digits of `BEADS_BEND_NOW`
+# S4.113 DISC-001 (spec twin) one to nine fraction digits as nanoseconds, padded on the right; more, or none, is refused
+def nanos_of(+frac: String) -> Maybe<&2, U32>:
+  Bool.pick(Maybe<&2, U32>, (Nat.is_lt(String.length(frac), 10n) && Bool.not(String.is_empty(frac))), U32.read(frac ++ String.repeat("0", Nat.sub(9n, String.length(frac)))), None{})
+
+# S4.113 DISC-001 (spec twin) `<seconds>` or `<seconds>.<fraction>`, split at the point
+def pinned_parts(parts: List<&2, String>) -> Maybe<&2, Time.Instant>:
+  match parts:
+    case Con{s, Nil{}}:
+      pinned_pick(U32.read(s), Some{0})
+    case Con{s, Con{f, Nil{}}}:
+      pinned_pick(U32.read(s), nanos_of(f))
+    case _:
+      None{}
+
+# S4.113 DISC-001 (spec twin) the instant of `BEADS_BEND_NOW` (epoch seconds, optionally with a fraction), or of
+# the shell's wall-clock reading `<seconds>.<nine digits>` when the variable is unset
 def pinned(digits: String) -> Maybe<&2, Time.Instant>:
-  pinned_pick(U32.read(digits))
+  pinned_parts(String.split(digits, Chr{46}))
 
 # S5.148 (spec twin) the words of the countdown for a gate that is still ahead: under a day; an exact number of days; over a number of days
 def countdown_words(+days: U32, under: Bool, exact: Bool) -> String:
