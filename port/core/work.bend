@@ -3,7 +3,8 @@
 # live keys under its own order (the blocker count is a sort key nowhere else);
 # `ready` lists the open issues outside it under one of three sort policies;
 # `stats` counts (`blocked --detailed` is a rendering of the same rows, in
-# core/render). Not here yet: `ready --parent` / `--recursive` / `--epic`, and a mean of whole-hour lead times that is not
+# core/render; `ready --parent` / `--recursive` / `--epic` scope the ready rows
+# to a membership set, `members`). Not here yet: a mean of whole-hour lead times that is not
 # itself a whole number of tenths, or whose days figure lands exactly on a
 # half of a tenth that binary64 does not hold exactly (OQ-078).
 # Nothing here consults the original.
@@ -162,6 +163,75 @@ def policy_of(given: Maybe<&2, String>) -> U32:
 # S4.171–S4.176 (spec twin) the ready issues of a store, filtered and ordered, before any limit
 def ready_issues(+all: List<&2, Model.Issue>, now: Maybe<&2, Time.Instant>, with_deferred: Bool, assignee: Maybe<&2, String>, unassigned: Bool, labels_all: List<&2, String>, labels_any: List<&2, String>, types: List<&2, String>, priorities: List<&2, U32>, policy: U32) -> List<&2, Model.Issue>:
   Query.issues_of(ready_sorted(Query.rows_of(ready_kept(candidates(all, Blocked.keys(Blocked.relation(all)), now, with_deferred), assignee, unassigned, labels_all, labels_any, types, priorities), 1), policy))
+
+# S4.173 (spec twin) keep an id when the flag says so
+def id_keep(x: String, keep: Bool, rest: List<&2, String>) -> List<&2, String>:
+  match keep:
+    case True{}:
+      x <> rest
+    case False{}:
+      rest
+
+# S4.173 (spec twin) does one of an issue's own edges make it a `parent-child` child of one of `parents`
+def child_of_any(edges: List<&2, Model.Dependency>, +parents: List<&2, String>) -> Bool:
+  match edges:
+    case Nil{}:
+      False{}
+    case Con{+e, rest}:
+      ((String.eq(Model.dep_type_of(e), "parent-child") && Blocked.among(parents, Model.target_of(e))) || child_of_any(rest, parents))
+
+# S4.173 (spec twin) the ids of the issues that are `parent-child` children of one of `parents`, in store order
+def children_of(all: List<&2, Model.Issue>, +parents: List<&2, String>) -> List<&2, String>:
+  match all:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      id_keep(Model.id_of(i), child_of_any(Model.deps_of(i), parents), children_of(rest, parents))
+
+# S4.173 (spec twin) the ids not yet visited, each once
+def unvisited(xs: List<&2, String>, +seen: List<&2, String>) -> List<&2, String>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, rest}:
+      id_keep(x, Bool.not(Blocked.among(seen, x)), unvisited(rest, x <> seen))
+
+# S4.173 (spec twin) `--recursive`: breadth first from `frontier`, one generation per step, with the root and every
+# id already found as the visited set, so a cycle ends the walk. Each step that continues finds at least one new
+# id, so one unit of fuel per issue suffices
+def descendants(fuel: Nat, frontier: List<&2, String>, +found: List<&2, String>, +root: String, +all: List<&2, Model.Issue>) -> List<&2, String>:
+  match fuel frontier:
+    case Zero{} _:
+      found
+    case Succ{f} Nil{}:
+      found
+    case Succ{f} Con{+h, +t}:
+      descendants(f, unvisited(children_of(all, h <> t), root <> found), List.append(&2, String, found, unvisited(children_of(all, h <> t), root <> found)), root, all)
+
+# S4.173 (spec twin) the membership set of `--parent <root>`: its direct `parent-child` children, or with
+# `--recursive` (and under `--epic`) all its descendants; the root itself is never a member
+def members(+all: List<&2, Model.Issue>, +root: String, recursive: Bool) -> List<&2, String>:
+  match recursive:
+    case False{}:
+      unvisited(children_of(all, root <> Nil{}), root <> Nil{})
+    case True{}:
+      descendants(Nat.add(List.length(&2, Model.Issue, all), 1n), root <> Nil{}, Nil{}, root, all)
+
+# S4.173 (spec twin) the issues whose id is a member, in their order
+def members_only(issues: List<&2, Model.Issue>, +ids: List<&2, String>) -> List<&2, Model.Issue>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      ready_put(i, Blocked.among(ids, Model.id_of(i)), members_only(rest, ids))
+
+# S4.173 (spec twin) the ready issues within a `--parent` scope, in their ready order; no scope keeps them all
+def scoped(scope: Maybe<&2, List<&2, String>>, issues: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match scope:
+    case None{}:
+      issues
+    case Some{ids}:
+      members_only(issues, ids)
 
 # S4.178 (spec twin) does the store hold any issue that is neither terminal nor a template
 def any_active(issues: List<&2, Model.Issue>) -> Bool:

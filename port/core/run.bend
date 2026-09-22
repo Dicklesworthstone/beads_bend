@@ -267,21 +267,42 @@ def actor_pick(flag: String, user: String) -> String:
 def actor_of(flag: Maybe<&2, String>, user: String) -> String:
   actor_pick(String.trim(Maybe.default(&2, String, flag, "")), String.trim(user))
 
-# S4.171–S4.178 (spec twin) `ready` once its priorities were judged
-def ready_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +env: List<&2, Var>, json: Bool, quiet: Bool) -> Outcome:
+# S4.171–S4.178 (spec twin) `ready` once its priorities were judged; `scope` is the membership set of `--parent`
+# or `--epic`, none without them. `--epic` is `--parent` for the empty-result wording (S4.178)
+def ready_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +env: List<&2, Var>, json: Bool, quiet: Bool, scope: Maybe<&2, List<&2, String>>) -> Outcome:
   match p:
     case Query.PickBad{f}:
       failed(f, json)
     case Query.PickOk{values}:
-      ready_page(Work.ready_issues(issues, Show.pinned(env_of(env, "BEADS_BEND_NOW")), Cli.given(opts, "include-deferred"), ready_assignee(Cli.value(opts, "assignee"), actor_of(Cli.value(opts, "actor"), env_of(env, "USER"))), Cli.given(opts, "unassigned"), Cli.values(opts, "label"), Cli.values(opts, "label-any"), Query.folded_all(Cli.values(opts, "type")), values, Work.policy_of(Cli.value(opts, "sort"))), Query.count_of(Cli.value(opts, "limit")), Work.any_active(issues), (Cli.given(opts, "assignee") || Cli.given(opts, "unassigned") || Cli.given(opts, "label") || Cli.given(opts, "label-any") || Cli.given(opts, "type") || Cli.given(opts, "priority") || Cli.given(opts, "parent")), json, quiet)
+      ready_page(Work.scoped(scope, Work.ready_issues(issues, Show.pinned(env_of(env, "BEADS_BEND_NOW")), Cli.given(opts, "include-deferred"), ready_assignee(Cli.value(opts, "assignee"), actor_of(Cli.value(opts, "actor"), env_of(env, "USER"))), Cli.given(opts, "unassigned"), Cli.values(opts, "label"), Cli.values(opts, "label-any"), Query.folded_all(Cli.values(opts, "type")), values, Work.policy_of(Cli.value(opts, "sort")))), Query.count_of(Cli.value(opts, "limit")), Work.any_active(issues), (Cli.given(opts, "assignee") || Cli.given(opts, "unassigned") || Cli.given(opts, "label") || Cli.given(opts, "label-any") || Cli.given(opts, "type") || Cli.given(opts, "priority") || Cli.given(opts, "parent") || Cli.given(opts, "epic")), json, quiet)
 
-# S4.173 (spec twin) `ready`; its `--parent`, `--recursive` and `--epic` filters are not ported yet
-def ready_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, env: List<&2, Var>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
-  match later:
-    case True{}:
-      failed(unported(), json)
-    case False{}:
-      ready_picked(Query.pick_go(Query.comma_split(Cli.values(opts, "priority")), Query.PickOk{Nil{}}), opts, issues, env, json, quiet)
+# S4.173 (spec twin) the id `--parent` or `--epic` names (the parser refuses the two together, S1.49)
+def parent_named(parent: Maybe<&2, String>, epic: Maybe<&2, String>) -> Maybe<&2, String>:
+  match parent epic:
+    case Some{w} _:
+      Some{w}
+    case None{} e:
+      e
+
+# S4.173 (spec twin) `ready` once the parent it is scoped to was resolved: an unknown parent is refused
+def ready_rooted(h: Views.Hit, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +env: List<&2, Var>, json: Bool, quiet: Bool, recursive: Bool) -> Outcome:
+  match h:
+    case Views.HitBad{f}:
+      failed(f, json)
+    case Views.HitOk{i}:
+      ready_picked(Query.pick_go(Query.comma_split(Cli.values(opts, "priority")), Query.PickOk{Nil{}}), opts, issues, env, json, quiet, Some{Work.members(issues, Model.id_of(i), recursive)})
+
+# S4.173 (spec twin) `ready`, scoped or not: `--epic <id>` is `--parent <id> --recursive`
+def ready_scoped(named: Maybe<&2, String>, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +env: List<&2, Var>, json: Bool, quiet: Bool, prefix: String) -> Outcome:
+  match named:
+    case None{}:
+      ready_picked(Query.pick_go(Query.comma_split(Cli.values(opts, "priority")), Query.PickOk{Nil{}}), opts, issues, env, json, quiet, None{})
+    case Some{word}:
+      ready_rooted(Views.hit(issues, word, prefix), opts, issues, env, json, quiet, (Cli.given(opts, "recursive") || Cli.given(opts, "epic")))
+
+# S4.171–S4.178 (spec twin) `ready`
+def ready_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, env: List<&2, Var>, json: Bool, quiet: Bool, prefix: String) -> Outcome:
+  ready_scoped(parent_named(Cli.value(opts, "parent"), Cli.value(opts, "epic")), opts, issues, env, json, quiet, prefix)
 
 # S5.53 S5.167–S5.171 (spec twin) `stats` once its lead time is known: one the port cannot print yet answers the port's own failure
 def stats_out(f: Work.Figures, l: Work.Lead, json: Bool, quiet: Bool) -> Outcome:
@@ -1076,7 +1097,7 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>) -> Outcome:
     case 4 Call{path, +opts, +words, json, quiet, touched, env, cwd}:
       search_cmd(opts, Store.model(issues), first_word(words), json, quiet, String.is_empty(first_word(words)), U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9))
     case 5 Call{path, +opts, words, json, quiet, touched, env, cwd}:
-      ready_cmd(opts, Store.model(issues), env, json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "recursive") || Cli.given(opts, "epic")))
+      ready_cmd(opts, Store.model(issues), env, json, quiet, prefix_of(cwd))
     case 6 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       blocked_cmd(opts, Store.model(issues), json, quiet, Cli.given(opts, "detailed"))
     case 7 Call{path, +opts, words, json, quiet, touched, env, cwd}:
