@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: description_file: failed to read description file 'nope.txt': No such file or directory (os error 2)",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "description_file",
+      "reason": "failed to read description file 'nope.txt': No such file or directory (os error 2)"
+    }
+  }
+}

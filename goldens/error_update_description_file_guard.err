@@ -1,0 +1,2 @@
+Error: Validation failed: update: proj-b75: refusing to overwrite non-empty 'description' (24 chars) with different content (9 chars, 37% of the current length) without --force
+Hint: These fields accumulate context: a write that clears the field or keeps less than half its length needs --force; run `br show <id>` first to read what is there, or use --append-notes / --add-acceptance to extend instead of replace.

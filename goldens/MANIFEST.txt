@@ -1,10 +1,10 @@
-captured: 2026-09-22T22:25:53.654400+00:00
+captured: 2026-09-22T22:32:59.732384+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (623 cases)
-provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"0df537e41fa604e390b211d9d874ede456fa5d1ee5c807d12520b81890662805"},"case_files":[],"stdin_files":[]}
-recapture: repin: new cases: --transition-comment and --session on close, defer, undefer and update (10 cases, S4.396)
+cases: goldens/cases.tsv (642 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"0d886e60345a3669364a70dc8a147d174346d169ea265cca9416e505f756e1c9"},"case_files":[],"stdin_files":[]}
+recapture: repin: new cases: files the argv names: delete --from-file, comments add -f, --description-file (19 cases, S4.340 S4.381 S4.397)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1401,7 +1401,7 @@ sha256:
   33c2af4b405ea7f0c89d67f5d5db98e99a8eeb1c845bbb257d1d8401182e8f50  prefix_config_nested.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_nested.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_nested.exit
-  2815415d064df2b6e8198c34c55589f026df346189972d37e7c53fd37e34d3f6  prefix_config_both.out
+  07bbf8f5f45acb259c7962eb3c9bba01344626c54b2e82d944953692a5fac699  prefix_config_both.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_both.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_both.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_prefix_config_bad.out
@@ -1875,3 +1875,60 @@ sha256:
   0bd0a477fc84c06e790127d7ff816e7035a1e5f4dec509dd0b7ae8c22b08239c  error_update_session_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_session_json.err
   7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_update_session_json.exit
+  d0a2cb71b57cf5a3a4feffea215436a2ec5c52ea33cc1fd0e4cbdcd434d9f8fc  delete_from_file.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_from_file.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_from_file.exit
+  ff3748c4e1bbdbf8e8e6118ddda256ae2d7ef695dabc693d67770d4fa20ca90b  delete_from_file_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_from_file_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_from_file_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_delete_from_file_missing.out
+  b85189e5401167cc4961ea88209a990011d605365ca4b9ca22dcb1793378c6ea  error_delete_from_file_missing.err
+  aa67a169b0bba217aa0aa88a65346920c84c42447c36ba5f7ea65f422c1fe5d8  error_delete_from_file_missing.exit
+  f8fa921233ff40be1a7e78489fbc080bd3739739c63886975ea0baa6b8394cda  error_delete_from_file_missing_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_delete_from_file_missing_json.err
+  aa67a169b0bba217aa0aa88a65346920c84c42447c36ba5f7ea65f422c1fe5d8  error_delete_from_file_missing_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_delete_from_file_dir.out
+  b9154341bb060c1e05da2f8ac85cc3b671c3b9a3549c553bc58663ebd8c1536a  error_delete_from_file_dir.err
+  aa67a169b0bba217aa0aa88a65346920c84c42447c36ba5f7ea65f422c1fe5d8  error_delete_from_file_dir.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_delete_from_file_empty.out
+  e1cb774343bbe44476a68a3d0baa2a9f5e0b6f8b2461d4b35e5efc05577afd85  error_delete_from_file_empty.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_delete_from_file_empty.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_delete_from_file_lines.out
+  38cdd9fd3186909e51bea1440f08f2b85b51303c2592270afee9869324c57cae  error_delete_from_file_lines.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_delete_from_file_lines.exit
+  56568a9dffc2f0a49181026ed73684dda59d4ec30b97706c58f70334cd6b316c  comments_add_file.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  comments_add_file.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  comments_add_file.exit
+  27ca5f323105e42200bd9cdb7980e120cd53e775f8b518adfbb3a3ff1d5c7860  comments_add_file_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  comments_add_file_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  comments_add_file_json.exit
+  56568a9dffc2f0a49181026ed73684dda59d4ec30b97706c58f70334cd6b316c  comments_add_file_and_message.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  comments_add_file_and_message.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  comments_add_file_and_message.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_comments_add_file_missing.out
+  b85189e5401167cc4961ea88209a990011d605365ca4b9ca22dcb1793378c6ea  error_comments_add_file_missing.err
+  aa67a169b0bba217aa0aa88a65346920c84c42447c36ba5f7ea65f422c1fe5d8  error_comments_add_file_missing.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_comments_add_file_missing_id.out
+  c9b2cf18ca3d082bcdebd0a3743ff84a7418e6d4962cc810a21041d98f33fac7  error_comments_add_file_missing_id.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_comments_add_file_missing_id.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_comments_add_file_empty.out
+  f018bcea64434f8202f93c623ee24c23b8d174d256adb2063d88c184a5a1da60  error_comments_add_file_empty.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_comments_add_file_empty.exit
+  3343216e1931a92894a5b53f913796dc441c736ced8ee8be4c2750a0f4475e73  update_description_file.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  update_description_file.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  update_description_file.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_description_file_guard.out
+  82b7da6d84afb1bf709d7ce0dc0c3c677e0cee72ad9e70f92f6849f54df9325d  error_update_description_file_guard.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_update_description_file_guard.exit
+  0bbdfa7bd1292aab6311a30010f4c1eb7a184864b94dc9c2302a650c0ea3e45e  error_update_description_file_missing_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_description_file_missing_json.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_update_description_file_missing_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_update_description_file_missing_id.out
+  286f3542c5f03b584bfc437ac9ddb252bfa655c465e2dca7260ccb9c58b87701  error_update_description_file_missing_id.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_update_description_file_missing_id.exit
+  a06d4e2362ecb33bed8cef15b25c5627ce2e058aa7b9505fa8f2990f55e5fef4  create_description_file.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_description_file.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_description_file.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_create_description_file_missing.out
+  286f3542c5f03b584bfc437ac9ddb252bfa655c465e2dca7260ccb9c58b87701  error_create_description_file_missing.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_create_description_file_missing.exit

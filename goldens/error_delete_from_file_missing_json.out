@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "IO_ERROR",
+    "message": "I/O error: No such file or directory (os error 2)",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

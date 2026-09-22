@@ -1,5 +1,5 @@
-✓ Created ii-gv0: Prefixed
+✓ Created pp-gv0: Prefixed
 --- .beads/issues.jsonl ---
-{"id":"ii-gv0","title":"Prefixed","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"pp-gv0","title":"Prefixed","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
 --- .beads/last-touched ---
-ii-gv0
+pp-gv0
