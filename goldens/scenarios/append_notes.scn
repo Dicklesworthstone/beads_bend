@@ -1,0 +1,10 @@
+# append_notes: `update --append-notes` onto existing notes (S4.260–S4.275): the joiner, a notes text that already
+# ends in a newline, a multi-line append, the JSON report, and --quiet
+@fx=basic
+["update","proj-mta","--notes","First line"]
+["update","proj-mta","--append-notes","Second line"]
+["update","proj-mta","--append-notes","Third\nand fourth","--json"]
+["update","proj-ptp","--notes","Ends in newline\n"]
+["update","proj-ptp","--append-notes","After newline"]
+["update","proj-ptp","--append-notes","Quiet","--quiet"]
+["show","proj-mta","--json"]

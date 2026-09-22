@@ -1,0 +1,5 @@
+error: the argument '--notes <NOTES>' cannot be used with '--append-notes <TEXT>'
+
+Usage: br update --notes <NOTES> <IDS>...
+
+For more information, try '--help'.

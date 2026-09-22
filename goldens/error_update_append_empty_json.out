@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: append-notes: text to append must not be empty",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "append-notes",
+      "reason": "text to append must not be empty"
+    }
+  }
+}
