@@ -521,23 +521,42 @@ def updated(b: Update.Batch, json: Bool, quiet: Bool) -> Outcome:
 
 # S4.260 S4.264 (spec twin) was any field flag given: without one, `update` reports `No updates specified`
 def any_update_flag(+opts: List<&2, Cli.Occ>) -> Bool:
-  (Cli.given(opts, "status") || Cli.given(opts, "priority") || Cli.given(opts, "type") || Cli.given(opts, "title") || Cli.given(opts, "description") || Cli.given(opts, "design") || Cli.given(opts, "acceptance-criteria") || Cli.given(opts, "prerequisites") || Cli.given(opts, "notes") || Cli.given(opts, "append-notes") || Cli.given(opts, "assignee") || Cli.given(opts, "owner") || Cli.given(opts, "estimate") || Cli.given(opts, "due") || Cli.given(opts, "defer") || Cli.given(opts, "external-ref") || Cli.given(opts, "source-repo") || Cli.given(opts, "source-repo-path") || Cli.given(opts, "claim") || Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label"))
+  (Cli.given(opts, "status") || Cli.given(opts, "priority") || Cli.given(opts, "type") || Cli.given(opts, "title") || Cli.given(opts, "description") || Cli.given(opts, "design") || Cli.given(opts, "acceptance-criteria") || Cli.given(opts, "prerequisites") || Cli.given(opts, "notes") || Cli.given(opts, "append-notes") || Cli.given(opts, "parent") || Cli.given(opts, "assignee") || Cli.given(opts, "owner") || Cli.given(opts, "estimate") || Cli.given(opts, "due") || Cli.given(opts, "defer") || Cli.given(opts, "external-ref") || Cli.given(opts, "source-repo") || Cli.given(opts, "source-repo-path") || Cli.given(opts, "claim") || Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label"))
 
-# S4.212 S4.260 (spec twin) `update` once every id is resolved
-def update_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
+# S4.270 (spec twin) `update` once its `--parent` was resolved: an id that resolves to nothing is refused
+# (`error_update_parent_missing`); `""` clears the parent (`update_parent_clear`)
+def update_parented(p: Resolve.Found, given: Bool, ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
+  match p given:
+    case Resolve.FoundBad{f} _:
+      failed(f, json)
+    case Resolve.FoundOk{pid} True{}:
+      updated(Update.run(ids, model, opts, priority, Blocked.relation(model), actor, now, any_update_flag(opts), Some{pid}), json, quiet)
+    case Resolve.FoundOk{pid} False{}:
+      updated(Update.run(ids, model, opts, priority, Blocked.relation(model), actor, now, any_update_flag(opts), None{}), json, quiet)
+
+# S4.270 (spec twin) the parent `--parent` names: `""` as it is (a clear), anything else resolved like an issue id
+def new_parent(given: Maybe<&2, String>, +ids: List<&2, String>, +prefix: String) -> Resolve.Found:
+  match given:
+    case None{}:
+      Resolve.FoundOk{""}
+    case Some{+word}:
+      Bool.pick(Resolve.Found, String.is_empty(String.trim(word)), Resolve.FoundOk{""}, Resolve.resolve(ids, word, prefix))
+
+# S4.212 S4.260 (spec twin) `update` once every id is resolved, then its `--parent`
+def update_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool, +prefix: String) -> Outcome:
   match m:
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{ids}:
-      updated(Update.run(ids, model, opts, priority, Blocked.relation(model), actor, now, any_update_flag(opts)), json, quiet)
+      update_parented(new_parent(Cli.value(opts, "parent"), Show.ids_of(model), prefix), Cli.given(opts, "parent"), ids, opts, model, priority, actor, now, json, quiet)
 
 # S4.260 (spec twin) `update` once its ids are known: none at all (no positional, no last-touched issue) is refused
-def update_ids(ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, prefix: String, +json: Bool, quiet: Bool) -> Outcome:
+def update_ids(ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +prefix: String, +json: Bool, quiet: Bool) -> Outcome:
   match ids:
     case Nil{}:
       failed(Show.no_ids(), json)
     case Con{id, rest}:
-      update_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), opts, Store.model(raw), priority, actor, now, json, quiet)
+      update_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), opts, Store.model(raw), priority, actor, now, json, quiet, prefix)
 
 # S4.224 S4.275 (spec twin) `update` once its priority was judged
 def update_ranked(r: Create.Rank, given: Bool, ids: List<&2, String>, opts: List<&2, Cli.Occ>, raw: List<&2, Model.Issue>, actor: String, now: Time.Instant, prefix: String, json: Bool, quiet: Bool) -> Outcome:
@@ -1156,7 +1175,7 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) 
     case 22 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       transition(3, Show.pinned(now_of(env)), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 18 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      update_cmd(Show.pinned(now_of(env)), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, (Cli.given(opts, "parent") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
+      update_cmd(Show.pinned(now_of(env)), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, (Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
     case 23 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       edge_cmd(True{}, Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 24 Call{path, +opts, words, json, quiet, touched, +env, cwd}:

@@ -5,7 +5,7 @@
 # discards everything. The store is rewritten only when some issue changed
 # (S4.203); `.beads/last-touched` names the last id either way (S4.209).
 # Not here yet, each refused with the port's own failure by the dispatcher:
-# `--parent`, the acceptance-list flags, `--transition-comment`,
+# the acceptance-list flags, `--transition-comment`,
 # `--description-file`, `--agent-context`, `--session`. Nothing here consults the original.
 import Base
 import ./time.bend as Time
@@ -17,6 +17,7 @@ import ./create.bend as Create
 import ./blocked.bend as Blocked
 import ./when.bend as When
 import ./render.bend as Render
+import ./edges.bend as Edges
 
 # S4.262–S4.268 (data) an issue under edit: the refusal (sticky), or the issue so far and whether a stored column changed
 type Edit is Data:
@@ -209,6 +210,42 @@ def with_append(e: Edit, given: Maybe<&2, String>) -> Edit:
     case EditOk{i, changed} Some{text}:
       append_written(i, text)
 
+# S4.270 (spec twin) the refusal of a re-parent that would close a cycle: `CYCLE_DETECTED`, exit 5, with its own
+# message and the cycle hint of S4.354 (`error_update_parent_cycle`, `error_update_parent_cycle_json`)
+def parent_cycle(+child: String, +parent: String) -> Failure.Failure:
+  Failure.Failure{"CYCLE_DETECTED", "Cycle detected in dependencies: Setting parent of " ++ child ++ " to " ++ parent ++ " would create a cycle", Some{"Remove one dependency to break the cycle. Note: epic containment participates in blocking cycles — depending on an epic implies depending on its entire subtree, so the cycle may traverse parent-child edges that the message does not list (see docs/CLI_REFERENCE.md, `dep add`)"}, False{}, [Failure.CtxMember{"cycle_path", Failure.CStr{"Setting parent of " ++ child ++ " to " ++ parent ++ " would create a cycle"}}], 5}
+
+# S4.270 (spec twin) an issue's edges without its `parent-child` ones
+def without_parents(edges: List<&2, Model.Dependency>) -> List<&2, Model.Dependency>:
+  match edges:
+    case Nil{}:
+      Nil{}
+    case Con{+e, rest}:
+      Edges.edge_keep(e, Bool.not(String.eq(Model.dep_type_of(e), "parent-child")), without_parents(rest))
+
+# S4.270 (spec twin) the issue with its parent edge replaced: the old `parent-child` edges removed and, unless the
+# new parent is `""`, one new edge at the end, stamped now by the actor (`update_parent`, `update_parent_clear`)
+def reparented(i: Model.Issue, +id: String, +parent: String, actor: String, now: Time.Instant) -> Model.Issue:
+  match i:
+    case Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, +dependencies, comments}:
+      Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, Bool.pick(List<&2, Model.Dependency>, String.is_empty(parent), without_parents(dependencies), List.append(&2, Model.Dependency, without_parents(dependencies), Model.Dependency{id, parent, "parent-child", now, Some{actor}, Some{"{}"}, Some{""}} <> Nil{})), comments}
+
+# S4.270 (spec twin) a resolved parent against one issue: itself refused (S4.356); refused when the issue already
+# reaches the new parent in the cycle graph of S4.354 (the new edge's arc would run parent → child and close it:
+# `proj-170` blocks on `proj-mta`, `proj-uly` contains `proj-170`); else re-parented
+def parent_written(+i: Model.Issue, +parent: String, +model: List<&2, Model.Issue>, actor: String, now: Time.Instant) -> Edit:
+  Bool.pick(Edit, String.eq(parent, Model.id_of(i)), EditBad{Edges.self_edge(parent)}, Bool.pick(Edit, (Bool.not(String.is_empty(parent)) && Edges.reaches(model, Model.id_of(i), parent)), EditBad{parent_cycle(Model.id_of(i), parent)}, EditOk{reparented(i, Model.id_of(i), parent, actor, now), True{}}))
+
+# S4.270 (spec twin) `--parent` folded in; `parent` is the resolved id, `""` to clear, none when the flag is absent
+def with_parent(e: Edit, parent: Maybe<&2, String>, model: List<&2, Model.Issue>, actor: String, now: Time.Instant) -> Edit:
+  match e parent:
+    case EditBad{f} _:
+      EditBad{f}
+    case EditOk{i, changed} None{}:
+      EditOk{i, changed}
+    case EditOk{i, changed} Some{p}:
+      parent_written(i, p, model, actor, now)
+
 # S4.265 S4.266 (spec twin) one body flag folded in
 def with_body(e: Edit, given: Maybe<&2, String>, +which: U32, force: Bool) -> Edit:
   match e given:
@@ -398,8 +435,8 @@ def block_json(+old: Model.Issue, +i: Model.Issue, appended: Maybe<&2, String>) 
 
 # S4.262–S4.268 (spec twin) every flag of one `update` applied to one issue, in a fixed order; `priority` is the
 # priority's digits when `-p` was given and judged
-def edited(i: Model.Issue, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, actor: String, +now: Time.Instant) -> Edit:
-  finished(with_labels(with_claim(with_date(with_date(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_append(with_body(with_body(with_body(with_body(with_body(with_compared(with_compared(with_status(start(i), Cli.value(opts, "status")), priority, 2), lowered_kind(Cli.value(opts, "type")), 3), Cli.value(opts, "description"), 0, Cli.given(opts, "force")), Cli.value(opts, "design"), 1, Cli.given(opts, "force")), Cli.value(opts, "acceptance-criteria"), 2, Cli.given(opts, "force")), Cli.value(opts, "prerequisites"), 3, Cli.given(opts, "force")), Cli.value(opts, "notes"), 4, Cli.given(opts, "force")), Cli.value(opts, "append-notes")), Cli.value(opts, "title"), 0), Cli.value(opts, "assignee"), 1), Cli.value(opts, "owner"), 2), Cli.value(opts, "external-ref"), 3), Cli.value(opts, "source-repo"), 4), Cli.value(opts, "source-repo-path"), 5), Cli.value(opts, "estimate"), 6), Cli.value(opts, "due"), 0, now, "due_at"), Cli.value(opts, "defer"), 1, now, "defer_until"), Cli.given(opts, "claim"), relation, actor, Cli.given(opts, "force")), Cli.values(opts, "set-labels"), Cli.values(opts, "add-label"), Cli.values(opts, "remove-label"), (Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label")), Cli.given(opts, "set-labels")), now)
+def edited(i: Model.Issue, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, parent: Maybe<&2, String>, model: List<&2, Model.Issue>) -> Edit:
+  finished(with_parent(with_labels(with_claim(with_date(with_date(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_append(with_body(with_body(with_body(with_body(with_body(with_compared(with_compared(with_status(start(i), Cli.value(opts, "status")), priority, 2), lowered_kind(Cli.value(opts, "type")), 3), Cli.value(opts, "description"), 0, Cli.given(opts, "force")), Cli.value(opts, "design"), 1, Cli.given(opts, "force")), Cli.value(opts, "acceptance-criteria"), 2, Cli.given(opts, "force")), Cli.value(opts, "prerequisites"), 3, Cli.given(opts, "force")), Cli.value(opts, "notes"), 4, Cli.given(opts, "force")), Cli.value(opts, "append-notes")), Cli.value(opts, "title"), 0), Cli.value(opts, "assignee"), 1), Cli.value(opts, "owner"), 2), Cli.value(opts, "external-ref"), 3), Cli.value(opts, "source-repo"), 4), Cli.value(opts, "source-repo-path"), 5), Cli.value(opts, "estimate"), 6), Cli.value(opts, "due"), 0, now, "due_at"), Cli.value(opts, "defer"), 1, now, "defer_until"), Cli.given(opts, "claim"), relation, actor, Cli.given(opts, "force")), Cli.values(opts, "set-labels"), Cli.values(opts, "add-label"), Cli.values(opts, "remove-label"), (Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label")), Cli.given(opts, "set-labels")), parent, model, actor, now), now)
 
 # S4.261 (data) a batch so far: the refusal (sticky), or the model with the edits in it, the plain blocks and the JSON
 # elements (both REVERSED), whether any stored column changed, and the last id acted on
@@ -434,21 +471,22 @@ def batch_model(b: Batch) -> List<&2, Model.Issue>:
       model
 
 # S4.261 (spec twin) one resolved id: the issue as the batch holds it NOW (an id named twice is edited twice)
-def batch_id(+b: Batch, found: Maybe<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, actor: String, now: Time.Instant, any_flag: Bool) -> Batch:
+def batch_id(+b: Batch, found: Maybe<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, actor: String, now: Time.Instant, any_flag: Bool, parent: Maybe<&2, String>) -> Batch:
   match found:
     case None{}:
       b
     case Some{+i}:
-      batch_put(b, edited(i, opts, priority, relation, actor, now), i, any_flag, Cli.value(opts, "append-notes"))
+      batch_put(b, edited(i, opts, priority, relation, actor, now, parent, batch_model(b)), i, any_flag, Cli.value(opts, "append-notes"))
 
 # S4.261 (spec twin) every resolved id, in command-line order
-def batch_go(ids: List<&2, String>, +b: Batch, +opts: List<&2, Cli.Occ>, +priority: Maybe<&2, String>, +relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, +any_flag: Bool) -> Batch:
+def batch_go(ids: List<&2, String>, +b: Batch, +opts: List<&2, Cli.Occ>, +priority: Maybe<&2, String>, +relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, +any_flag: Bool, +parent: Maybe<&2, String>) -> Batch:
   match ids:
     case Nil{}:
       b
     case Con{id, rest}:
-      batch_go(rest, batch_id(b, Blocked.lookup(batch_model(b), id), opts, priority, relation, actor, now, any_flag), opts, priority, relation, actor, now, any_flag)
+      batch_go(rest, batch_id(b, Blocked.lookup(batch_model(b), id), opts, priority, relation, actor, now, any_flag, parent), opts, priority, relation, actor, now, any_flag, parent)
 
-# S4.260–S4.273 (spec twin) `update` over resolved ids: `model` is the loaded model, `relation` its BLOCKED relation
-def run(ids: List<&2, String>, model: List<&2, Model.Issue>, opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, actor: String, now: Time.Instant, any_flag: Bool) -> Batch:
-  batch_go(ids, BatchOk{model, Nil{}, Nil{}, False{}, ""}, opts, priority, relation, actor, now, any_flag)
+# S4.260–S4.273 S4.270 (spec twin) `update` over resolved ids: `model` is the loaded model, `relation` its BLOCKED
+# relation, `parent` the resolved `--parent` (`""` clears; none when the flag is absent)
+def run(ids: List<&2, String>, model: List<&2, Model.Issue>, opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, actor: String, now: Time.Instant, any_flag: Bool, parent: Maybe<&2, String>) -> Batch:
+  batch_go(ids, BatchOk{model, Nil{}, Nil{}, False{}, ""}, opts, priority, relation, actor, now, any_flag, parent)
