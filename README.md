@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Status](https://img.shields.io/badge/status-Phase%203%3A%20every%20corpus%20command%20runs%2C%20414%20of%20414%20cases-orange.svg)](#status)
+[![Status](https://img.shields.io/badge/status-Phase%203%3A%20every%20corpus%20command%20runs%2C%20454%20of%20454%20cases-orange.svg)](#status)
 [![Bend](https://img.shields.io/badge/bend-2.0.20%20%28pinned%29-blue.svg)](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md)
 [![Oracle](https://img.shields.io/badge/oracle-br%200.6.0%20%28pinned%29-orange.svg)](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md)
 
@@ -15,30 +15,30 @@ A port of [`br` (beads_rust)](https://github.com/Dicklesworthstone/beads_rust), 
 <div align="center">
 <h3>There is nothing to install</h3>
 
-<p><em>There is no release, no installer and no binary to download, and the port has not been through its parity gate, its performance phase or its certification. What exists is a Bend program you can build yourself (<code>bend port/main.bend -o bn</code>) that reproduces the pinned original byte for byte on all 414 captured conformance cases, on three executors (native C at 1 and 8 threads, and JavaScript), plus the evidence base a port is judged against. Read <a href="#status">Status</a> before anything else.</em></p>
+<p><em>There is no release, no installer and no binary to download, and the port has not been through its parity gate, its performance phase or its certification. What exists is a Bend program you can build yourself (<code>bend port/main.bend -o bn</code>) that reproduces the pinned original byte for byte on all 454 captured conformance cases, on three executors (native C at 1 and 8 threads, and JavaScript), plus the evidence base a port is judged against. Read <a href="#status">Status</a> before anything else.</em></p>
 </div>
 
 ---
 
 ## Status
 
-As of 2026-09-22 this project is at the end of Phase 3 of an eight-phase port method (fit screen, truth pack, spec, architecture, reference port, parity gate, performance, certify). The fit screen, the truth pack, a first pass of the spec and the architecture are done; the reference port now answers every command the 414-case corpus exercises, reads and writes the store, and reproduces the pinned original byte for byte on three of the four lanes. Six find-fix rounds have run, all by the author (`scripts/converge.sh`: `NOT_CONVERGED`; tier T3 needs at least ten, the last two clean, and a non-author round); nothing else after Phase 3 has started: no parity claim, no measurement, no certification. I would rather publish an honest account of a half-finished port than a README that describes software that does not exist.
+As of 2026-09-22 this project is at the end of Phase 3 of an eight-phase port method (fit screen, truth pack, spec, architecture, reference port, parity gate, performance, certify). The fit screen, the truth pack, a first pass of the spec and the architecture are done; the reference port now answers every command the 454-case corpus exercises, reads and writes the store, and reproduces the pinned original byte for byte on three of the four lanes. Seven find-fix rounds have run, all by the author (`scripts/converge.sh`: `NOT_CONVERGED`; tier T3 needs at least ten, the last two clean, and a non-author round); nothing else after Phase 3 has started: no parity claim, no measurement, no certification. I would rather publish an honest account of a half-finished port than a README that describes software that does not exist.
 
 | Artifact | State | Where |
 |----------|-------|-------|
 | The original, pinned | `br 0.6.0`, tag `v0.6.0`, commit `b1cfebe05437463e91a353cf2bedafac27266f5b`; the published release binary, 27,772,512 bytes, sha256 `21b967c1ae68df1a2e8eb2256d13b8e57d293d89e331933919076104832ddbc0` | [PLAN §2](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md) |
 | Bend, pinned | `bend 2.0.20` from the official installer; binary sha256 `fab9e564c578a0a15880d5fea561ac1612dba01265a5a219906b5888f3381d8c`; bun `1.4.2`; clang `21.1.8` | [PLAN §2b](docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md) |
 | Hermetic oracle sandbox | exists: `scripts/ws-run.sh` and `scripts/ws_inner.py` (bubblewrap, tmpfs workspace, cleared environment, pinned instant) | `scripts/ws-run.sh --help` |
-| Conformance cases | 414 cases in `goldens/cases.tsv` (30 added 2026-09-21 for the dependency graph: real tree depth, a diamond, an ancestor back edge, `repeat` and `truncated`, `--max-depth`, the `up` and `both` directions, and the BLOCKED relation with two blockers and a blocking cycle); `scripts/cases-lint.sh` verdict `OK` (0 errors, 0 notes) | `goldens/` |
-| Goldens | 414 captured `.out` / `.err` / `.exit` triples from the pinned original; digests in `goldens/MANIFEST.txt`; 70 of them carry a dump of the resulting `.beads/issues.jsonl`. Three (`version_plain`, `version_json`, `usage_version_flag`) are compared through the DISC-006 shape canonicalizer, which reduces both sides to `<name> version <version> <details>` | `goldens/` |
-| Reproducibility floor | `{"repeat":3,"stable":384,"unstable":[],"inconclusive":[],"oracle_identity_checked":true,"verdict":"STABLE"}` over the 384 cases of 2026-09-20, and `{"repeat":3,"stable":30,"unstable":[],"inconclusive":[],"oracle_identity_checked":true,"verdict":"STABLE"}` over the 30 added on 2026-09-21, after the one hash-random output of the original was canonicalized (DISC-005) | `docs/PORT_STATE.md` |
+| Conformance cases | 454 cases in `goldens/cases.tsv` (40 added 2026-09-22: `dep list --direction up/both`, `dep tree --format mermaid`, `blocked --detailed`, and `ready --parent/--recursive/--epic` on a new oracle-built fixture `parents`; 30 added 2026-09-21 for the dependency graph: real tree depth, a diamond, an ancestor back edge, `repeat` and `truncated`, `--max-depth`, the `up` and `both` directions, and the BLOCKED relation with two blockers and a blocking cycle); `scripts/cases-lint.sh` verdict `OK` (0 errors, 0 notes) | `goldens/` |
+| Goldens | 454 captured `.out` / `.err` / `.exit` triples from the pinned original; digests in `goldens/MANIFEST.txt`; 88 of them carry a dump of the resulting `.beads/issues.jsonl`. Three (`version_plain`, `version_json`, `usage_version_flag`) are compared through the DISC-006 shape canonicalizer, which reduces both sides to `<name> version <version> <details>` | `goldens/` |
+| Reproducibility floor | `{"repeat":3,"stable":384,"unstable":[],"inconclusive":[],"oracle_identity_checked":true,"verdict":"STABLE"}` over the 384 cases of 2026-09-20, and `{"repeat":3,"stable":30,"unstable":[],"inconclusive":[],"oracle_identity_checked":true,"verdict":"STABLE"}` over the 30 added on 2026-09-21, and `{"repeat":3,"stable":40,"unstable":[],"inconclusive":[],"oracle_identity_checked":true,"verdict":"STABLE"}` over the 40 added on 2026-09-22, after the one hash-random output of the original was canonicalized (DISC-005) | `docs/PORT_STATE.md` |
 | Fixtures and scenarios | 9 fixtures (`basic`, `basic_touched`, `conflict`, `empty`, `graph`, `hierarchy`, `large`, `malformed`, `precision`) and their build scenarios; the realistic fixtures are the original's own output, `graph` and `hierarchy` included | `goldens/fixtures/`, `goldens/scenarios/` |
 | Spec (Phase 1) | **first pass done**: 899 numbered clauses with `file:line` provenance and a golden case each (25 of them, S1.68–S1.92, written from measured output while the argument parser was built), merged from eight part files by `scripts/merge-spec-parts.py`; `scripts/spec-lint.py` reports 0 findings; a blind self-containment review predicted 10 of 10 sampled cases byte for byte from the spec alone (`docs/reviews/self-containment-1/`) and still found six clause contradictions, now open questions. The method's second and third extraction passes and the capture of the extractors' proposed cases have not run | `docs/EXISTING_BEADS_RUST_STRUCTURE.md`, `docs/spec-parts/`, `docs/OPEN_QUESTIONS.md` |
 | Architecture, numeric plan (Phase 2) | written: one pure function `run : Inputs -> Outcome` and a thin IO shell; every one of the 764 behavior clauses has a home def (`scripts/arch-lint.py`: PASS); no `F32` anywhere and no budgeted output class | `docs/PROPOSED_ARCHITECTURE.md`, `docs/NUMERIC_PLAN.md` |
-| Bend implementation (Phase 3) | **every command the corpus exercises runs, on a store it also writes; not certified**: twenty-four pure modules under `port/core/` (UTF-8, SHA-256, the id hash, instants, the JSON line lexer and member splitter, the 44-member record with its store line and load repairs, the line decoder, store loading and write-back, error rendering, the command-line tables, the argument parser, the carried help texts, the listing relation, the renderers, the partial-id resolver, `show`, the BLOCKED relation, `ready`/`blocked`/`stats`, the small views, `create`, `update`, the status transitions, the date grammar, the dependency edges, labels and comments, `delete`, the dispatcher) and the IO shell `port/main.bend` with three custom effects (`Sys.exit`, `Sys.cwd`, `Sys.remove`). **414 of 414 conformance cases pass, the same on the single-thread C lane, the 8-thread C lane and the JS lane** (`scripts/conform.sh` per lane, 2026-09-21). `dep tree` now walks the graph (S4.182–S4.185: depth, diamonds, back edges, `repeat`, `truncated`, `--max-depth`, `--direction`) where it used to refuse any root with a neighbour. The interpreter lane is checked on a 6-case sample at HEAD, 6 of 6: one interpreter run type-checks the whole book, several minutes per case at this size, so the full corpus would take many hours there. Forms no case captures are refused with the port's own failure rather than guessed: `--hard` and `--from-file` on `delete`, a `--json` delete preview, `comments add -f`, a label split over more than two positionals, a tombstoned dependency endpoint, `--metadata`, the `stats` breakdowns, `list --overdue/--tree/--pretty`, `ready --parent/--recursive/--epic`, `blocked --detailed`, and the help text of the 30 levels no case prints | `port/`, `docs/PORT_STATE.md` |
-| Laws and proofs | 51 closed laws, all proved by the checker computing both sides: SHA-256 against three published vectors, seven captured ids from their seeds (including `q`'s empty-creator seed and the nonce ladder), the id-length table, fifteen timestamp facts (the five spellings of fixture `precision` as the original wrote them back, calendar borrows and carries, refusals), the exact store line of `create_min`, the refusal of fixture `malformed`, eight facts of the argument parser (five captured refusal texts, three accepted command lines, the help forms, the similar-value tip), priority tokens and ranges, the control-character sanitizer, the partial-id resolver on the eight ids of fixture `basic` (two captured refusal texts among its six facts), and five whole-program facts: the pure program run on a two-record store prints the lines the `list` golden shows for those records, `count --by-status` leaves the deferred one out, and `blocked` on three records of fixture `basic` prints `goldens/blocked_plain.out` byte for byte, `dep add` on an edge that is already there rewrites nothing and still writes the sidecar, and `delete` of a depended-on issue prints the six-block preview and writes nothing; two more pin the rounding of the average lead time (`23.25` days prints `23.2`, and a tie binary64 does not hold exactly is refused). `bend port/PROOF.bend` prints `All terms check.` with 0 `@unsafe` under `bend 2.0.20`. A closed law covers one value; none of these is a quantified property | `port/LAWS.bend`, `port/PROOF.bend` |
+| Bend implementation (Phase 3) | **every command the corpus exercises runs, on a store it also writes; not certified**: twenty-four pure modules under `port/core/` (UTF-8, SHA-256, the id hash, instants, the JSON line lexer and member splitter, the 44-member record with its store line and load repairs, the line decoder, store loading and write-back, error rendering, the command-line tables, the argument parser, the carried help texts, the listing relation, the renderers, the partial-id resolver, `show`, the BLOCKED relation, `ready`/`blocked`/`stats`, the small views, `create`, `update`, the status transitions, the date grammar, the dependency edges, labels and comments, `delete`, the dispatcher) and the IO shell `port/main.bend` with three custom effects (`Sys.exit`, `Sys.cwd`, `Sys.remove`). **454 of 454 conformance cases pass, the same on the single-thread C lane, the 8-thread C lane and the JS lane** (`scripts/conform.sh` per lane on one build of `aaf6622`, 2026-09-22). `dep tree` walks the graph (S4.182–S4.185) and renders it as text, JSON or mermaid (S5.253); `blocked --detailed` lists each blocker (S5.254); `ready --parent`, `--recursive` and `--epic` scope the ready rows to an issue's children or descendants (S4.173) — the last three were refused as unported until 2026-09-22, and each was captured from the original before it was written. The interpreter lane is checked on a 4-case sample at `aaf6622`, 4 of 4, one case per new code path: one interpreter run type-checks the whole book, several minutes per case at this size, so the full corpus would take many hours there. Forms no case captures are refused with the port's own failure rather than guessed: `--hard` and `--from-file` on `delete`, a `--json` delete preview, `comments add -f`, a label split over more than two positionals, a tombstoned dependency endpoint, `--metadata`, the `stats` breakdowns, `list --overdue/--tree/--pretty`, `dep cycles` on a graph that keeps a cycle, and the help text of the 30 levels no case prints | `port/`, `docs/PORT_STATE.md` |
+| Laws and proofs | 52 closed laws, all proved by the checker computing both sides: SHA-256 against three published vectors, seven captured ids from their seeds (including `q`'s empty-creator seed and the nonce ladder), the id-length table, fifteen timestamp facts (the five spellings of fixture `precision` as the original wrote them back, calendar borrows and carries, refusals), the exact store line of `create_min`, the refusal of fixture `malformed`, eight facts of the argument parser (five captured refusal texts, three accepted command lines, the help forms, the similar-value tip), priority tokens and ranges, the control-character sanitizer, the partial-id resolver on the eight ids of fixture `basic` (two captured refusal texts among its six facts), and seven whole-program facts: the pure program run on a two-record store prints the lines the `list` golden shows for those records, `count --by-status` leaves the deferred one out, and `blocked` on three records of fixture `basic` prints `goldens/blocked_plain.out` byte for byte, `dep add` on an edge that is already there rewrites nothing and still writes the sidecar, `delete` of a depended-on issue prints the six-block preview and writes nothing, and `dep tree proj-6ja` over the five records of fixture `hierarchy` prints `goldens/dep_tree_repeat.out` and, with `--format mermaid`, `goldens/dep_tree_mermaid.out`; two more pin the rounding of the average lead time (`23.25` days prints `23.2`, and a tie binary64 does not hold exactly is refused). `bend port/PROOF.bend` prints `All terms check.` with 0 `@unsafe` under `bend 2.0.20`. A closed law covers one value; none of these is a quantified property | `port/LAWS.bend`, `port/PROOF.bend` |
 | Feasibility probes | a wall-clock custom effect (OQ-009: it loads on the interpreter, C and JS engines; Bend 2.0.20 itself has no wall clock, OQ-004; the port does not use it yet, so a mutation without `BEADS_BEND_NOW` is refused) and a SHA-256 over `U32` words whose four digests equal `hashlib`'s on all three engines (PLAN §8). Probes are not the port | `port/probes/` |
-| Parity board (Phase 4) | 29 in-scope rows: 4 `present`, 25 `partial`, 0 `missing` (`epic close-eligible` now has seven captured cases), plus 13 classed exclusions; `scripts/parity-board.sh` reports `PARTIAL`. Six author find-fix rounds have run (9 genuine findings; 2 clean rounds); `scripts/converge.sh` reports `NOT_CONVERGED` | `docs/FEATURE_PARITY.md` |
+| Parity board (Phase 4) | 29 in-scope rows: 4 `present`, 25 `partial`, 0 `missing` (`epic close-eligible` now has seven captured cases), plus 13 classed exclusions; `scripts/parity-board.sh` reports `PARTIAL`. Seven author find-fix rounds have run (9 genuine findings; 3 clean rounds, the last of them round 7); `scripts/converge.sh` reports `NOT_CONVERGED` | `docs/FEATURE_PARITY.md` |
 | Performance (Phase 5) | no measurement of any kind; `perf/EXPERIMENTS.md` is empty | `perf/` |
 | Port report (Phase 6) | template | `docs/PORT_REPORT.md` |
 | Repository and license | public at https://github.com/Dicklesworthstone/beads_bend; `LICENSE` is MIT with the OpenAI/Anthropic rider, the same text as `br`'s | `LICENSE` |
@@ -76,7 +76,7 @@ Two equivalences, never conflated. Every claim in this repository names which on
 
 | Equivalence | How it is established | Artifacts | State today |
 |-------------|-----------------------|-----------|-------------|
-| **original == spec** | **Golden-tested.** The pinned original's stdout, stderr and exit code are captured per case; the port must produce the same bytes on every lane (interpreter, C at 1 thread, C at N threads, JS). Empirical, and bounded by the corpus | `goldens/cases.tsv`, `goldens/MANIFEST.txt`, `scripts/lanes.sh` | 414 cases captured, floor `STABLE`; the port passes all 414 on c-1t, c-8t and js |
+| **original == spec** | **Golden-tested.** The pinned original's stdout, stderr and exit code are captured per case; the port must produce the same bytes on every lane (interpreter, C at 1 thread, C at N threads, JS). Empirical, and bounded by the corpus | `goldens/cases.tsv`, `goldens/MANIFEST.txt`, `scripts/lanes.sh` | 454 cases captured, floor `STABLE`; the port passes all 454 on c-1t, c-8t and js |
 | **spec == fast** | **Law-proved.** Every optimized def (a *fast twin*) has the same signature as its literal, sequential *spec twin*, and a law `{fast(x) == spec(x)}` that `bend port/PROOF.bend` must check, ending in `All terms check.` | `port/LAWS.bend`, `port/PROOF.bend` | one scaffold law over a placeholder |
 
 Nothing compares the original with a fast twin except the shipped binary on the goldens. What runs today is the left-hand side only: the pinned original, inside the hermetic sandbox, against its own captured goldens.
@@ -127,7 +127,7 @@ The port is checked with the same wrapper on every lane:
 LANE_WRAP=scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend"
 ```
 
-At this commit the three fast lanes report `PASS` with 414 of 414 cases each (c-1t, c-8t, js). The interpreter lane is not run over the whole corpus: it type-checks the book on every case, several minutes per run at this size; a 6-case sample at HEAD, four of them the new tree traversal, passes 6 of 6 and stands in until a long checkpoint run is scheduled, and the gpu lane is `MISSING` (no device).
+At commit `aaf6622` the three fast lanes report `PASS` with 454 of 454 cases each (c-1t, c-8t, js). The interpreter lane is not run over the whole corpus: it type-checks the book on every case, several minutes per run at this size; a 4-case sample, one case per code path added on 2026-09-22, passes 4 of 4 and stands in for it, and the gpu lane is `MISSING` (no device).
 
 ---
 
@@ -206,7 +206,7 @@ No such claim exists for this project today. Phase 4 produces the first one. The
 | Atomic JSONL publication | Temp file, fsync, rename, history backup | Same | Excluded: written in place (DISC-003) |
 | Output modes | Rich, Plain, JSON, TOON, Quiet | Same | Plain, JSON, Quiet |
 | Reads git history | Reporting commands only | Same | Excluded (no subprocess effect in Bend) |
-| Evidence of behavior | Its own test suites | 414 captured cases in this repository | Those same 414 cases on three lanes (c-1t, c-8t, js), plus 51 laws |
+| Evidence of behavior | Its own test suites | 454 captured cases in this repository | Those same 454 cases on three lanes (c-1t, c-8t, js), plus 52 laws |
 
 **When to use `br`:** always, today. It is the working tool.
 
@@ -251,14 +251,14 @@ Results are the lines pasted in `docs/PORT_STATE.md` (last rewritten 2026-09-22)
 
 | Gate | Command | Last result |
 |------|---------|-------------|
-| Case table syntax | `scripts/cases-lint.sh goldens/cases.tsv` | `OK`: 414 cases, 0 errors, 0 notes |
+| Case table syntax | `scripts/cases-lint.sh goldens/cases.tsv` | `OK`: 454 cases, 0 errors, 0 notes |
 | One case through the original | `scripts/ws-run.sh --oracle br --no-db :: [@fx=<fixture>] <br args…>` | The original's bytes in the sandbox |
 | Capture | `scripts/golden-capture.sh goldens/cases.tsv goldens --timeout 60 -- scripts/ws-run.sh --oracle br --no-db ::` | A re-capture needs `--repin` or `--disc`; the last `--repin` (a sandbox fix) changed 0 of 705 golden hash lines |
 | Floor | `scripts/floor.sh goldens/cases.tsv goldens --repeat 3 --timeout 60 -- scripts/ws-run.sh --oracle br --no-db ::` | `STABLE`, 384 of 384 (2026-09-20); `STABLE`, 30 of 30 over the cases added 2026-09-21 |
-| Laws | `(cd port && $BEND_CLI PROOF.bend)` | `All terms check.` (0 `@unsafe`; 51 closed laws) |
-| Lanes | `LANE_WRAP=$PWD/scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend" --threads 8 --timeout 60 --interpreter-timeout 600` | `PASS` on c-1t, c-8t and js (414 of 414 each, run lane by lane with `scripts/conform.sh`); the interpreter lane needs many hours for the corpus and is sampled instead (`PASS` 6/6 at HEAD); gpu `MISSING` (no device) |
+| Laws | `(cd port && $BEND_CLI PROOF.bend)` | `All terms check.` (0 `@unsafe`; 52 closed laws) |
+| Lanes | `LANE_WRAP=$PWD/scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend" --threads 8 --timeout 60 --interpreter-timeout 600` | `PASS` on c-1t, c-8t and js (454 of 454 each, run lane by lane with `scripts/conform.sh`); the interpreter lane needs many hours for the corpus and is sampled instead (`PASS` 4/4 at `aaf6622`); gpu `MISSING` (no device) |
 | Parity board | `scripts/parity-board.sh docs/FEATURE_PARITY.md` | `PARTIAL`: 4 present, 25 partial, 0 missing, 13 excluded |
-| Convergence | `scripts/converge.sh docs/PORT_STATE.md` | `NOT_CONVERGED`: rounds 6, clean 2, clean tail 0, no non-author round, 116 open OQ, 0 open DISC (T3 needs ≥ 10 rounds, the last two clean, a non-author round, every OQ resolved or excluded) |
+| Convergence | `scripts/converge.sh docs/PORT_STATE.md` | `NOT_CONVERGED`: rounds 7, clean 3, clean tail 1, no non-author round, 115 open OQ, 0 open DISC (T3 needs ≥ 10 rounds, the last two clean, a non-author round, every OQ resolved or excluded) |
 | Wording | `scripts/claims-lint.sh docs/*.md perf/*.md README.md` | Scans claim-bearing documents for hedges and deferrals |
 
 Not run, because there is nothing to measure yet: `scripts/incumbent-bench.sh` (Phase 5). Each script prints its contract with `--help`.
@@ -314,8 +314,8 @@ The surface in scope, from PLAN §3. "Cases" counts the rows of `goldens/cases.t
 | Command | Contract (`br --no-db`) | Example (captured) | Cases |
 |---------|-------------------------|--------------------|-------|
 | `list` | Filters (status, type, priority range, assignee, labels, title, id), `--sort`, `-r`, `--limit`/`--offset`, `--long`, `--fields`; JSON envelope `{issues,total,limit,offset,has_more}` | `list --limit 2 --offset 1 --json` | 44 |
-| `ready` | Open, unblocked, not deferred work; `--sort priority\|oldest`, `--include-deferred`, filters | `ready -l db --json` | 12 |
-| `blocked` | Issues with open blocking dependencies | `blocked --json` | 4 |
+| `ready` | Open, unblocked, not deferred work; `--sort priority\|oldest`, `--include-deferred`, filters; `--parent <id>` keeps its direct children, `-r`/`--recursive` all its descendants, `--epic <id>` is both | `ready --epic proj-9vo --json` | 28 |
+| `blocked` | Issues with open blocking dependencies; `--detailed` lists each blocker's title, priority and status | `blocked --detailed` | 9 |
 | `search` | Text search over title and description, case-insensitive, with filters | `search work --status closed` | 9 |
 | `count` | Count, optionally grouped (`--by-status`, `--by-priority`, `--by-type`, `--by-assignee`, `--by-label`) | `count --by-priority --json` | 9 |
 | `stats` | Project statistics (without the commit-activity part, which runs git) | `stats --json` | 4 |
@@ -326,7 +326,7 @@ The surface in scope, from PLAN §3. "Cases" counts the rows of `goldens/cases.t
 | Command | Contract (`br --no-db`) | Example (captured) | Cases |
 |---------|-------------------------|--------------------|-------|
 | `dep add` / `dep remove` | Typed edges; refuses cycles (exit 5), self-dependency, missing ids, a second parent; duplicate and `external:` edges | `dep add proj-ptp proj-mta -t related` | 12 / 3 |
-| `dep list` / `dep tree` / `dep cycles` | Read the graph. `dep tree` walks depth-first in pre-order, orders siblings by priority, status rank, title and id, marks a re-reached node `repeat` and a cut one `truncated`, and takes `--max-depth` (default 10) and `--direction` | `dep tree proj-697 --json` | 5 / 22 / 4 |
+| `dep list` / `dep tree` / `dep cycles` | Read the graph. `dep tree` walks depth-first in pre-order, orders siblings by priority, status rank, title and id, marks a re-reached node `repeat` and a cut one `truncated`, and takes `--max-depth` (default 10) and `--direction`; `--format mermaid` prints the same walk as a mermaid graph. `dep list --direction up\|both` lists dependents too | `dep tree proj-6ja --format mermaid` | 15 / 31 / 4 |
 | `label add/remove/list/list-all/rename` | Label charset and limits | `label rename backend server --json` | 15 in total |
 | `comments add` / `comments list` | Comment identity, `--author`, `-m` | `comments add proj-mta "Looks good."` | 9 / 3 |
 | `epic status` | Epic rollups | `epic status --json` | 2 |
@@ -418,7 +418,7 @@ Case pseudo-arguments: `@fx=<name>` selects `goldens/fixtures/<name>.jsonl` (`no
                  │  scripts/golden-capture.sh
                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│  goldens/   414 cases: <case>.out .err .exit, MANIFEST.txt           │
+│  goldens/   454 cases: <case>.out .err .exit, MANIFEST.txt           │
 └──────────────────────────────────────────────────────────────────────┘
                  │  original == spec        GOLDEN-TESTED, every lane
                  ▼
@@ -540,7 +540,7 @@ These hold by design or by what Bend 2.0.20 offers, and they apply to the port o
 | **Non-atomic write-back** | No rename or fsync effect (DISC-003). A kill during the write can truncate `issues.jsonl`; keep the file under version control |
 | **No `beads.db`** | No SQLite binding. Everything that exists to manage the database (sync modes, doctor, history, migration) is excluded |
 | **No unpinned runs yet** | No wall clock in Bend 2.0.20. A mutation without `BEADS_BEND_NOW` is refused (`beads_bend: no wall clock yet: set BEADS_BEND_NOW=<epoch seconds> (DISC-001, backlog E6)`). The probed custom effect, once wired, is nanosecond on C and millisecond on the interpreter and JS (OQ-009), and its C side uses runtime internals with no ABI promise, so it is rebuilt and re-probed on every Bend pin move (PLAN §8) |
-| **Conformance is bounded by the corpus** | 414 cases is what "golden-tested" means here; behavior outside them is unclaimed, and the forms the port refuses with its own failure are listed in `docs/OPEN_QUESTIONS.md` |
+| **Conformance is bounded by the corpus** | 454 cases is what "golden-tested" means here; behavior outside them is unclaimed, and the forms the port refuses with its own failure are listed in `docs/OPEN_QUESTIONS.md` |
 | **No gpu lane on this host** | No CUDA device; the lane is recorded `MISSING` with that reason |
 
 ---
@@ -549,7 +549,7 @@ These hold by design or by what Bend 2.0.20 offers, and they apply to the port o
 
 ### Q: Can I use this instead of `br` today?
 
-No. You can build it (`bend port/main.bend -o bn`) and it reproduces the original on all 414 captured cases, but that is a corpus, not a certification: the parity gate, the find-fix rounds, the performance phase and the report have not run, the exclusions below are real (no `beads.db`, no locks, no atomic write-back), and several uncaptured forms answer the port's own "not ported" failure instead of guessing. Use [`br`](https://github.com/Dicklesworthstone/beads_rust).
+No. You can build it (`bend port/main.bend -o bn`) and it reproduces the original on all 454 captured cases, but that is a corpus, not a certification: the parity gate, the find-fix rounds, the performance phase and the report have not run, the exclusions below are real (no `beads.db`, no locks, no atomic write-back), and several uncaptured forms answer the port's own "not ported" failure instead of guessing. Use [`br`](https://github.com/Dicklesworthstone/beads_rust).
 
 ### Q: How does its speed compare with `br`?
 
@@ -561,7 +561,7 @@ The contract is that the port writes the same `.beads/issues.jsonl` bytes as `br
 
 ### Q: If goldens are empirical, what do the proofs buy?
 
-They split the risk. Goldens say the *simple* code matches the original on 414 captured cases. Laws say the *optimized* code equals the simple code for every input in the law's domain. So an optimization cannot introduce a behavior the goldens miss, and the goldens only ever have to vouch for code that is literal enough to review. The proofs do not cover compiler backends, effects, or the corpus's blind spots, and this README does not say they do.
+They split the risk. Goldens say the *simple* code matches the original on 454 captured cases. Laws say the *optimized* code equals the simple code for every input in the law's domain. So an optimization cannot introduce a behavior the goldens miss, and the goldens only ever have to vouch for code that is literal enough to review. The proofs do not cover compiler backends, effects, or the corpus's blind spots, and this README does not say they do.
 
 ### Q: Where is data stored?
 
@@ -595,6 +595,8 @@ The method is the `porting-to-bend2` skill; `scripts/` holds copies of its harne
 | Bend 2.0.17 renamed `--version`; 2.0.17+ print the checker's verdict as a header plus one `- <def>` line per def | a `bend-version.sh` wrapper, and every verdict parser reads the last line that is not a `- <def>` line |
 | a proof book that imports the shell reaches foreign code and checks 5–9× slower | the scaffold puts the twins in `port/core/`, and the proof book imports only the core |
 | the interpreter lane costs about 14.5 hours for this corpus, and C builds get OOM-killed | `lanes.sh --lanes` and `--interpreter-sample` (verdict `PARTIAL`, never `PASS`), and a build failure reported from its exit status |
+
+Later the same day all five of this port's sessions were mined again into the skill's fourth pass of session lessons (P48–P80). The two with the most weight here: closing a form the port refused ("not ported yet") is Phase 3 work, never a find-fix round, so the rounds table above counts seven rounds and not ten; and every such closure was captured from the original first and passed on its first lane run (22/22, 9/9, 5/5, 16/16). The skill's `lanes.sh` now runs the interpreter lane last.
 
 The copies here predate those changes and have not been re-copied: `scripts/lanes.sh` carries this port's `LANE_WRAP` block, and every gate line in `docs/PORT_STATE.md` was produced by these copies, so a re-copy is its own change with its gates re-run.
 
