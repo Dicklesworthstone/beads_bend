@@ -99,7 +99,13 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [x] E5.3 the BLOCKED relation (three ordered steps, the external overlay, fuel-bounded propagation) in `core/blocked.bend`; `ready` (three sort policies, the defer gate against the pinned instant) and `blocked` in `core/work.bend`
   - [ ] E5.3a `ready --parent/--recursive/--epic`; `blocked --detailed`
 - [x] E5.4 `show` (raw-record path, S2.39; partial ids in `core/resolve.bend`), `dep list` (two orders), `epic status`, `label list`, `label list-all`, `comments list`, `where` in `core/views.bend`
-  - [ ] E5.4a `dep tree` with children (the traversal of S4.182–S4.185) and `dep cycles` with a cycle (the witness search of S4.187): both answer the port's own failure today; capture cases with a real tree and a real cycle first
+  - [x] E5.4a `dep tree` with children: the traversal of S4.182-S4.185 is `Views.tree_walk` in `core/views.bend`, a single
+    fuel-bounded worklist DFS (Bend forbids the mutual recursion the shape invites). Fixtures `graph` and `hierarchy` were
+    built through the ORIGINAL first (`build_graph.scn`, `build_hierarchy.scn`); 30 cases captured; all 22 `dep_tree_*`
+    pass on c-1t, c-8t and js on their first run. Law `run_dep_tree_repeat`. S5.179 and S4.184 amended from the goldens
+  - [ ] E5.4a-2 `dep cycles` reporting a cycle (S4.187): unreachable through the original, which refuses a blocking cycle
+    at `dep add` on every route tried and ignores `related` cycles. A `cycles` fixture would be the first hand-written
+    store that is not the original's own output: the owner's call (OQ-129)
   - [ ] E5.4b `show`: 100-column wrapping (S5.115), `Rollup:`; cases for the plain deferred/estimate/due/ref fields (OQ-120)
 - [ ] E5.5 laws: `counts_sum_to_total`; order laws for the comparators
 
