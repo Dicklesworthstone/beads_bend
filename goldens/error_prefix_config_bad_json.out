@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: issue_prefix \"!!!\" contains no usable ASCII letters, digits, or separators",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

@@ -1,10 +1,10 @@
-captured: 2026-09-22T19:36:51.320995+00:00
+captured: 2026-09-22T19:44:51.303603+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (459 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"9b046766465e2e83c0b6651759bfe4a504da888f94f90a11bb973231fe92abaa"},"case_files":[],"stdin_files":[]}
-recapture: repin: harness: ws_inner.py @time accepts a fraction (the port's wall clock, DISC-009); new cases create_fraction_json, create_fraction_eighth, q_fraction, update_fraction, close_fraction_json
+cases: goldens/cases.tsv (476 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"1ec339354c5fbdaf83c73f8fabe2b3297c1954d2875d7b4a80c6876586099714"},"case_files":[],"stdin_files":[]}
+recapture: repin: new fixtures cfg_{bd,quoted,nested,bad,both} (empty store + config.yaml sidecar) and bdstore (build_bdstore.scn); cases prefix_*, error_prefix_config_bad*, where_empty* (the id prefix, S2.10-S2.15)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1383,3 +1383,54 @@ sha256:
   1602edc71dbbab37fad4ec2fd3e280cea58fa415f96a720441ab211d4c9704aa  close_fraction_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  close_fraction_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  close_fraction_json.exit
+  4169464485bb82faa515f7ceeef3308f68425a0176c39c7979b22fac2e7db83b  prefix_config_create.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_create.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_create.exit
+  467c291556c0069554501d6a90d32cc32f23266886f9d8a82921209861760c90  prefix_config_create_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_create_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_create_json.exit
+  7aae238342c2e6e91fe39d7055ccef20f43394b7a7fff39938bc6a6f03da3ce5  prefix_config_where.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_where.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_where.exit
+  de058874c8738b83a9a43ddce26e7a1dae482629bc6200d67f452d46bc75c332  prefix_config_quoted.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_quoted.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_quoted.exit
+  5dcbd12600b726ce3b5487cee0f5b56c801727284abd7f3d5ff2b90a5f158df4  prefix_config_quoted_where.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_quoted_where.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_quoted_where.exit
+  33c2af4b405ea7f0c89d67f5d5db98e99a8eeb1c845bbb257d1d8401182e8f50  prefix_config_nested.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_nested.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_nested.exit
+  07bbf8f5f45acb259c7962eb3c9bba01344626c54b2e82d944953692a5fac699  prefix_config_both.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_both.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_both.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_prefix_config_bad.out
+  a1e654d9f3253faf6cf7b44115b65f8f6c5b46c3fbc741e8637550543193d624  error_prefix_config_bad.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  error_prefix_config_bad.exit
+  ea2715cb1db3967995d1101ae43b04e530145ed6078fd315cee2aef7cba8563c  error_prefix_config_bad_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_prefix_config_bad_json.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  error_prefix_config_bad_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_prefix_config_bad_list.out
+  a1e654d9f3253faf6cf7b44115b65f8f6c5b46c3fbc741e8637550543193d624  error_prefix_config_bad_list.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  error_prefix_config_bad_list.exit
+  37cc2eea3eb1557ef83452d78c145965b00c822bd09549bf881dca341e146e08  prefix_config_bad_where.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_bad_where.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_bad_where.exit
+  c1ccaf86fab2c73a64958c32c75887e9c970a85f00d7eb453543376805c69e10  prefix_store_create.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_store_create.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_store_create.exit
+  4507268659fd1846da107f55f61f2435fa8f3ff69bea5c79a31699f0b9f2a53e  prefix_store_q.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_store_q.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_store_q.exit
+  de72609f070f6be9f11d44f726c2270c147bb772bc2af1a845ff6d1332ef8f83  prefix_store_show_partial.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_store_show_partial.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_store_show_partial.exit
+  7aae238342c2e6e91fe39d7055ccef20f43394b7a7fff39938bc6a6f03da3ce5  prefix_store_where.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_store_where.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_store_where.exit
+  fa53673d57f15d736c04afc9e9c968db44d867e2ee9923939d9bcab36fb9f501  where_empty.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  where_empty.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  where_empty.exit
+  53b81876d0c2f6ccc34ab5a12d4c5e843753854829712ffba9c703426851e877  where_empty_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  where_empty_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  where_empty_json.exit
