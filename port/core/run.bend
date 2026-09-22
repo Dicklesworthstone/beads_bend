@@ -213,29 +213,26 @@ def search_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +query:
 def limited_rows(+rows: List<&2, Work.Row>, +limit: Nat) -> List<&2, Work.Row>:
   Bool.pick(List<&2, Work.Row>, Nat.is_eq(limit, 0n), rows, List.take(&2, Work.Row, rows, limit))
 
-# S4.170 S5.35 S5.137–S5.142 (spec twin) `blocked` once its rows are ordered: the total is counted before the limit
-def blocked_page(+rows: List<&2, Work.Row>, +limit: Nat, json: Bool, quiet: Bool) -> Outcome:
+# S4.170 S5.35 S5.137–S5.142 S5.254 (spec twin) `blocked` once its rows are ordered: the total is counted before
+# the limit; `--detailed` changes the plain rows only, never the JSON
+def blocked_page(+rows: List<&2, Work.Row>, +limit: Nat, json: Bool, quiet: Bool, detailed: Bool, all: List<&2, Model.Issue>) -> Outcome:
   match json:
     case True{}:
       printed(Render.blocked_json(limited_rows(rows, limit), List.length(&2, Work.Row, rows), limit, Nat.is_lt(List.length(&2, Work.Row, limited_rows(rows, limit)), List.length(&2, Work.Row, rows))), "", quiet)
     case False{}:
-      printed(Render.blocked_plain(limited_rows(rows, limit), List.length(&2, Work.Row, rows)), Render.blocked_note(List.length(&2, Work.Row, limited_rows(rows, limit)), List.length(&2, Work.Row, rows)), quiet)
+      printed(Render.blocked_plain(limited_rows(rows, limit), List.length(&2, Work.Row, rows), detailed, all), Render.blocked_note(List.length(&2, Work.Row, limited_rows(rows, limit)), List.length(&2, Work.Row, rows)), quiet)
 
 # S4.107 S4.168 (spec twin) `blocked` once its priorities were judged; its limit is 50 unless told otherwise
-def blocked_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool) -> Outcome:
+def blocked_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, detailed: Bool) -> Outcome:
   match p:
     case Query.PickBad{f}:
       failed(f, json)
     case Query.PickOk{values}:
-      blocked_page(Work.blocked_rows(issues, Query.folded_all(Cli.values(opts, "type")), values, Cli.values(opts, "label")), Query.search_limit(Cli.value(opts, "limit")), json, quiet)
+      blocked_page(Work.blocked_rows(issues, Query.folded_all(Cli.values(opts, "type")), values, Cli.values(opts, "label")), Query.search_limit(Cli.value(opts, "limit")), json, quiet, detailed, issues)
 
-# S4.167–S4.170 (spec twin) `blocked`; its `--detailed` form is not ported yet
-def blocked_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
-  match later:
-    case True{}:
-      failed(unported(), json)
-    case False{}:
-      blocked_picked(Query.pick_go(Query.comma_split(Cli.values(opts, "priority")), Query.PickOk{Nil{}}), opts, issues, json, quiet)
+# S4.167–S4.170 S5.254 (spec twin) `blocked`, plain, `--detailed` or JSON
+def blocked_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, detailed: Bool) -> Outcome:
+  blocked_picked(Query.pick_go(Query.comma_split(Cli.values(opts, "priority")), Query.PickOk{Nil{}}), opts, issues, json, quiet, detailed)
 
 # S4.177 S5.36 S5.130–S5.134 (spec twin) `ready` once its issues are ordered: the header counts the rows SHOWN, the note the rows found
 def ready_page(+found: List<&2, Model.Issue>, +limit: Nat, any_active: Bool, filtered: Bool, json: Bool, quiet: Bool) -> Outcome:

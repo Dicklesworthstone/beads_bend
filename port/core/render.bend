@@ -8,6 +8,7 @@ import ./model.bend as Model
 import ./failure.bend as Failure
 import ./query.bend as Query
 import ./work.bend as Work
+import ./blocked.bend as Blocked
 
 # S5.110 (spec twin) the glyph of a status; a status that is not built in prints `?`
 def icon(+status: String) -> String:
@@ -240,21 +241,51 @@ def ready_json(page: List<&2, Model.Issue>) -> String:
 def blocked_line(+issue: Model.Issue, +blockers: List<&2, String>) -> String:
   String.concat(["[● P", Model.priority_of(issue), "] ", inline(Model.id_of(issue)), ": ", inline(Model.title_of(issue)), "\n  Blocked by ", Nat.show(List.length(&2, String, blockers)), " open dependencies: [", inline(String.join(blockers, ", ")), "]\n"])
 
+# S5.254 (spec twin) one blocker bullet of `blocked --detailed`: `    • {id}: {title} [P{n}] [{status}]`, and
+# `    • {id}:blocked (not found)` for a blocker with no stored record (an `external:` target)
+def blocker_bullet(found: Maybe<&2, Model.Issue>, id: String) -> String:
+  match found:
+    case None{}:
+      "    • " ++ inline(id) ++ ":blocked (not found)\n"
+    case Some{+i}:
+      String.concat(["    • ", inline(id), ": ", inline(Model.title_of(i)), " [P", Model.priority_of(i), "] [", inline(Model.status_of(i)), "]\n"])
+
+# S5.254 (spec twin) the blocker bullets, in the order of the issue's blockers
+def blocker_bullets(ids: List<&2, String>, +all: List<&2, Model.Issue>) -> List<&2, String>:
+  match ids:
+    case Nil{}:
+      Nil{}
+    case Con{+x, rest}:
+      blocker_bullet(Blocked.lookup(all, x), x) <> blocker_bullets(rest, all)
+
+# S5.254 (spec twin) one blocked issue under `--detailed`: its line, `  Blocked by:`, then one bullet per blocker
+def blocked_detail(+issue: Model.Issue, blockers: List<&2, String>, +all: List<&2, Model.Issue>) -> String:
+  String.concat(["[● P", Model.priority_of(issue), "] ", inline(Model.id_of(issue)), ": ", inline(Model.title_of(issue)), "\n  Blocked by:\n", String.concat(blocker_bullets(blockers, all))])
+
+# S5.139 S5.254 (spec twin) one blocked issue, in the summary form or the detailed one
+def blocked_row(detailed: Bool, +issue: Model.Issue, +blockers: List<&2, String>, +all: List<&2, Model.Issue>) -> String:
+  match detailed:
+    case True{}:
+      blocked_detail(issue, blockers, all)
+    case False{}:
+      blocked_line(issue, blockers)
+
 # S5.139 (spec twin) every blocked issue, in the command's order
-def blocked_lines(rows: List<&2, Work.Row>) -> List<&2, String>:
+def blocked_lines(rows: List<&2, Work.Row>, +detailed: Bool, +all: List<&2, Model.Issue>) -> List<&2, String>:
   match rows:
     case Nil{}:
       Nil{}
     case Con{Work.Row{issue, blockers}, rest}:
-      blocked_line(issue, blockers) <> blocked_lines(rest)
+      blocked_row(detailed, issue, blockers, all) <> blocked_lines(rest, detailed, all)
 
-# S5.137 S5.138 S5.142 (spec twin) plain `blocked`: a blank line, the header with the TOTAL before any limit, a blank line, the rows
-def blocked_plain(page: List<&2, Work.Row>, total: Nat) -> String:
+# S5.137 S5.138 S5.142 S5.254 (spec twin) plain `blocked`: a blank line, the header with the TOTAL before any
+# limit, a blank line, the rows; `detailed` and the records `all` serve `--detailed`
+def blocked_plain(page: List<&2, Work.Row>, total: Nat, detailed: Bool, all: List<&2, Model.Issue>) -> String:
   match page:
     case Nil{}:
       "✨ No blocked issues\n"
     case Con{r, rest}:
-      "\n🚫 Blocked issues (" ++ Nat.show(total) ++ "):\n\n" ++ String.concat(blocked_lines(r <> rest))
+      "\n🚫 Blocked issues (" ++ Nat.show(total) ++ "):\n\n" ++ String.concat(blocked_lines(r <> rest, detailed, all))
 
 # S4.170 (spec twin) the note a truncating limit writes to stderr
 def blocked_note(+shown: Nat, +total: Nat) -> String:

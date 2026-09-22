@@ -2,8 +2,8 @@
 # All three read the BLOCKED relation of core/blocked. `blocked` lists its
 # live keys under its own order (the blocker count is a sort key nowhere else);
 # `ready` lists the open issues outside it under one of three sort policies;
-# `stats` counts. Not here yet: `blocked --detailed`, `ready --parent` /
-# `--recursive` / `--epic`, and a mean of whole-hour lead times that is not
+# `stats` counts (`blocked --detailed` is a rendering of the same rows, in
+# core/render). Not here yet: `ready --parent` / `--recursive` / `--epic`, and a mean of whole-hour lead times that is not
 # itself a whole number of tenths, or whose days figure lands exactly on a
 # half of a tenth that binary64 does not hold exactly (OQ-078).
 # Nothing here consults the original.
