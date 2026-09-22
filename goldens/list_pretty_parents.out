@@ -1,0 +1,29 @@
+○ proj-9vo.3 [● P0] [task] - Blocked child
+├── Status: open
+├── Priority: P0
+└── Type: task
+
+○ proj-9vo [● P1] [epic] - Parent epic
+├── Status: open
+├── Priority: P1
+└── Type: epic
+
+○ proj-9vo.1.1 [● P1] [task] - Grandchild
+├── Status: open
+├── Priority: P1
+└── Type: task
+
+○ proj-3av [● P2] [task] - Loose task
+├── Status: open
+├── Priority: P2
+└── Type: task
+
+○ proj-9vo.1 [● P2] [task] - Child one
+├── Status: open
+├── Priority: P2
+└── Type: task
+
+○ proj-9vo.2 [● P3] [task] - Child two
+├── Status: open
+├── Priority: P3
+└── Type: task

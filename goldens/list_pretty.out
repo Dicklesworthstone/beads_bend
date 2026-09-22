@@ -1,0 +1,37 @@
+◐ proj-ptp [● P0] [bug] - Fix login timeout
+├── Status: in_progress
+├── Priority: P0
+├── Type: bug
+└── Assignee: bob
+
+○ proj-170 [● P1] [feature] - Implement user auth
+├── Status: open
+├── Priority: P1
+├── Type: feature
+└── Assignee: alice
+
+○ proj-mta [● P1] [task] - Set up database schema
+├── Status: open
+├── Priority: P1
+└── Type: task
+
+○ proj-b75 [● P2] [task] - Ünïcödé title — “quotes” & <tags> \ backslash
+├── Status: open
+├── Priority: P2
+└── Type: task
+
+○ proj-uly [● P2] [epic] - Auth epic
+├── Status: open
+├── Priority: P2
+└── Type: epic
+
+○ proj-5u2 [● P3] [docs] - Write API docs
+├── Status: open
+├── Priority: P3
+└── Type: docs
+
+❄ proj-7vm [● P4] [chore] - Refactor config loader
+├── Status: deferred
+├── Priority: P4
+├── Type: chore
+└── Deferred Until: 2027-06-01
