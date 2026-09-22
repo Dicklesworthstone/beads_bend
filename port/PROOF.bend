@@ -223,3 +223,8 @@ def Laws.lead_tenths_odd_tie_refused():
 # shared node repeats under the second branch and is truncated there
 def Laws.run_dep_tree_repeat():
   {==}
+
+# S4.394 S5.253 the checker walks the same five records and renders them as mermaid: the repeated node is n5,
+# and its edge comes from n4, the place of its parent in the pre-order
+def Laws.run_dep_tree_mermaid():
+  {==}

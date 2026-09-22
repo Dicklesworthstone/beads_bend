@@ -430,6 +430,64 @@ def tree_objects(ns: List<&2, TNode>, first: Bool) -> List<&2, String>:
     case Con{TNode{+id, +title, +depth, +parent, +priority, +status, +cut, +again}, rest} lead:
       String.concat([Bool.pick(String, lead, "", ","), "{\"id\":", Failure.quoted(id), ",\"title\":", Failure.quoted(title), ",\"depth\":", Nat.show(depth), ",\"parent_id\":", Bool.pick(String, String.is_empty(parent), "null", Failure.quoted(parent)), ",\"priority\":", priority, ",\"status\":", Failure.quoted(status), ",\"truncated\":", Bool.pick(String, cut, "true", "false"), ",\"repeat\":", Bool.pick(String, again, "true", "false"), "}"]) <> tree_objects(rest, False{})
 
+# S5.253 (spec twin) `"` becomes `'` in a mermaid label; every other character is kept
+def mermaid_quote(s: String) -> String:
+  match s:
+    case SNil{}:
+      ""
+    case SCon{Chr{+c}, rest}:
+      SCon{Chr{Bool.pick(U32, U32.is_eq(c, 34), 39, c)}, mermaid_quote(rest)}
+
+# S5.253 (spec twin) the node lines, `    n{k}["{id}: {title} [P{n}]"]`, with k counting the pre-order from 0
+def mermaid_nodes(ns: List<&2, TNode>, +k: Nat) -> List<&2, String>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{TNode{id, title, depth, parent, priority, status, cut, again}, rest}:
+      String.concat(["    n", Nat.show(k), "[\"", mermaid_quote(String.concat([Render.inline(id), ": ", Render.inline(title), " [P", priority, "]"])), "\"]\n"]) <> mermaid_nodes(rest, (1n + k : Nat))
+
+# S5.253 (data) an emitted node's depth and its place in the pre-order
+type Seen is Data:
+  Seen{depth: Nat, index: Nat}
+
+# S5.253 (spec twin) the place of the latest emitted node at depth `want` (`seen` is most recent first): in a
+# pre-order listing that node is the parent of the next node one level deeper
+def seen_at(seen: List<&2, Seen>, +want: Nat) -> Nat:
+  match seen:
+    case Nil{}:
+      0n
+    case Con{Seen{d, k}, rest}:
+      Bool.pick(Nat, Nat.is_eq(d, want), k, seen_at(rest, want))
+
+# S5.253 (spec twin) the edge line into node k at `depth`: none for the root, `    n{parent} --> n{k}` below it
+def mermaid_edge(depth: Nat, +seen: List<&2, Seen>, +k: Nat) -> String:
+  match depth:
+    case Zero{}:
+      ""
+    case Succ{p}:
+      String.concat(["    n", Nat.show(seen_at(seen, p)), " --> n", Nat.show(k), "\n"])
+
+# S5.253 (spec twin) the edge lines, in the order of the nodes they lead into
+def mermaid_edges(ns: List<&2, TNode>, +k: Nat, +seen: List<&2, Seen>) -> List<&2, String>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{TNode{id, title, +depth, parent, priority, status, cut, again}, rest}:
+      mermaid_edge(depth, seen, k) <> mermaid_edges(rest, (1n + k : Nat), Seen{depth, k} <> seen)
+
+# S5.253 (spec twin) the mermaid rendering: `graph TD`, every node, then every edge. No status and no
+# `truncated`/`repeat` mark: a repeated node is simply a node of its own
+def tree_mermaid(+ns: List<&2, TNode>) -> String:
+  String.concat(["graph TD\n", String.concat(mermaid_nodes(ns, 0n)), String.concat(mermaid_edges(ns, 0n, Nil{}))])
+
+# S4.394 (spec twin) `--format` selects mermaid when it is `mermaid` in any ASCII case; any other value is text
+def mermaid_of(given: Maybe<&2, String>) -> Bool:
+  match given:
+    case None{}:
+      False{}
+    case Some{word}:
+      String.eq(Resolve.lowered(word), "mermaid")
+
 # S4.183 (spec twin) `--max-depth` defaults to 10; the parser has already held the value to an unsigned integer
 def max_depth_of(given: Maybe<&2, String>) -> Nat:
   match given:
@@ -438,14 +496,17 @@ def max_depth_of(given: Maybe<&2, String>) -> Nat:
     case Some{+word}:
       U32.to_nat(Maybe.default(&2, U32, U32.read(word), 0))
 
-# S4.182–S4.185 S5.47 S5.179 (spec twin) `dep tree`: the pre-order walk from the root, rendered plain or as JSON
-def dep_tree(h: Hit, +all: List<&2, Model.Issue>, direction: U32, json: Bool, max_depth: Nat) -> View:
-  match h json:
-    case HitBad{f} _:
+# S4.182–S4.185 S4.394 S5.47 S5.179 S5.253 (spec twin) `dep tree`: the pre-order walk from the root, rendered
+# as JSON (which `--format` does not change), as mermaid, or as text
+def dep_tree(h: Hit, +all: List<&2, Model.Issue>, direction: U32, json: Bool, max_depth: Nat, mermaid: Bool) -> View:
+  match h json mermaid:
+    case HitBad{f} _ _:
       ViewBad{f}
-    case HitOk{+i} True{}:
+    case HitOk{+i} True{} _:
       ViewOk{"[" ++ String.concat(tree_objects(tree_walk(tree_fuel(all), Step{Model.id_of(i), 0n, "", Nil{}} <> Nil{}, Nil{}, all, direction, max_depth), True{})) ++ "]\n"}
-    case HitOk{+i} False{}:
+    case HitOk{+i} False{} True{}:
+      ViewOk{tree_mermaid(tree_walk(tree_fuel(all), Step{Model.id_of(i), 0n, "", Nil{}} <> Nil{}, Nil{}, all, direction, max_depth))}
+    case HitOk{+i} False{} False{}:
       ViewOk{String.concat(tree_lines(tree_walk(tree_fuel(all), Step{Model.id_of(i), 0n, "", Nil{}} <> Nil{}, Nil{}, all, direction, max_depth)))}
 
 # ---------------------------------------------------------------- dep cycles (S4.186–S4.188, S5.48, S5.181)
