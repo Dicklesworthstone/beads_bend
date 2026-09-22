@@ -1,0 +1,7 @@
+$ ["delete", "proj-mta", "proj-b75", "--force"]
+$ ["delete", "--hard", "--dry-run"]
+$ ["delete", "--hard", "--dry-run", "--json"]
+$ ["delete", "--hard", "--json"]
+$ ["delete", "--hard"]
+$ ["delete", "proj-5u2"]
+$ ["delete", "--hard"]

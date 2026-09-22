@@ -1,0 +1,5 @@
+Dry-run: Would delete 1 issue(s):
+  - proj-mta: Set up database schema
+Would also cascade delete 2 dependent(s):
+  - proj-170
+  - proj-uly

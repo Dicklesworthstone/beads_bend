@@ -1,0 +1,9 @@
+# delete_purge: `delete --hard` with no ids purges every tombstone, in ascending id order, after a dry run; then nothing is left to purge (S4.339)
+@fx=basic
+["delete","proj-mta","proj-b75","--force"]
+["delete","--hard","--dry-run"]
+["delete","--hard","--dry-run","--json"]
+["delete","--hard","--json"]
+["delete","--hard"]
+["delete","proj-5u2"]
+["delete","--hard"]

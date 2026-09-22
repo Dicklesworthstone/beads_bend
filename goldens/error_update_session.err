@@ -1,0 +1,1 @@
+Error: Validation failed: session: --session can only be used when closing with --status closed

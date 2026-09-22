@@ -1,0 +1,3 @@
+$ ["delete", "proj-b75"]
+$ ["delete", "proj-b75", "--hard", "--json"]
+$ ["delete", "proj-5u2", "--hard", "--reason", "gone"]

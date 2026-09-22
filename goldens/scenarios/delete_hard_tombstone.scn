@@ -1,0 +1,5 @@
+# delete_hard_tombstone: `delete --hard` of a record that is already a tombstone purges it; then of a live one with an edge (S4.339, S4.341)
+@fx=basic
+["delete","proj-b75"]
+["delete","proj-b75","--hard","--json"]
+["delete","proj-5u2","--hard","--reason","gone"]
