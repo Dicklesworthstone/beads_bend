@@ -685,7 +685,7 @@ def dep_list_cmd(+opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, word: 
 
 # S4.182–S4.185 (spec twin) `dep tree <issue>`
 def dep_tree_cmd(+opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, word: String, prefix: String, +json: Bool, quiet: Bool) -> Outcome:
-  viewed(Views.dep_tree(Views.hit(model, word, prefix), model, Views.direction_of(Cli.value(opts, "direction")), json), json, quiet)
+  viewed(Views.dep_tree(Views.hit(model, word, prefix), model, Views.direction_of(Cli.value(opts, "direction")), json, Views.max_depth_of(Cli.value(opts, "max-depth"))), json, quiet)
 
 # S5.185–S5.188 (spec twin) `label list [issue]`: without an issue it lists every label of the project
 def label_list_cmd(+model: List<&2, Model.Issue>, words: List<&2, String>, prefix: String, +json: Bool, quiet: Bool) -> Outcome:

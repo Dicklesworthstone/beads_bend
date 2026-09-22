@@ -225,31 +225,228 @@ def dep_list(h: Hit, +all: List<&2, Model.Issue>, +direction: U32, kind: String,
 
 # ---------------------------------------------------------------- dep tree (S4.182–S4.185, S5.47, S5.179)
 
-# S4.182 (spec twin) does the root have a neighbour in the chosen direction (0 down, 1 up, 2 both)
-def has_neighbours(+i: Model.Issue, +all: List<&2, Model.Issue>, direction: U32) -> Bool:
-  match direction:
-    case 0:
-      Bool.not(List.is_empty(&2, Model.Dependency, Model.deps_of(i)))
-    case 1:
-      Bool.not(List.is_empty(&2, Edge, up_edges(all, Model.id_of(i), "")))
-    case _:
-      (Bool.not(List.is_empty(&2, Model.Dependency, Model.deps_of(i))) || Bool.not(List.is_empty(&2, Edge, up_edges(all, Model.id_of(i), ""))))
+# S4.184 (spec twin) the status rank that orders siblings after the priority:
+# `open` 0, `in_progress` 1, `blocked` 2, `deferred` 3, `closed` 4, `deleted`/`tombstone` 5, anything else 6
+def status_rank(+s: String) -> U32:
+  Bool.pick(U32, String.eq(s, "open"), 0, Bool.pick(U32, String.eq(s, "in_progress"), 1, Bool.pick(U32, String.eq(s, "blocked"), 2, Bool.pick(U32, String.eq(s, "deferred"), 3, Bool.pick(U32, String.eq(s, "closed"), 4, Bool.pick(U32, (String.eq(s, "deleted") || String.eq(s, "tombstone")), 5, 6))))))
 
-# S5.47 S5.179 (spec twin) a tree that is its root alone: one line, or one JSON node at depth 0 with a null parent
-def tree_root(+i: Model.Issue, json: Bool) -> String:
-  match json:
+# S4.182 (spec twin) keep an id when the flag says so
+def id_put(x: String, keep: Bool, rest: List<&2, String>) -> List<&2, String>:
+  match keep:
     case True{}:
-      String.concat(["[{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"depth\":0,\"parent_id\":null,\"priority\":", Model.priority_of(i), ",\"status\":", Failure.quoted(Model.status_of(i)), ",\"truncated\":false,\"repeat\":false}]\n"])
+      x <> rest
     case False{}:
-      String.concat([Render.inline(Model.id_of(i)), ": ", Render.inline(Model.title_of(i)), " [P", Model.priority_of(i), "] [", Render.inline(Model.status_of(i)), "]\n"])
+      rest
 
-# S4.182–S4.185 (spec twin) `dep tree`: a root with neighbours needs the traversal, which is not ported yet
-def dep_tree(h: Hit, all: List<&2, Model.Issue>, direction: U32, json: Bool) -> View:
-  match h:
-    case HitBad{f}:
+# S4.182 (spec twin) the ids an issue's own edges point at: the `down` adjacency. Edge type is ignored — every
+# dependency type takes part in the tree
+def down_ids(edges: List<&2, Model.Dependency>) -> List<&2, String>:
+  match edges:
+    case Nil{}:
+      Nil{}
+    case Con{+e, rest}:
+      Model.target_of(e) <> down_ids(rest)
+
+# S4.182 (spec twin) the ids of the records whose own edges point at `id`: the `up` adjacency
+def up_ids(all: List<&2, Model.Issue>, +id: String) -> List<&2, String>:
+  match all:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      id_put(Model.id_of(i), Blocked.among(down_ids(Model.deps_of(i)), id), up_ids(rest, id))
+
+# S4.182 (spec twin) an adjacency list is deduplicated: the first occurrence of each id survives
+def dedup_ids(xs: List<&2, String>, +seen: List<&2, String>) -> List<&2, String>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, rest}:
+      id_put(x, Bool.not(Blocked.among(seen, x)), dedup_ids(rest, x <> seen))
+
+# S4.182 (spec twin) the neighbours of one stored record: 0 down, 1 up, 2 both (down first), deduplicated
+def nb_of(found: Maybe<&2, Model.Issue>, +all: List<&2, Model.Issue>, direction: U32) -> List<&2, String>:
+  match found direction:
+    case None{} _:
+      Nil{}
+    case Some{+i} 0:
+      dedup_ids(down_ids(Model.deps_of(i)), Nil{})
+    case Some{+i} 1:
+      dedup_ids(up_ids(all, Model.id_of(i)), Nil{})
+    case Some{+i} _:
+      dedup_ids(List.append(&2, String, down_ids(Model.deps_of(i)), up_ids(all, Model.id_of(i))), Nil{})
+
+# S4.182 (spec twin) the neighbours of an id; an id with no stored record has none, so it is never expanded
+def nb_ids(+all: List<&2, Model.Issue>, +id: String, direction: U32) -> List<&2, String>:
+  nb_of(Blocked.lookup(all, id), all, direction)
+
+# S4.185 (spec twin) has the id a neighbour at all in the chosen direction
+def has_nb(+all: List<&2, Model.Issue>, +id: String, direction: U32) -> Bool:
+  Bool.not(List.is_empty(&2, String, nb_ids(all, id, direction)))
+
+# S4.185 (spec twin) is the id stored (an `external:` node is not, and is never expanded)
+def stored(found: Maybe<&2, Model.Issue>) -> Bool:
+  match found:
+    case None{}:
+      False{}
+    case Some{i}:
+      True{}
+
+# S4.185 (spec twin) a node expands when its depth is below `--max-depth`, its id has not expanded anywhere
+# else in this traversal, and it is stored
+def expands(+all: List<&2, Model.Issue>, +id: String, depth: Nat, max_depth: Nat, +expanded: List<&2, String>) -> Bool:
+  ((Nat.is_lt(depth, max_depth) && Bool.not(Blocked.among(expanded, id))) && stored(Blocked.lookup(all, id)))
+
+# S4.185 (data) one sibling with the four keys that order it
+type Kid is Data:
+  Kid{id: String, rank: U32, srank: U32, title: String}
+
+# S4.184 (spec twin) a neighbour with its sort keys; a node with no stored record ranks last on both ranks
+def kid_of(found: Maybe<&2, Model.Issue>, +id: String) -> Kid:
+  match found:
+    case None{}:
+      Kid{id, 256, 6, ""}
+    case Some{+i}:
+      Kid{id, Query.priority_number(Model.priority_of(i)), status_rank(Model.status_of(i)), Model.title_of(i)}
+
+# S4.184 (spec twin) the neighbours as sortable siblings
+def kids_of(ids: List<&2, String>, +all: List<&2, Model.Issue>) -> List<&2, Kid>:
+  match ids:
+    case Nil{}:
+      Nil{}
+    case Con{+x, rest}:
+      kid_of(Blocked.lookup(all, x), x) <> kids_of(rest, all)
+
+# S4.184 (spec twin) siblings: the target's priority ascending, then the status rank, then the title, then the
+# id, each ascending
+def kid_le(x: Kid, y: Kid) -> Bool:
+  match x y:
+    case Kid{+xi, +xr, +xs, +xt} Kid{+yi, +yr, +ys, +yt}:
+      ((xr < yr : U32) || (U32.is_eq(xr, yr) && (((xs < ys : U32) || (U32.is_eq(xs, ys) && (String.is_lt(xt, yt) || (String.eq(xt, yt) && String.is_le(xi, yi))))))))
+
+# S4.183 (data) one pending step of the walk: the id to emit, its depth, its parent's id, its ancestor path
+type Step is Data:
+  Step{id: String, depth: Nat, parent: String, path: List<&2, String>}
+
+# S4.185 (spec twin) drop the neighbours already on this node's ancestor path: that, not the fuel, is what ends a cycle
+def not_ancestors(xs: List<&2, String>, +path: List<&2, String>) -> List<&2, String>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, rest}:
+      id_put(x, Bool.not(Blocked.among(path, x)), not_ancestors(rest, path))
+
+# S4.183 (spec twin) the siblings as steps, all at the same depth and under the same parent
+def kid_steps(kids: List<&2, Kid>, +depth: Nat, +parent: String, +path: List<&2, String>) -> List<&2, Step>:
+  match kids:
+    case Nil{}:
+      Nil{}
+    case Con{Kid{kid, r, s, t}, rest}:
+      Step{kid, depth, parent, path} <> kid_steps(rest, depth, parent, path)
+
+# S4.184 S4.185 (spec twin) the steps below a node: its neighbours in sibling order with the ancestors dropped,
+# and nothing at all when the node does not expand
+def steps_below(expand: Bool, +all: List<&2, Model.Issue>, +id: String, depth: Nat, +path: List<&2, String>, direction: U32) -> List<&2, Step>:
+  match expand:
+    case False{}:
+      Nil{}
+    case True{}:
+      kid_steps(List.sort(~Kid, ~kid_le, kids_of(not_ancestors(nb_ids(all, id, direction), id <> path), all)), (1n + depth : Nat), id, id <> path)
+
+# S4.185 (spec twin) the expansion slot is claimed only by an occurrence that really expands
+def mark_id(expand: Bool, id: String, expanded: List<&2, String>) -> List<&2, String>:
+  match expand:
+    case True{}:
+      id <> expanded
+    case False{}:
+      expanded
+
+# S4.185 (data) one emitted node of the tree, in pre-order. `cut` is the `truncated` member and `again` the
+# `repeat` member of S5.47
+type TNode is Data:
+  TNode{id: String, title: String, depth: Nat, parent: String, priority: String, status: String, cut: Bool, again: Bool}
+
+# S4.183 S5.47 (spec twin) the emitted node; a neighbour with no stored record shows an empty title, priority 2
+# and `unknown`, as `dep list` does for a missing end
+def tnode_of(found: Maybe<&2, Model.Issue>, +id: String, depth: Nat, parent: String, cut: Bool, again: Bool) -> TNode:
+  match found:
+    case None{}:
+      TNode{id, "", depth, parent, "2", "unknown", cut, again}
+    case Some{+i}:
+      TNode{id, Model.title_of(i), depth, parent, Model.priority_of(i), Model.status_of(i), cut, again}
+
+# S4.183 S4.185 (spec twin) the pre-order walk: pop a step, emit its node, push its children in front of the
+# rest. `truncated` is "did not expand although it has neighbours"; `repeat` is "its id had already expanded
+# and it has neighbours"; the two are independent and a node carries both when both hold
+def tree_walk(fuel: Nat, stack: List<&2, Step>, +expanded: List<&2, String>, +all: List<&2, Model.Issue>, +direction: U32, +max_depth: Nat) -> List<&2, TNode>:
+  match fuel stack:
+    case Zero{} _:
+      Nil{}
+    case Succ{f} Nil{}:
+      Nil{}
+    case Succ{f} Con{Step{+id, +depth, parent, path}, rest}:
+      tnode_of(Blocked.lookup(all, id), id, depth, parent, (Bool.not(expands(all, id, depth, max_depth, expanded)) && has_nb(all, id, direction)), (Blocked.among(expanded, id) && has_nb(all, id, direction))) <> tree_walk(f, List.append(&2, Step, steps_below(expands(all, id, depth, max_depth, expanded), all, id, depth, path, direction), rest), mark_id(expands(all, id, depth, max_depth, expanded), id, expanded), all, direction, max_depth)
+
+# S4.185 (spec twin) every dependency of the store, as the measure the walk's fuel is built from
+def all_deps(issues: List<&2, Model.Issue>) -> List<&2, String>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      List.append(&2, String, down_ids(Model.deps_of(i)), all_deps(rest))
+
+# S4.185 (spec twin) the fuel: one unit per issue, two per stored dependency (a `both` walk may reach an edge
+# from either end) and one for the root. Each id expands at most once, and only an expanded node pushes, so
+# the walk cannot emit more nodes than that
+def tree_fuel(+all: List<&2, Model.Issue>) -> Nat:
+  Nat.add(Nat.add(List.length(&2, Model.Issue, all), Nat.double(List.length(&2, String, all_deps(all)))), 1n)
+
+# S5.179 (spec twin) the prefix of one plain row: nothing at the root, `├── (truncated) ` when the subtree was
+# cut off, `├── (shown above) ` when the node repeats an already-expanded one, `├── ` otherwise. `└──` is
+# never used by this renderer, and `truncated` wins when a node carries both flags
+def tree_prefix(root: Bool, cut: Bool, again: Bool) -> String:
+  match root cut again:
+    case True{} _ _:
+      ""
+    case False{} True{} _:
+      "├── (truncated) "
+    case False{} False{} True{}:
+      "├── (shown above) "
+    case False{} False{} False{}:
+      "├── "
+
+# S5.179 (spec twin) one plain row: two spaces of indent per depth level, the prefix, then the node
+def tree_lines(ns: List<&2, TNode>) -> List<&2, String>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{TNode{+id, +title, +depth, parent, +priority, +status, +cut, +again}, rest}:
+      String.concat([String.repeat("  ", depth), tree_prefix(Nat.is_eq(depth, 0n), cut, again), Render.inline(id), ": ", Render.inline(title), " [P", priority, "] [", Render.inline(status), "]\n"]) <> tree_lines(rest)
+
+# S5.47 (spec twin) one JSON node: eight members in this order, all always present, `parent_id` null at the root
+def tree_objects(ns: List<&2, TNode>, first: Bool) -> List<&2, String>:
+  match ns first:
+    case Nil{} _:
+      Nil{}
+    case Con{TNode{+id, +title, +depth, +parent, +priority, +status, +cut, +again}, rest} lead:
+      String.concat([Bool.pick(String, lead, "", ","), "{\"id\":", Failure.quoted(id), ",\"title\":", Failure.quoted(title), ",\"depth\":", Nat.show(depth), ",\"parent_id\":", Bool.pick(String, String.is_empty(parent), "null", Failure.quoted(parent)), ",\"priority\":", priority, ",\"status\":", Failure.quoted(status), ",\"truncated\":", Bool.pick(String, cut, "true", "false"), ",\"repeat\":", Bool.pick(String, again, "true", "false"), "}"]) <> tree_objects(rest, False{})
+
+# S4.183 (spec twin) `--max-depth` defaults to 10; the parser has already held the value to an unsigned integer
+def max_depth_of(given: Maybe<&2, String>) -> Nat:
+  match given:
+    case None{}:
+      10n
+    case Some{+word}:
+      U32.to_nat(Maybe.default(&2, U32, U32.read(word), 0))
+
+# S4.182–S4.185 S5.47 S5.179 (spec twin) `dep tree`: the pre-order walk from the root, rendered plain or as JSON
+def dep_tree(h: Hit, +all: List<&2, Model.Issue>, direction: U32, json: Bool, max_depth: Nat) -> View:
+  match h json:
+    case HitBad{f} _:
       ViewBad{f}
-    case HitOk{+i}:
-      Bool.pick(View, has_neighbours(i, all, direction), ViewLater{}, ViewOk{tree_root(i, json)})
+    case HitOk{+i} True{}:
+      ViewOk{"[" ++ String.concat(tree_objects(tree_walk(tree_fuel(all), Step{Model.id_of(i), 0n, "", Nil{}} <> Nil{}, Nil{}, all, direction, max_depth), True{})) ++ "]\n"}
+    case HitOk{+i} False{}:
+      ViewOk{String.concat(tree_lines(tree_walk(tree_fuel(all), Step{Model.id_of(i), 0n, "", Nil{}} <> Nil{}, Nil{}, all, direction, max_depth)))}
 
 # ---------------------------------------------------------------- dep cycles (S4.186–S4.188, S5.48, S5.181)
 
