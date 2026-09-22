@@ -22,7 +22,7 @@ A port of [`br` (beads_rust)](https://github.com/Dicklesworthstone/beads_rust), 
 
 ## Status
 
-As of 2026-09-21 this project is at the end of Phase 3 of an eight-phase port method (fit screen, truth pack, spec, architecture, reference port, parity gate, performance, certify). The fit screen, the truth pack, a first pass of the spec and the architecture are done; the reference port now answers every command the 414-case corpus exercises, reads and writes the store, and reproduces the pinned original byte for byte on three of the four lanes. Nothing after Phase 3 has started: no find-fix round, no parity claim, no measurement, no certification. I would rather publish an honest account of a half-finished port than a README that describes software that does not exist.
+As of 2026-09-22 this project is at the end of Phase 3 of an eight-phase port method (fit screen, truth pack, spec, architecture, reference port, parity gate, performance, certify). The fit screen, the truth pack, a first pass of the spec and the architecture are done; the reference port now answers every command the 414-case corpus exercises, reads and writes the store, and reproduces the pinned original byte for byte on three of the four lanes. Six find-fix rounds have run, all by the author (`scripts/converge.sh`: `NOT_CONVERGED`; tier T3 needs at least ten, the last two clean, and a non-author round); nothing else after Phase 3 has started: no parity claim, no measurement, no certification. I would rather publish an honest account of a half-finished port than a README that describes software that does not exist.
 
 | Artifact | State | Where |
 |----------|-------|-------|
@@ -37,8 +37,8 @@ As of 2026-09-21 this project is at the end of Phase 3 of an eight-phase port me
 | Architecture, numeric plan (Phase 2) | written: one pure function `run : Inputs -> Outcome` and a thin IO shell; every one of the 764 behavior clauses has a home def (`scripts/arch-lint.py`: PASS); no `F32` anywhere and no budgeted output class | `docs/PROPOSED_ARCHITECTURE.md`, `docs/NUMERIC_PLAN.md` |
 | Bend implementation (Phase 3) | **every command the corpus exercises runs, on a store it also writes; not certified**: twenty-four pure modules under `port/core/` (UTF-8, SHA-256, the id hash, instants, the JSON line lexer and member splitter, the 44-member record with its store line and load repairs, the line decoder, store loading and write-back, error rendering, the command-line tables, the argument parser, the carried help texts, the listing relation, the renderers, the partial-id resolver, `show`, the BLOCKED relation, `ready`/`blocked`/`stats`, the small views, `create`, `update`, the status transitions, the date grammar, the dependency edges, labels and comments, `delete`, the dispatcher) and the IO shell `port/main.bend` with three custom effects (`Sys.exit`, `Sys.cwd`, `Sys.remove`). **414 of 414 conformance cases pass, the same on the single-thread C lane, the 8-thread C lane and the JS lane** (`scripts/conform.sh` per lane, 2026-09-21). `dep tree` now walks the graph (S4.182–S4.185: depth, diamonds, back edges, `repeat`, `truncated`, `--max-depth`, `--direction`) where it used to refuse any root with a neighbour. The interpreter lane is checked on a 6-case sample at HEAD, 6 of 6: one interpreter run type-checks the whole book, several minutes per case at this size, so the full corpus would take many hours there. Forms no case captures are refused with the port's own failure rather than guessed: `--hard` and `--from-file` on `delete`, a `--json` delete preview, `comments add -f`, a label split over more than two positionals, a tombstoned dependency endpoint, `--metadata`, the `stats` breakdowns, `list --overdue/--tree/--pretty`, `ready --parent/--recursive/--epic`, `blocked --detailed`, and the help text of the 30 levels no case prints | `port/`, `docs/PORT_STATE.md` |
 | Laws and proofs | 51 closed laws, all proved by the checker computing both sides: SHA-256 against three published vectors, seven captured ids from their seeds (including `q`'s empty-creator seed and the nonce ladder), the id-length table, fifteen timestamp facts (the five spellings of fixture `precision` as the original wrote them back, calendar borrows and carries, refusals), the exact store line of `create_min`, the refusal of fixture `malformed`, eight facts of the argument parser (five captured refusal texts, three accepted command lines, the help forms, the similar-value tip), priority tokens and ranges, the control-character sanitizer, the partial-id resolver on the eight ids of fixture `basic` (two captured refusal texts among its six facts), and five whole-program facts: the pure program run on a two-record store prints the lines the `list` golden shows for those records, `count --by-status` leaves the deferred one out, and `blocked` on three records of fixture `basic` prints `goldens/blocked_plain.out` byte for byte, `dep add` on an edge that is already there rewrites nothing and still writes the sidecar, and `delete` of a depended-on issue prints the six-block preview and writes nothing; two more pin the rounding of the average lead time (`23.25` days prints `23.2`, and a tie binary64 does not hold exactly is refused). `bend port/PROOF.bend` prints `All terms check.` with 0 `@unsafe` under `bend 2.0.20`. A closed law covers one value; none of these is a quantified property | `port/LAWS.bend`, `port/PROOF.bend` |
-| Feasibility probes | a wall-clock custom effect (OQ-009: it loads on the interpreter, C and JS engines; Bend 2.0.20 itself has no wall clock, OQ-004) and a SHA-256 over `U32` words whose four digests equal `hashlib`'s on all three engines (PLAN §8). Probes are not the port | `port/probes/` |
-| Parity board (Phase 4) | 29 in-scope rows: 4 `present`, 24 `partial`, 1 `missing` (`epic close-eligible`, the one in-scope command with no captured case), plus 13 classed exclusions; `scripts/parity-board.sh` reports `PARTIAL`. No find-fix round has run | `docs/FEATURE_PARITY.md` |
+| Feasibility probes | a wall-clock custom effect (OQ-009: it loads on the interpreter, C and JS engines; Bend 2.0.20 itself has no wall clock, OQ-004; the port does not use it yet, so a mutation without `BEADS_BEND_NOW` is refused) and a SHA-256 over `U32` words whose four digests equal `hashlib`'s on all three engines (PLAN §8). Probes are not the port | `port/probes/` |
+| Parity board (Phase 4) | 29 in-scope rows: 4 `present`, 25 `partial`, 0 `missing` (`epic close-eligible` now has seven captured cases), plus 13 classed exclusions; `scripts/parity-board.sh` reports `PARTIAL`. Six author find-fix rounds have run (9 genuine findings; 2 clean rounds); `scripts/converge.sh` reports `NOT_CONVERGED` | `docs/FEATURE_PARITY.md` |
 | Performance (Phase 5) | no measurement of any kind; `perf/EXPERIMENTS.md` is empty | `perf/` |
 | Port report (Phase 6) | template | `docs/PORT_REPORT.md` |
 | Repository and license | public at https://github.com/Dicklesworthstone/beads_bend; `LICENSE` is MIT with the OpenAI/Anthropic rider, the same text as `br`'s | `LICENSE` |
@@ -247,7 +247,7 @@ export BEND_CLI="$PWD/scripts/bend-cli.sh"
 
 ### Gates that exist today
 
-Results are the lines pasted in `docs/PORT_STATE.md` on 2026-09-20.
+Results are the lines pasted in `docs/PORT_STATE.md` (last rewritten 2026-09-22).
 
 | Gate | Command | Last result |
 |------|---------|-------------|
@@ -258,9 +258,10 @@ Results are the lines pasted in `docs/PORT_STATE.md` on 2026-09-20.
 | Laws | `(cd port && $BEND_CLI PROOF.bend)` | `All terms check.` (0 `@unsafe`; 51 closed laws) |
 | Lanes | `LANE_WRAP=$PWD/scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend" --threads 8 --timeout 60 --interpreter-timeout 600` | `PASS` on c-1t, c-8t and js (414 of 414 each, run lane by lane with `scripts/conform.sh`); the interpreter lane needs many hours for the corpus and is sampled instead (`PASS` 6/6 at HEAD); gpu `MISSING` (no device) |
 | Parity board | `scripts/parity-board.sh docs/FEATURE_PARITY.md` | `PARTIAL`: 4 present, 25 partial, 0 missing, 13 excluded |
+| Convergence | `scripts/converge.sh docs/PORT_STATE.md` | `NOT_CONVERGED`: rounds 6, clean 2, clean tail 0, no non-author round, 116 open OQ, 0 open DISC (T3 needs ≥ 10 rounds, the last two clean, a non-author round, every OQ resolved or excluded) |
 | Wording | `scripts/claims-lint.sh docs/*.md perf/*.md README.md` | Scans claim-bearing documents for hedges and deferrals |
 
-Not run, because there is nothing to run them on: `scripts/converge.sh` (no find-fix rounds before Phase 4) and `scripts/incumbent-bench.sh` (no port binary to measure before Phase 5). Each script prints its contract with `--help`.
+Not run, because there is nothing to measure yet: `scripts/incumbent-bench.sh` (Phase 5). Each script prints its contract with `--help`.
 
 ---
 
@@ -329,7 +330,7 @@ The surface in scope, from PLAN §3. "Cases" counts the rows of `goldens/cases.t
 | `label add/remove/list/list-all/rename` | Label charset and limits | `label rename backend server --json` | 15 in total |
 | `comments add` / `comments list` | Comment identity, `--author`, `-m` | `comments add proj-mta "Looks good."` | 9 / 3 |
 | `epic status` | Epic rollups | `epic status --json` | 2 |
-| `epic close-eligible` | In scope per PLAN §3 | none captured | 0: the one in-scope command with no captured case, so the port does not implement it — a case is captured first |
+| `epic close-eligible` | Closes, in one batch, every non-closed epic that has at least one child and whose children are all closed, with the fixed reason `All children completed`; `--dry-run` lists them and writes nothing | `epic close-eligible --dry-run --json` | 7 (two scenarios and a usage refusal among them) |
 
 ### Global Flags and Exit Codes in the Corpus
 
@@ -478,7 +479,7 @@ The register is `docs/DISCREPANCIES.md`. Eight entries: seven `ACCEPTED` by the 
 
 | Id | Class | Original | Port | Kill-switch | Measured impact |
 |----|-------|----------|------|-------------|-----------------|
-| DISC-001 | Nondeterminism | Timestamps and ids derive from the wall clock; `br` has no override | Identical bytes when `BEADS_BEND_NOW=<epoch seconds>` is set; the real clock otherwise (see the note below the table). One environment read in the shell; the core never sees a clock | Unset the variable (the default) | 0 of 231 goldens differ because of it; without it no mutating case is reproducible |
+| DISC-001 | Nondeterminism | Timestamps and ids derive from the wall clock; `br` has no override | Identical bytes when `BEADS_BEND_NOW=<epoch seconds>` is set; unset, a mutation is refused with `beads_bend: no wall clock yet: set BEADS_BEND_NOW=<epoch seconds> (DISC-001, backlog E6)` until the real clock lands (see the note below the table). One environment read in the shell; the core never sees a clock | Unset the variable (the default) | 0 of 231 goldens differ because of it; without it no mutating case is reproducible |
 | DISC-002 | Excluded | Takes three lock files and refuses to export when the on-disk JSONL changed since load | No lock files. Two concurrent port writers can lose an update | None inside Bend; serialize writers outside the tool. Repayment: a custom lock effect | 0 of 231; the exposure is concurrent agents on one workspace, which the corpus does not exercise |
 | DISC-003 | Platform | Stages a temp file, fsyncs, publishes by rename, keeps a history backup | Same final bytes, written in place. A kill during the write can leave a truncated store; no backup exists | None inside Bend. Repayment: a custom `file_rename` effect | 0 of 231; crash windows are not observable in the harness |
 | DISC-004 | Excluded | Leaves lock files and `.br_history/` in `.beads/` | Writes `issues.jsonl` and `last-touched` only | None | 0 of 231 |
@@ -487,7 +488,7 @@ The register is `docs/DISCREPANCIES.md`. Eight entries: seven `ACCEPTED` by the 
 | DISC-007 | BugFix | `br --no-db --no-db list` is refused (a once-only option twice) | An explicit top-level `--no-db` is accepted, so a script that calls `br --no-db list` keeps working when the port stands in | None | 0 of 384 |
 | DISC-008 | Platform | `br --no-db count` answers on a store of any size (its own is 4.5 MB) | Was: the JS lane faulted above about 30 KB of store. **RESOLVED** the same day — the cause was the port's own shell joining its read chunks with `List.concat`, which the emitted JavaScript walks one stack frame per element; the shell now answers a single chunk as it is and reads 64 MiB at a time, and the JS lane carries 5,000 records | not applicable (repaired, not diverged) | 0 of 384 cases; the repair is locked in by fixture `large` and the three `edge_large_*` cases |
 
-An eighth entry is already foreseen. Bend 2.0.20 has no wall clock: `IO.now` is a monotonic millisecond ticker (OQ-004). "The real clock" is therefore a custom effect, `Clock.wall`, probed in `port/probes/clock/`: it loads on the interpreter, the C lane and the JS lane, with nanoseconds on C and milliseconds on the other two (OQ-009). An unpinned timestamp would print 9 fraction digits on one lane and 3 on the others, which becomes a `Platform` DISC when the clock lands in Phase 3. Pinned runs, and so every golden, are unaffected.
+An eighth entry is already foreseen. Bend 2.0.20 has no wall clock: `IO.now` is a monotonic millisecond ticker (OQ-004). "The real clock" is therefore a custom effect, `Clock.wall`, probed in `port/probes/clock/`: it loads on the interpreter, the C lane and the JS lane, with nanoseconds on C and milliseconds on the other two (OQ-009). An unpinned timestamp would print 9 fraction digits on one lane and 3 on the others, which becomes a `Platform` DISC when the clock lands. It has not landed: Phase 3 is closing without it, and until it does a mutation without `BEADS_BEND_NOW` is refused rather than stamped with a guessed instant. Pinned runs, and so every golden, are unaffected.
 
 ### Open Questions
 
@@ -538,7 +539,7 @@ These hold by design or by what Bend 2.0.20 offers, and they apply to the port o
 | **Single-writer** | No lock effect in Bend (DISC-002). Two concurrent writers on one workspace can lose an update. `br` remains the right tool for a swarm sharing a workspace |
 | **Non-atomic write-back** | No rename or fsync effect (DISC-003). A kill during the write can truncate `issues.jsonl`; keep the file under version control |
 | **No `beads.db`** | No SQLite binding. Everything that exists to manage the database (sync modes, doctor, history, migration) is excluded |
-| **Unpinned timestamps differ by lane** | No wall clock in Bend 2.0.20; the custom effect is nanosecond on C and millisecond on the interpreter and JS (OQ-009). Its C side uses runtime internals with no ABI promise, so it is rebuilt and re-probed on every Bend pin move (PLAN §8) |
+| **No unpinned runs yet** | No wall clock in Bend 2.0.20. A mutation without `BEADS_BEND_NOW` is refused (`beads_bend: no wall clock yet: set BEADS_BEND_NOW=<epoch seconds> (DISC-001, backlog E6)`). The probed custom effect, once wired, is nanosecond on C and millisecond on the interpreter and JS (OQ-009), and its C side uses runtime internals with no ABI promise, so it is rebuilt and re-probed on every Bend pin move (PLAN §8) |
 | **Conformance is bounded by the corpus** | 414 cases is what "golden-tested" means here; behavior outside them is unclaimed, and the forms the port refuses with its own failure are listed in `docs/OPEN_QUESTIONS.md` |
 | **No gpu lane on this host** | No CUDA device; the lane is recorded `MISSING` with that reason |
 
@@ -582,6 +583,20 @@ The original also leaves lock files and `.br_history/` there; the port does not 
 This port is worked on mostly by AI coding agents. [AGENTS.md](AGENTS.md) is their mandate: the two equivalences, the gate commands, and the hard rules (goldens are never edited, `port/LAWS.bend` is human-owned, no file is ever deleted, `docs/PORT_STATE.md` is rewritten at the end of every session with pasted gate lines and one executable next action). `CONTRIBUTING.md` documents the same rules (adding a case, proposing a law, filing a DISC) for whoever changes the repository.
 
 ---
+
+## What This Port Fed Back into the Method
+
+The method is the `porting-to-bend2` skill; `scripts/` holds copies of its harness taken on 2026-09-20 (`scripts/ORIGIN.md`), plus this port's own sandbox. On 2026-09-22 what this port learned went back into the skill, alongside what the `toon_bend` port learned:
+
+| Lesson from this port | What the skill now carries |
+|------------------------|----------------------------|
+| `br` is stateful and stamps the wall clock | a stateful-original guide and a sandbox template built from `scripts/ws-run.sh`, `scripts/ws_inner.py` and `scripts/make-fixture.sh` |
+| Base has no exit-without-message, cwd, remove or wall clock | a custom-effects guide with the C and JS twins of `Sys.exit`, `Sys.cwd`, `Sys.remove` and the probed `Clock.wall` |
+| Bend 2.0.17 renamed `--version`; 2.0.17+ print the checker's verdict as a header plus one `- <def>` line per def | a `bend-version.sh` wrapper, and every verdict parser reads the last line that is not a `- <def>` line |
+| a proof book that imports the shell reaches foreign code and checks 5–9× slower | the scaffold puts the twins in `port/core/`, and the proof book imports only the core |
+| the interpreter lane costs about 14.5 hours for this corpus, and C builds get OOM-killed | `lanes.sh --lanes` and `--interpreter-sample` (verdict `PARTIAL`, never `PASS`), and a build failure reported from its exit status |
+
+The copies here predate those changes and have not been re-copied: `scripts/lanes.sh` carries this port's `LANE_WRAP` block, and every gate line in `docs/PORT_STATE.md` was produced by these copies, so a re-copy is its own change with its gates re-run.
 
 ## About Contributions
 
