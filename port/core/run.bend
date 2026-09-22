@@ -41,7 +41,7 @@ type Inputs is Data:
 # the actor ladders (S1.64, S1.65), the output format (S1.61), the pinned instant of DISC-001, and the workspace
 # override of S2.4
 def env_names() -> List<&2, String>:
-  ["USER", "BD_ACTOR", "BEADS_ACTOR", "LOGNAME", "USERNAME", "BR_OUTPUT_FORMAT", "TOON_DEFAULT_FORMAT", "BEADS_BEND_NOW", "BEADS_DIR"]
+  ["USER", "BD_ACTOR", "BEADS_ACTOR", "LOGNAME", "USERNAME", "BR_OUTPUT_FORMAT", "TOON_DEFAULT_FORMAT", "BEADS_BEND_NOW", "BEADS_DIR", "BEADS_RUST_SPEC"]
 
 # S8.5 (spec twin) the value of a variable; one that is not set, or was not read, is the empty string
 def env_of(env: List<&2, Var>, +name: String) -> String:
@@ -50,6 +50,10 @@ def env_of(env: List<&2, Var>, +name: String) -> String:
       ""
     case Con{Var{n, v}, rest}:
       Bool.pick(String, String.eq(n, name), v, env_of(rest, name))
+
+# S4.190 (spec twin) the kill-switch of the fast twins: `BEADS_RUST_SPEC=1` runs every spec twin instead
+def spec_of(+env: List<&2, Var>) -> Bool:
+  String.eq(env_of(env, "BEADS_RUST_SPEC"), "1")
 
 # S4.113 DISC-001 DISC-009 (spec twin) the instant a command runs at, as text: `BEADS_BEND_NOW` when it is set (the
 # one test seam), otherwise the wall-clock reading the shell passes as `BEADS_BEND_WALL`. The core never reads a
@@ -332,12 +336,12 @@ def stats_figures(+f: Work.Figures, json: Bool, quiet: Bool) -> Outcome:
   stats_out(f, Work.lead(f), json, quiet)
 
 # S4.151–S4.156 (spec twin) `stats`; its breakdowns and its activity block are not ported (the activity block needs git: PLAN §3)
-def stats_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, env: List<&2, Var>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
+def stats_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, +env: List<&2, Var>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
   match later:
     case True{}:
       failed(unported(), json)
     case False{}:
-      stats_figures(Work.figures(issues, Show.pinned(now_of(env))), json, quiet)
+      stats_figures(Work.figures(issues, Show.pinned(now_of(env)), spec_of(env)), json, quiet)
 
 # S1.34 (spec twin) the one positional of `search`, trimmed
 def first_word(words: List<&2, String>) -> String:
@@ -1043,7 +1047,7 @@ def epic_json(+ids: List<&2, String>) -> String:
 # S4.393 (spec twin) `--dry-run` writes nothing: plain names the epics it would close, JSON is the epic-status
 # list of the ELIGIBLE epics alone (`[]` when none, as `epic_close_eligible_dry_run_json` shows)
 def epic_dry(+epics: List<&2, Model.Issue>, model: List<&2, Model.Issue>, json: Bool, +quiet: Bool) -> Outcome:
-  Bool.pick(Outcome, json, viewed(Views.epic_status(model, True{}, True{}), True{}, quiet), printed("Would close " ++ Nat.show(List.length(&2, Model.Issue, epics)) ++ " epic(s):\n" ++ epic_lines(epics, True{}), "", quiet))
+  Bool.pick(Outcome, json, viewed(Views.epic_status(model, True{}, True{}, False{}), True{}, quiet), printed("Would close " ++ Nat.show(List.length(&2, Model.Issue, epics)) ++ " epic(s):\n" ++ epic_lines(epics, True{}), "", quiet))
 
 # S4.391 S4.392 (spec twin) a real run: nothing eligible prints its own line and writes nothing; otherwise every
 # eligible epic is closed at one instant and the store is rewritten, but never `.beads/last-touched`
@@ -1072,7 +1076,7 @@ def epic_close_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, +mode
     case None{} False{}:
       failed(no_clock(), json)
     case Some{at} False{}:
-      epic_at(Query.ordered(Views.epics_of(model, model, True{}), 0, False{}), model, at, json, quiet, Cli.given(opts, "dry-run"))
+      epic_at(Query.ordered(Views.epics_of(model, Work.child_index(False{}, model), True{}), 0, False{}), model, at, json, quiet, Cli.given(opts, "dry-run"))
 
 # ---------------------------------------------------------------- delete (S4.330–S4.341)
 
@@ -1159,7 +1163,7 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) 
     case 13 Call{path, opts, words, json, quiet, touched, env, cwd}:
       comments_list_cmd(Store.model(issues), words, prefix, json, quiet)
     case 14 Call{path, opts, words, +json, quiet, touched, env, cwd}:
-      viewed(Views.epic_status(Store.model(issues), Cli.given(opts, "eligible-only"), json), json, quiet)
+      viewed(Views.epic_status(Store.model(issues), Cli.given(opts, "eligible-only"), json, spec_of(env)), json, quiet)
     case 15 Call{path, opts, words, +json, quiet, touched, +env, +cwd}:
       viewed(Views.whereabouts(beads_dir_of(env, cwd), Prefix.reported(Prefix.configured(env_of(env, ".beads/config.yaml")), issues), json), json, quiet)
     case 16 Call{path, +opts, words, json, quiet, touched, +env, cwd}:

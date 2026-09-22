@@ -371,26 +371,108 @@ def children(issues: List<&2, Model.Issue>, +epic: String, c: Children) -> Child
     case Con{+i, rest}:
       children(rest, epic, child_edges(Model.deps_of(i), epic, Bool.not(Model.is_template(i)), Blocked.terminal(Model.status_of(i)), c))
 
+# ---------------------------------------------------------------- the children table (fast twin of `children`)
+
+# S4.190 (data) where an epic's children are found: by scanning the store per epic (the spec twin, `children`), or
+# in a table built in one pass (the fast twin; `BEADS_RUST_SPEC=1` selects the scan). Bound by the closed law
+# `run_epic_status_spec_switch` (port/LAWS.bend) and by kill-switch parity on the corpus
+type ChildIndex is Data:
+  ByScan{all: List<&2, Model.Issue>}
+  ByTable{table: Map<&2, Children>}
+
+# S4.190 (spec twin) one more child, closed or not
+def bumped(c: Children, closed: Bool) -> Children:
+  match c:
+    case Children{total, done}:
+      Children{(total + 1 : U32), (done + Bool.to_u32(closed) : U32)}
+
+# S4.190 (fast twin) count one `parent-child` edge in the table, under the edge's target
+def bump_fin(mv: Map<&2, Children> & Children, +key: String, closed: Bool) -> Map<&2, Children>:
+  (m, c) = mv
+  Map.set(&2, Children, m, key, bumped(c, closed))
+
+# S4.190 (fast twin) an edge counts only when it is `parent-child`
+def edge_bump(parent_child: Bool, m: Map<&2, Children>, +key: String, closed: Bool) -> Map<&2, Children>:
+  match parent_child:
+    case True{}:
+      bump_fin(Map.get(Children, Children{0, 0}, m, key), key, closed)
+    case False{}:
+      m
+
+# S4.190 (fast twin) the edges of one child source
+def table_edges(edges: List<&2, Model.Dependency>, +closed: Bool, m: Map<&2, Children>) -> Map<&2, Children>:
+  match edges:
+    case Nil{}:
+      m
+    case Con{+e, rest}:
+      table_edges(rest, closed, edge_bump(String.eq(Model.dep_type_of(e), "parent-child"), m, Model.target_of(e), closed))
+
+# S4.190 (fast twin) one issue's edges, unless it is a template (a template is never a child)
+def table_issue(counts: Bool, edges: List<&2, Model.Dependency>, closed: Bool, m: Map<&2, Children>) -> Map<&2, Children>:
+  match counts:
+    case True{}:
+      table_edges(edges, closed, m)
+    case False{}:
+      m
+
+# S4.190 (fast twin) every issue's `parent-child` edges, counted under their targets in one pass
+def table_of(issues: List<&2, Model.Issue>, m: Map<&2, Children>) -> Map<&2, Children>:
+  match issues:
+    case Nil{}:
+      m
+    case Con{+i, rest}:
+      table_of(rest, table_issue(Bool.not(Model.is_template(i)), Model.deps_of(i), Blocked.terminal(Model.status_of(i)), m))
+
+# S4.190 (spec twin) the index a command uses: the scan when the spec switch is on, the table otherwise
+def child_index(spec: Bool, +all: List<&2, Model.Issue>) -> ChildIndex:
+  match spec:
+    case True{}:
+      ByScan{all}
+    case False{}:
+      ByTable{table_of(all, Map.new(&2, Children))}
+
+# S4.190 (fast twin) the value half of a lookup
+def children_value(mv: Map<&2, Children> & Children) -> Children:
+  (m, c) = mv
+  c
+
+# S4.190 (spec twin) an epic's children through the index
+def children_in(+idx: ChildIndex, +epic: String) -> Children:
+  match idx:
+    case ByScan{all}:
+      children(all, epic, Children{0, 0})
+    case ByTable{table}:
+      children_value(Map.get(Children, Children{0, 0}, table, epic))
+
 # S4.191 (spec twin) an epic may close when it has children and all of them are closed
 def eligible(c: Children) -> Bool:
   match c:
     case Children{+total, done}:
       ((total > 0 : U32) && U32.is_eq(done, total))
 
+# S4.155 (spec twin) a live epic's eligibility; children are looked up only for a live epic (the `&&` above does
+# not stop at a false operand, and a lookup for every issue made `stats` quadratic: 35 s on 5,000 records)
+def eligible_live(live: Bool, +idx: ChildIndex, +id: String) -> Bool:
+  match live:
+    case True{}:
+      eligible(children_in(idx, id))
+    case False{}:
+      False{}
+
 # S4.155 (spec twin) the epics that are live, not templates, and eligible
-def eligible_epics(issues: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, acc: U32) -> U32:
+def eligible_epics(issues: List<&2, Model.Issue>, +idx: ChildIndex, acc: U32) -> U32:
   match issues:
     case Nil{}:
       acc
     case Con{+i, rest}:
-      eligible_epics(rest, all, (acc + Bool.to_u32((String.eq(Model.type_of(i), "epic") && Bool.not(Blocked.terminal(Model.status_of(i))) && Bool.not(Model.is_template(i)) && eligible(children(all, Model.id_of(i), Children{0, 0})))) : U32))
+      eligible_epics(rest, idx, (acc + Bool.to_u32(eligible_live((String.eq(Model.type_of(i), "epic") && Bool.not(Blocked.terminal(Model.status_of(i))) && Bool.not(Model.is_template(i))), idx, Model.id_of(i))) : U32))
 
 # S4.151–S4.155 (spec twin) the figures from their parts: `live` is the live keys of the BLOCKED relation, `t` the
 # lead times, `ready` the number of ready issues. `total` leaves the tombstones out
-def figures_of(+all: List<&2, Model.Issue>, +live: List<&2, String>, t: Tally, ready: U32) -> Figures:
+def figures_of(+all: List<&2, Model.Issue>, +live: List<&2, String>, t: Tally, ready: U32, +idx: ChildIndex) -> Figures:
   match t:
     case Tally{sum, count}:
-      Figures{(U32.from_nat(List.length(&2, Model.Issue, all)) - with_status(all, "tombstone", 0) : U32), with_status(all, "open", 0), with_status(all, "in_progress", 0), with_status(all, "closed", 0), stored_blocked(all, live, U32.from_nat(List.length(&2, String, live))), with_status(all, "deferred", 0), with_status(all, "draft", 0), ready, with_status(all, "tombstone", 0), pinned_count(all, 0), eligible_epics(all, all, 0), sum, count}
+      Figures{(U32.from_nat(List.length(&2, Model.Issue, all)) - with_status(all, "tombstone", 0) : U32), with_status(all, "open", 0), with_status(all, "in_progress", 0), with_status(all, "closed", 0), stored_blocked(all, live, U32.from_nat(List.length(&2, String, live))), with_status(all, "deferred", 0), with_status(all, "draft", 0), ready, with_status(all, "tombstone", 0), pinned_count(all, 0), eligible_epics(all, idx, 0), sum, count}
 
 # S4.154 S5.54 S5.170 (data) the average lead time as `stats` prints it: none; one the port cannot print yet
 # (not a whole number of tenths: OQ-078); or its plain text with the unit and its JSON number
@@ -456,6 +538,11 @@ def lead(f: Figures) -> Lead:
       lead_of_sum(lead_sum, U32.max(lead_count, 1), U32.is_eq(lead_count, 0), U32.is_eq(((lead_sum * 10 : U32) % U32.max(lead_count, 1) : U32), 0))
 
 # S4.151–S4.155 (spec twin) every figure of `stats`
-def figures(+all: List<&2, Model.Issue>, now: Maybe<&2, Time.Instant>) -> Figures:
-  figures_of(all, live_keys(Blocked.keys(Blocked.relation(all)), all), leads(all, Tally{0, 0}), U32.from_nat(List.length(&2, Model.Issue, candidates(all, Blocked.keys(Blocked.relation(all)), now, False{}))))
+def figures_keyed(+all: List<&2, Model.Issue>, +keys: List<&2, String>, now: Maybe<&2, Time.Instant>, spec: Bool) -> Figures:
+  figures_of(all, live_keys(keys, all), leads(all, Tally{0, 0}), U32.from_nat(List.length(&2, Model.Issue, candidates(all, keys, now, False{}))), child_index(spec, all))
+
+# S4.151–S4.156 (spec twin) the figures of `stats`; the BLOCKED relation is computed once (Bend shares no common
+# subexpression) and `spec` selects the children scan over the table (BEADS_RUST_SPEC)
+def figures(+all: List<&2, Model.Issue>, now: Maybe<&2, Time.Instant>, spec: Bool) -> Figures:
+  figures_keyed(all, Blocked.keys(Blocked.relation(all)), now, spec)
 

@@ -228,3 +228,8 @@ def Laws.run_dep_tree_repeat():
 # and its edge comes from n4, the place of its parent in the pre-order
 def Laws.run_dep_tree_mermaid():
   {==}
+
+# S4.189–S4.192 fast == spec on one store: the checker runs `epic status --json` over fixture `parents` with the
+# one-pass children table and with the per-epic scan, and the two outcomes are one term
+def Laws.run_epic_status_spec_switch():
+  {==}

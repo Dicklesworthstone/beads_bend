@@ -693,12 +693,12 @@ def epic_put(i: Model.Issue, keep: Bool, rest: List<&2, Model.Issue>) -> List<&2
       rest
 
 # S4.189 S4.192 (spec twin) the listed epics, and under `--eligible-only` only the eligible ones
-def epics_of(issues: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, +eligible_only: Bool) -> List<&2, Model.Issue>:
+def epics_of(issues: List<&2, Model.Issue>, +idx: Work.ChildIndex, +eligible_only: Bool) -> List<&2, Model.Issue>:
   match issues:
     case Nil{}:
       Nil{}
     case Con{+i, rest}:
-      epic_put(i, (is_open_epic(i) && (Bool.not(eligible_only) || Work.eligible(Work.children(all, Model.id_of(i), Work.Children{0, 0})))), epics_of(rest, all, eligible_only))
+      epic_put(i, (is_open_epic(i) && (Bool.not(eligible_only) || Work.eligible_live(is_open_epic(i), idx, Model.id_of(i)))), epics_of(rest, idx, eligible_only))
 
 # S4.191 S5.198 (spec twin) the percentage: closed * 100 / total in whole numbers, 0 without children
 def percent(+done: U32, +total: U32) -> U32:
@@ -716,25 +716,38 @@ def epic_object(+i: Model.Issue, c: Work.Children) -> String:
     case Work.Children{+total, +done}:
       String.concat(["{\"epic\":", Model.line(i), ",\"total_children\":", U32.show(total), ",\"closed_children\":", U32.show(done), ",\"eligible_for_close\":", Failure.bool_text(Work.eligible(Work.Children{total, done})), "}"])
 
+# S5.55 S5.196 (spec twin) one listed epic rendered, its children looked up once
+def epic_item(+i: Model.Issue, +c: Work.Children, json: Bool, first: Bool) -> String:
+  match json:
+    case True{}:
+      Bool.pick(String, first, "", ",") ++ epic_object(i, c)
+    case False{}:
+      epic_block(i, c)
+
 # S5.55 S5.196 (spec twin) every listed epic rendered, JSON objects separated by `,`
-def epic_items(epics: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, +json: Bool, first: Bool) -> List<&2, String>:
+def epic_items(epics: List<&2, Model.Issue>, +idx: Work.ChildIndex, +json: Bool, first: Bool) -> List<&2, String>:
   match epics:
     case Nil{}:
       Nil{}
     case Con{+i, rest}:
-      Bool.pick(String, json, Bool.pick(String, first, "", ",") ++ epic_object(i, Work.children(all, Model.id_of(i), Work.Children{0, 0})), epic_block(i, Work.children(all, Model.id_of(i), Work.Children{0, 0}))) <> epic_items(rest, all, json, False{})
+      epic_item(i, Work.children_in(idx, Model.id_of(i)), json, first) <> epic_items(rest, idx, json, False{})
 
 # S5.55 S5.199 (spec twin) the listed epics as one text
-def epic_view(epics: List<&2, Model.Issue>, all: List<&2, Model.Issue>, +json: Bool) -> View:
+def epic_view(epics: List<&2, Model.Issue>, idx: Work.ChildIndex, +json: Bool) -> View:
   match epics:
     case Nil{}:
       ViewOk{Bool.pick(String, json, "[]\n", "No open epics found\n")}
     case Con{e, rest}:
-      ViewOk{Bool.pick(String, json, "[", "") ++ String.concat(epic_items(e <> rest, all, json, True{})) ++ Bool.pick(String, json, "]\n", "")}
+      ViewOk{Bool.pick(String, json, "[", "") ++ String.concat(epic_items(e <> rest, idx, json, True{})) ++ Bool.pick(String, json, "]\n", "")}
 
-# S4.189 S5.55 S5.199 (spec twin) `epic status`: the epics in the default order of `list`; none prints `No open epics found`, `[]` as JSON
-def epic_status(+all: List<&2, Model.Issue>, eligible_only: Bool, +json: Bool) -> View:
-  epic_view(Query.ordered(epics_of(all, all, eligible_only), 0, False{}), all, json)
+# S4.189 (spec twin) `epic status` once its children index is built
+def epic_indexed(+all: List<&2, Model.Issue>, eligible_only: Bool, +json: Bool, +idx: Work.ChildIndex) -> View:
+  epic_view(Query.ordered(epics_of(all, idx, eligible_only), 0, False{}), idx, json)
+
+# S4.189 S5.55 S5.199 (spec twin) `epic status`: the epics in the default order of `list`; none prints `No open epics
+# found`, `[]` as JSON. `spec` selects the per-epic scan of the store over the one-pass table (BEADS_RUST_SPEC)
+def epic_status(+all: List<&2, Model.Issue>, eligible_only: Bool, +json: Bool, spec: Bool) -> View:
+  epic_indexed(all, eligible_only, json, Work.child_index(spec, all))
 
 # ---------------------------------------------------------------- where (S5.56, S5.200)
 
