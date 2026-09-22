@@ -1,0 +1,5 @@
+proj-697: Root of the diamond [P1] [open]
+  ├── proj-kxh: Left middle [P2] [open]
+    ├── proj-tip: Shared leaf [P3] [open]
+  ├── proj-ah0: Right middle [P2] [open]
+    ├── proj-tip: Shared leaf [P3] [open]

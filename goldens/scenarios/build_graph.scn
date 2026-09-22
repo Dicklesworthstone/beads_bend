@@ -1,0 +1,40 @@
+# build_graph: the scenario that PRODUCES goldens/fixtures/graph.jsonl.
+# The fixture is the original's own output, never hand-typed
+# (scripts/make-fixture.sh graph build_graph). Ids are deterministic because
+# every step runs at a pinned instant.
+#
+# The shape it builds, which goldens/fixtures/basic.jsonl does not have:
+#   * a DIAMOND — proj-697 blocks both middles, and both middles block the
+#     same leaf proj-tip, so a `dep tree` from the root reaches proj-tip by
+#     two distinct paths (the `repeat` flag of S4.182-S4.185).
+#   * a CHAIN of three — proj-9vw -> proj-wjh -> proj-a14 — so a tree has
+#     real depth rather than the depth 0 and 1 that fixture `basic` reaches.
+#   * a BACK EDGE — proj-a14 -> proj-9vw as `parent-child`, which the
+#     original accepts although the blocking chain already runs the other
+#     way, so the traversal has an already-visited node to handle.
+@fx=empty
+@time=2026-02-01 09:00:00
+["create","Root of the diamond","-t","feature","-p","1"]
+@time=2026-02-01 09:00:01
+["create","Left middle","-t","task","-p","2"]
+@time=2026-02-01 09:00:02
+["create","Right middle","-t","task","-p","2"]
+@time=2026-02-01 09:00:03
+["create","Shared leaf","-t","task","-p","3"]
+@time=2026-02-01 09:00:04
+["create","Chain head","-t","task","-p","1"]
+@time=2026-02-01 09:00:05
+["create","Chain middle","-t","task","-p","2"]
+@time=2026-02-01 09:00:06
+["create","Chain tail","-t","task","-p","3"]
+# the diamond
+@time=2026-02-01 10:00:00
+["dep","add","proj-697","proj-kxh"]
+["dep","add","proj-697","proj-ah0"]
+["dep","add","proj-kxh","proj-tip"]
+["dep","add","proj-ah0","proj-tip"]
+# the chain, then the back edge the original accepts
+@time=2026-02-01 11:00:00
+["dep","add","proj-9vw","proj-wjh"]
+["dep","add","proj-wjh","proj-a14"]
+["dep","add","proj-a14","proj-9vw","--type","parent-child"]

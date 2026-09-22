@@ -1,0 +1,15 @@
+
+🚫 Blocked issues (6):
+
+[● P1] proj-697: Root of the diamond
+  Blocked by 2 open dependencies: [proj-ah0, proj-kxh]
+[● P1] proj-9vw: Chain head
+  Blocked by 1 open dependencies: [proj-wjh]
+[● P2] proj-wjh: Chain middle
+  Blocked by 1 open dependencies: [proj-a14]
+[● P2] proj-ah0: Right middle
+  Blocked by 1 open dependencies: [proj-tip]
+[● P2] proj-kxh: Left middle
+  Blocked by 1 open dependencies: [proj-tip]
+[● P3] proj-a14: Chain tail
+  Blocked by 1 open dependencies: [proj-9vw]
