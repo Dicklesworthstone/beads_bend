@@ -1,0 +1,15 @@
+# probe: the dep tree JSON on a store whose edges form a loop (blocks + parent-child)
+@fx=empty
+@time=2026-01-01 10:00:00
+["create","Alpha","-t","task","-p","1"]
+@time=2026-01-01 10:00:01
+["create","Beta","-t","task","-p","1"]
+@time=2026-01-01 11:00:00
+["dep","add","proj-jtk","proj-jvy","--type","blocks"]
+["close","proj-jtk","--reason","temp","--force"]
+["dep","add","proj-jvy","proj-jtk","--type","parent-child"]
+["reopen","proj-jtk","--reason","restore"]
+["dep","tree","proj-jtk","--json"]
+["dep","tree","proj-jvy","--json"]
+["dep","tree","proj-jvy"]
+["dep","list","proj-jvy"]

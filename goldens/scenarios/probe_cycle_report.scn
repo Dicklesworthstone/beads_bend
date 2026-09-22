@@ -1,0 +1,11 @@
+# probe: what does `dep cycles` report for a related-only cycle?
+@fx=empty
+@time=2026-01-01 10:00:00
+["create","Alpha","-t","task","-p","1"]
+@time=2026-01-01 10:00:01
+["create","Beta","-t","task","-p","1"]
+@time=2026-01-01 11:00:00
+["dep","add","proj-jtk","proj-jvy","--type","related"]
+["dep","add","proj-jvy","proj-jtk","--type","related"]
+["dep","cycles"]
+["dep","cycles","--json"]
