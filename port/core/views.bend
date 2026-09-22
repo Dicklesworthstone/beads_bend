@@ -1,11 +1,11 @@
 # core/views — the small read-only views: `dep list`, `dep tree`, `dep cycles`, `label list`,
 # `label list-all`, `comments list`, `epic status`, `where` (S4.179–S4.192, S5.46–S5.56, S5.176–S5.200).
-# Each answers its text for stdout (plain or JSON) or a refusal. Conservative
-# on purpose, and stated so nothing is assumed: `dep tree` renders a root that
-# has no neighbour in the chosen direction, and `dep cycles` reports a graph
-# without cycles; a tree with children and a graph with a cycle answer the
-# port's own "not ported yet" failure until their traversals are written
-# (S4.182–S4.188). Nothing here consults the original.
+# Each answers its text for stdout (plain or JSON) or a refusal. `dep tree`
+# walks the graph in full (`tree_walk`, S4.182–S4.185). `dep cycles` reports a
+# graph without cycles; a graph that still has a cycle after pruning answers
+# the port's own "not ported yet" failure, because the witness search is not
+# written (S4.186–S4.188, OQ-129: no captured case has a cycle). Nothing here
+# consults the original.
 import Base
 import ./time.bend as Time
 import ./model.bend as Model
