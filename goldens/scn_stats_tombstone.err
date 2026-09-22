@@ -1,0 +1,3 @@
+$ ["delete", "proj-b75", "--force"]
+$ ["stats", "--by-type", "--by-label"]
+$ ["stats", "--by-assignee", "--json"]

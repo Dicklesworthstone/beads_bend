@@ -1,0 +1,5 @@
+# stats_tombstone: the `stats` breakdowns after a delete — does a tombstone count in the groups? (S4.151, S5.172)
+@fx=basic
+["delete","proj-b75","--force"]
+["stats","--by-type","--by-label"]
+["stats","--by-assignee","--json"]
