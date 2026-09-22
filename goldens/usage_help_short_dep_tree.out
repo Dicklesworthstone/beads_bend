@@ -1,0 +1,24 @@
+Show dependency tree rooted at issue
+
+Usage: br dep tree [OPTIONS] <ISSUE>
+
+Arguments:
+  <ISSUE>  Issue ID (root of tree)
+
+Options:
+  -d, --direction <DIRECTION>        Tree direction (default: down) [default: down] [possible values: down, up, both]
+      --max-depth <MAX_DEPTH>        Maximum depth (default: 10) [default: 10]
+      --format <FORMAT>              Output format: text, mermaid [default: text]
+      --db <DB>                      Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+      --actor <ACTOR>                Actor name for audit trail
+      --json                         Output as JSON
+      --no-daemon                    Force direct mode (no daemon) - effectively no-op in br v1
+      --no-auto-flush                Skip auto JSONL export
+      --no-auto-import               Skip auto import check
+      --allow-stale                  Allow stale DB (bypass freshness check warning)
+      --lock-timeout <LOCK_TIMEOUT>  `SQLite` busy/write-lock timeout in ms
+      --no-db                        JSONL-only mode (no DB connection)
+  -v, --verbose...                   Increase logging verbosity (-v, -vv)
+  -q, --quiet                        Quiet mode (no output except errors)
+      --no-color                     Disable colored output
+  -h, --help                         Print help (see more with '--help')

@@ -1,0 +1,24 @@
+Add a dependency: <issue> depends on <depends-on>
+
+Usage: br dep add [OPTIONS] <ISSUE> <DEPENDS_ON>
+
+Arguments:
+  <ISSUE>       Issue ID (the one that will depend on something)
+  <DEPENDS_ON>  Target issue ID (the one being depended on)
+
+Options:
+  -t, --type <DEP_TYPE>              Dependency type (blocks, parent-child, related, etc.) [default: blocks]
+      --metadata <METADATA>          Optional JSON metadata
+      --db <DB>                      Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+      --actor <ACTOR>                Actor name for audit trail
+      --json                         Output as JSON
+      --no-daemon                    Force direct mode (no daemon) - effectively no-op in br v1
+      --no-auto-flush                Skip auto JSONL export
+      --no-auto-import               Skip auto import check
+      --allow-stale                  Allow stale DB (bypass freshness check warning)
+      --lock-timeout <LOCK_TIMEOUT>  `SQLite` busy/write-lock timeout in ms
+      --no-db                        JSONL-only mode (no DB connection)
+  -v, --verbose...                   Increase logging verbosity (-v, -vv)
+  -q, --quiet                        Quiet mode (no output except errors)
+      --no-color                     Disable colored output
+  -h, --help                         Print help

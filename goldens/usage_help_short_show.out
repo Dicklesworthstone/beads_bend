@@ -1,0 +1,25 @@
+Show issue details
+
+Usage: br show [OPTIONS] [IDS]...
+
+Arguments:
+  [IDS]...  Issue IDs
+
+Options:
+      --format <FORMAT>              Output format (text, json, toon). Env: BR_OUTPUT_FORMAT, TOON_DEFAULT_FORMAT [possible values: text, json, toon]
+      --wrap                         Soft-wrap long lines to the terminal width in text output. Wrapping is now on by default; this flag is kept for backwards compatibility
+      --no-wrap                      Disable soft-wrapping; let long description/comment lines extend past the panel width (the pre-#370 behavior)
+      --stats                        Show token savings stats when using TOON output
+      --db <DB>                      Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+      --actor <ACTOR>                Actor name for audit trail
+      --json                         Output as JSON
+      --no-daemon                    Force direct mode (no daemon) - effectively no-op in br v1
+      --no-auto-flush                Skip auto JSONL export
+      --no-auto-import               Skip auto import check
+      --allow-stale                  Allow stale DB (bypass freshness check warning)
+      --lock-timeout <LOCK_TIMEOUT>  `SQLite` busy/write-lock timeout in ms
+      --no-db                        JSONL-only mode (no DB connection)
+  -v, --verbose...                   Increase logging verbosity (-v, -vv)
+  -q, --quiet                        Quiet mode (no output except errors)
+      --no-color                     Disable colored output
+  -h, --help                         Print help (see more with '--help')

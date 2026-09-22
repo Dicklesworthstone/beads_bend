@@ -1,0 +1,23 @@
+Usage: br comments add [OPTIONS] <ID> [TEXT]...
+
+Arguments:
+  <ID>       Issue ID
+  [TEXT]...  Comment text
+
+Options:
+  -f, --file <FILE>                  Read comment text from file
+      --author <AUTHOR>              Override author (defaults to actor/env/user)
+  -m, --message <MESSAGE>            Comment text (alternative flag) [alias: --content]
+      --db <DB>                      Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+      --actor <ACTOR>                Actor name for audit trail
+      --json                         Output as JSON
+      --no-daemon                    Force direct mode (no daemon) - effectively no-op in br v1
+      --no-auto-flush                Skip auto JSONL export
+      --no-auto-import               Skip auto import check
+      --allow-stale                  Allow stale DB (bypass freshness check warning)
+      --lock-timeout <LOCK_TIMEOUT>  `SQLite` busy/write-lock timeout in ms
+      --no-db                        JSONL-only mode (no DB connection)
+  -v, --verbose...                   Increase logging verbosity (-v, -vv)
+  -q, --quiet                        Quiet mode (no output except errors)
+      --no-color                     Disable colored output
+  -h, --help                         Print help

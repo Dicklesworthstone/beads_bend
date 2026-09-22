@@ -1,0 +1,27 @@
+Quick capture (create issue, print ID only)
+
+Usage: br q [OPTIONS] [TITLE]...
+
+Arguments:
+  [TITLE]...  Issue title words
+
+Options:
+  -p, --priority <PRIORITY>          Priority (0-4 or P0-P4)
+  -t, --type <TYPE>                  Issue type (task, bug, feature, etc.)
+  -l, --labels <LABELS>              Labels to apply (repeatable, comma-separated allowed)
+  -d, --description <DESCRIPTION>    Description [alias: --body]
+      --parent <PARENT>              Parent issue ID (creates parent-child dep)
+  -e, --estimate <ESTIMATE>          Time estimate in minutes
+      --db <DB>                      Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+      --actor <ACTOR>                Actor name for audit trail
+      --json                         Output as JSON
+      --no-daemon                    Force direct mode (no daemon) - effectively no-op in br v1
+      --no-auto-flush                Skip auto JSONL export
+      --no-auto-import               Skip auto import check
+      --allow-stale                  Allow stale DB (bypass freshness check warning)
+      --lock-timeout <LOCK_TIMEOUT>  `SQLite` busy/write-lock timeout in ms
+      --no-db                        JSONL-only mode (no DB connection)
+  -v, --verbose...                   Increase logging verbosity (-v, -vv)
+  -q, --quiet                        Quiet mode (no output except errors)
+      --no-color                     Disable colored output
+  -h, --help                         Print help

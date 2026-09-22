@@ -1,0 +1,167 @@
+Update an issue
+
+Boxed: `UpdateArgs` is the largest argument struct by a wide margin, and keeping it inline would size every `Commands` value to it.
+
+Usage: br update [OPTIONS] [IDS]...
+
+Arguments:
+  [IDS]...
+          Issue IDs to update
+
+Options:
+      --title <TITLE>
+          Update title
+
+  -d, --description <DESCRIPTION>
+          Update description
+          
+          [alias: --body]
+
+      --description-file <PATH>
+          Set the issue description verbatim from a file (or `-` for stdin), replacing the existing value. The entire file content is used unchanged from disk. Mutually exclusive with `-d/--description`; use this for multi-paragraph / markdown descriptions that are fragile to pass through shell quoting
+
+      --design <DESIGN>
+          Update design notes
+
+      --acceptance-criteria <ACCEPTANCE_CRITERIA>
+          Update acceptance criteria
+          
+          [alias: --acceptance]
+
+      --prerequisites <PREREQUISITES>
+          Replace the prerequisite checklist (empty string clears)
+
+      --check-acceptance <ITEMS>
+          Tick acceptance-criteria checklist items in place (GitHub #477).
+          
+          ITEMS is either a comma-separated list of 1-based item numbers (`1,4,5`) or a text selector that must match exactly one item (case-insensitive; an exact match wins, otherwise a unique substring). Repeat the flag for several text selectors. Every item is validated before anything is written, and the rest of the field is left byte-for-byte intact, so this never needs `--force`.
+
+      --uncheck-acceptance <ITEMS>
+          Untick acceptance-criteria checklist items in place; same selectors as `--check-acceptance`
+
+      --add-acceptance <TEXT>
+          Append an unchecked acceptance criterion (`- [ ] TEXT`) to the checklist without rewriting the field. Repeatable, like `--add-label`
+
+      --notes <NOTES>
+          Update additional notes
+
+      --append-notes <TEXT>
+          Append TEXT to notes without rewriting the field (GitHub #480).
+          
+          Existing notes are kept byte-for-byte; TEXT goes on a new line after them (creating the field when empty). Repeatable, like `--add-label`; several values are appended as consecutive lines. Re-running the same append is a no-op when the field already ends with that text. Append-only, so this never needs `--force`.
+
+      --transition-comment <COMMENT>
+          New comment bound atomically to the requested status transition. Required when policy lists `transition_comment` for the transition
+
+  -s, --status <STATUS>
+          Change status. Terminal states (`closed`, `tombstone`) are refused — use the dedicated `br close` / `br delete` commands so close-policy and dependency-rewiring are enforced (beads_rust#301)
+
+  -p, --priority <PRIORITY>
+          Change priority (0-4 or P0-P4)
+
+  -t, --type <TYPE>
+          Change issue type
+
+      --assignee <ASSIGNEE>
+          Assign to user (empty string clears)
+
+      --owner <OWNER>
+          Set owner (empty string clears)
+
+      --claim
+          Atomic claim (assignee=actor + `status=in_progress`)
+
+      --force
+          Force update even if issue is blocked, and allow a destructive rewrite of a non-empty description/design/acceptance-criteria/prerequisites/ notes/agent-context value: clearing it, or replacing it with content shorter than half its current length (GitHub #467, #481). Revisions that keep at least half the length pass without this flag
+
+      --due <DUE>
+          Set due date (empty string clears)
+
+      --defer <DEFER>
+          Set defer until date (empty string clears)
+
+      --estimate <ESTIMATE>
+          Set time estimate
+
+      --add-label <ADD_LABEL>
+          Add label(s)
+
+      --remove-label <REMOVE_LABEL>
+          Remove label(s)
+
+      --set-labels <SET_LABELS>
+          Set label(s) (replaces all) - repeatable like bd
+          
+          [alias: --labels]
+
+      --parent <PARENT>
+          Reparent to new parent (empty string removes parent)
+
+      --external-ref <EXTERNAL_REF>
+          Set external reference
+
+      --source-repo <SOURCE_REPO>
+          Override `source_repo` (display name; usually the repo's basename, e.g. `widget_engine`)
+
+      --source-repo-path <SOURCE_REPO_PATH>
+          Override `source_repo_path` (absolute path to the directory containing the `.beads` folder; populates the canonical filesystem location of the repo for cross-machine sync awareness — see #289)
+
+      --agent-context <AGENT_CONTEXT>
+          Set the `agent_context` governing-instructions JSON (beads_rust#297). Accepts inline JSON or a `@path` to a JSON or YAML file (extension determines parser; YAML is normalized to JSON before storage). Pass `--agent-context ""` (empty string) to clear the field back to NULL. Emitted on descendant `br show` / `br update --status in_progress` / `--claim` when `inherited_context.enabled` is set in `.beads/config.yaml`
+
+      --session <SESSION>
+          Set `closed_by_session` when closing
+
+      --agent-name <NAME>
+          Tier 1 attribution: agent name (env: BR_AGENT_NAME). Recorded only
+          
+          [env: BR_AGENT_NAME=]
+
+      --harness <HARNESS>
+          Tier 1 attribution: harness identifier (env: BR_HARNESS). Recorded only
+          
+          [env: BR_HARNESS=]
+
+      --model <MODEL>
+          Tier 1 attribution: model identifier (env: BR_MODEL). Recorded only
+          
+          [env: BR_MODEL=]
+
+      --db <DB>
+          Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+
+      --actor <ACTOR>
+          Actor name for audit trail
+
+      --json
+          Output as JSON
+
+      --no-daemon
+          Force direct mode (no daemon) - effectively no-op in br v1
+
+      --no-auto-flush
+          Skip auto JSONL export
+
+      --no-auto-import
+          Skip auto import check
+
+      --allow-stale
+          Allow stale DB (bypass freshness check warning)
+
+      --lock-timeout <LOCK_TIMEOUT>
+          `SQLite` busy/write-lock timeout in ms
+
+      --no-db
+          JSONL-only mode (no DB connection)
+
+  -v, --verbose...
+          Increase logging verbosity (-v, -vv)
+
+  -q, --quiet
+          Quiet mode (no output except errors)
+
+      --no-color
+          Disable colored output
+
+  -h, --help
+          Print help (see a summary with '-h')

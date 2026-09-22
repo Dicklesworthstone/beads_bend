@@ -1,0 +1,51 @@
+Show project statistics
+
+Usage: br stats [OPTIONS]
+
+Options:
+      --by-type
+          Show breakdown by issue type
+      --by-priority
+          Show breakdown by priority
+      --by-assignee
+          Show breakdown by assignee
+      --by-label
+          Show breakdown by label
+      --activity
+          Include recent activity stats explicitly (default unless `--no-activity`)
+      --no-activity
+          Skip recent activity stats (for performance)
+      --activity-hours <ACTIVITY_HOURS>
+          Activity window in hours (default: 24) [default: 24]
+      --format <FORMAT>
+          Output format (text, json, toon). Env: BR_OUTPUT_FORMAT, TOON_DEFAULT_FORMAT [possible values: text, json, toon]
+      --stats
+          Show token savings stats when using TOON output
+      --robot
+          Machine-readable output (alias for --json)
+      --db <DB>
+          Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+      --actor <ACTOR>
+          Actor name for audit trail
+      --json
+          Output as JSON
+      --no-daemon
+          Force direct mode (no daemon) - effectively no-op in br v1
+      --no-auto-flush
+          Skip auto JSONL export
+      --no-auto-import
+          Skip auto import check
+      --allow-stale
+          Allow stale DB (bypass freshness check warning)
+      --lock-timeout <LOCK_TIMEOUT>
+          `SQLite` busy/write-lock timeout in ms
+      --no-db
+          JSONL-only mode (no DB connection)
+  -v, --verbose...
+          Increase logging verbosity (-v, -vv)
+  -q, --quiet
+          Quiet mode (no output except errors)
+      --no-color
+          Disable colored output
+  -h, --help
+          Print help (see more with '--help')

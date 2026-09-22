@@ -1,0 +1,71 @@
+List dependencies of an issue
+
+Usage: br dep list [OPTIONS] <ISSUE>
+
+Arguments:
+  <ISSUE>
+          Issue ID
+
+Options:
+      --direction <DIRECTION>
+          Direction: down (what issue depends on), up (what depends on issue), both
+
+          Possible values:
+          - down: Dependencies this issue has (what it waits on)
+          - up:   Dependents (what waits on this issue)
+          - both: Both directions
+          
+          [default: down]
+
+  -t, --type <DEP_TYPE>
+          Filter by dependency type
+
+      --format <FORMAT>
+          Output format (text, json, toon). Env: BR_OUTPUT_FORMAT, TOON_DEFAULT_FORMAT
+
+          Possible values:
+          - text: Human-readable text (default)
+          - json: JSON output
+          - toon: TOON format (token-optimized object notation)
+
+      --stats
+          Show token savings stats when using TOON output
+
+      --db <DB>
+          Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+
+      --actor <ACTOR>
+          Actor name for audit trail
+
+      --json
+          Output as JSON
+
+      --no-daemon
+          Force direct mode (no daemon) - effectively no-op in br v1
+
+      --no-auto-flush
+          Skip auto JSONL export
+
+      --no-auto-import
+          Skip auto import check
+
+      --allow-stale
+          Allow stale DB (bypass freshness check warning)
+
+      --lock-timeout <LOCK_TIMEOUT>
+          `SQLite` busy/write-lock timeout in ms
+
+      --no-db
+          JSONL-only mode (no DB connection)
+
+  -v, --verbose...
+          Increase logging verbosity (-v, -vv)
+
+  -q, --quiet
+          Quiet mode (no output except errors)
+
+      --no-color
+          Disable colored output
+
+  -h, --help
+          Print help (see a summary with '-h')

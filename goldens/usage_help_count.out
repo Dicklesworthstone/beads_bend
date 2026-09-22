@@ -1,0 +1,59 @@
+Count issues with optional grouping
+
+Usage: br count [OPTIONS]
+
+Options:
+      --by <BY>
+          Group counts by field [possible values: status, priority, type, assignee, label]
+      --by-status
+          Group by status (alias for --by status)
+      --by-priority
+          Group by priority (alias for --by priority)
+      --by-type
+          Group by type (alias for --by type)
+      --by-assignee
+          Group by assignee (alias for --by assignee)
+      --by-label
+          Group by label (alias for --by label)
+      --status <STATUS>
+          Filter by status (repeatable or comma-separated; 'all' matches every status)
+      --type <TYPES>
+          Filter by issue type (repeatable or comma-separated)
+      --priority <PRIORITY>
+          Filter by priority (0-4 or P0-P4; repeatable or comma-separated)
+      --assignee <ASSIGNEE>
+          Filter by assignee
+      --unassigned
+          Only include unassigned issues
+      --include-closed
+          Include closed issues; tombstones require `--status tombstone`
+      --include-templates
+          Include template issues
+      --title-contains <TITLE_CONTAINS>
+          Title contains substring
+      --db <DB>
+          Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+      --actor <ACTOR>
+          Actor name for audit trail
+      --json
+          Output as JSON
+      --no-daemon
+          Force direct mode (no daemon) - effectively no-op in br v1
+      --no-auto-flush
+          Skip auto JSONL export
+      --no-auto-import
+          Skip auto import check
+      --allow-stale
+          Allow stale DB (bypass freshness check warning)
+      --lock-timeout <LOCK_TIMEOUT>
+          `SQLite` busy/write-lock timeout in ms
+      --no-db
+          JSONL-only mode (no DB connection)
+  -v, --verbose...
+          Increase logging verbosity (-v, -vv)
+  -q, --quiet
+          Quiet mode (no output except errors)
+      --no-color
+          Disable colored output
+  -h, --help
+          Print help

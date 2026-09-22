@@ -1,0 +1,86 @@
+Create a new issue
+
+Usage: br create [OPTIONS] [TITLE]
+
+Arguments:
+  [TITLE]  Issue title
+
+Options:
+      --title <TITLE_FLAG>
+          Issue title (alternative to positional argument)
+  -t, --type <TYPE>
+          Issue type (task, bug, feature, etc.)
+      --slug <SLUG>
+          Human-readable slug embedded in the generated ID. Example: `--slug survey-my-thing` produces an ID of the form `br-survey-my-thing-<hash>`, keeping the configured prefix and the uniquifying hash suffix. The slug is normalized to lowercase ASCII alphanumeric + single hyphens (runs of other characters collapse to one hyphen, leading/trailing hyphens are stripped, length is capped at 48 characters after normalization)
+  -p, --priority <PRIORITY>
+          Priority (0-4 or P0-P4)
+  -d, --description <DESCRIPTION>
+          Description [alias: --body]
+      --description-file <PATH>
+          Read the issue description verbatim from a file (or `-` for stdin)
+  -a, --assignee <ASSIGNEE>
+          Assign to person
+      --owner <OWNER>
+          Set owner email
+  -l, --labels <LABELS>
+          Labels (comma-separated)
+      --parent <PARENT>
+          Parent issue ID (creates parent-child dep)
+      --deps <DEPS>
+          Dependencies (format: type:id,type:id)
+  -e, --estimate <ESTIMATE>
+          Time estimate in minutes
+      --due <DUE>
+          Due date (RFC3339 or relative)
+      --defer <DEFER>
+          Defer until date (RFC3339 or relative)
+      --external-ref <EXTERNAL_REF>
+          External reference
+      --ephemeral
+          Mark as ephemeral (not exported to JSONL)
+  -s, --status <STATUS>
+          Initial status (open, deferred, in_progress, closed)
+      --acceptance-criteria <ACCEPTANCE_CRITERIA>
+          Acceptance criteria recorded on the initial issue (beads_rust#408) [alias: --acceptance]
+      --prerequisites <PREREQUISITES>
+          Prerequisite checklist recorded separately from acceptance criteria
+      --agent-context <AGENT_CONTEXT>
+          Set the initial `agent_context` governing-instructions JSON (beads_rust#408)
+      --dry-run
+          Preview without creating
+      --silent
+          Output only issue ID
+  -f, --file <FILE>
+          Create issues from a markdown file (bulk import)
+      --agent-name <NAME>
+          Tier 1 attribution: agent name (env: BR_AGENT_NAME). Recorded only [env: BR_AGENT_NAME=]
+      --harness <HARNESS>
+          Tier 1 attribution: harness identifier (env: BR_HARNESS). Recorded only [env: BR_HARNESS=]
+      --model <MODEL>
+          Tier 1 attribution: model identifier (env: BR_MODEL). Recorded only [env: BR_MODEL=]
+      --db <DB>
+          Database path (auto-discover .beads/*.db if not set; env: BEADS_DB)
+      --actor <ACTOR>
+          Actor name for audit trail
+      --json
+          Output as JSON
+      --no-daemon
+          Force direct mode (no daemon) - effectively no-op in br v1
+      --no-auto-flush
+          Skip auto JSONL export
+      --no-auto-import
+          Skip auto import check
+      --allow-stale
+          Allow stale DB (bypass freshness check warning)
+      --lock-timeout <LOCK_TIMEOUT>
+          `SQLite` busy/write-lock timeout in ms
+      --no-db
+          JSONL-only mode (no DB connection)
+  -v, --verbose...
+          Increase logging verbosity (-v, -vv)
+  -q, --quiet
+          Quiet mode (no output except errors)
+      --no-color
+          Disable colored output
+  -h, --help
+          Print help (see more with '--help')
