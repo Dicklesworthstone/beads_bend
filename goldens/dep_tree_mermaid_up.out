@@ -1,0 +1,12 @@
+graph TD
+    n0["proj-ig8: Deep leaf [P4]"]
+    n1["proj-in9: Shared node with a child [P3]"]
+    n2["proj-0i4: Zeta open branch [P2]"]
+    n3["proj-6ja: Hierarchy root [P1]"]
+    n4["proj-t11: Alpha busy branch [P2]"]
+    n5["proj-6ja: Hierarchy root [P1]"]
+    n0 --> n1
+    n1 --> n2
+    n2 --> n3
+    n1 --> n4
+    n4 --> n5

@@ -1,10 +1,10 @@
-captured: 2026-09-22T17:57:55.139848+00:00
+captured: 2026-09-22T18:05:43.960258+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (424 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"e31198729b0e49a64b4d500540d81964a8e168d8cbe2fe96f2a7fbbab60fb1ac"},"case_files":[],"stdin_files":[]}
-recapture: repin: new cases dep_list_up*, dep_list_both*, usage_enum_direction_dep_list (round 7 lens: dep list --direction)
+cases: goldens/cases.tsv (433 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"46a8046586c995ca3593c11d38200092c77092038ee51c06bc6ddc0529b0ec7b"},"case_files":[],"stdin_files":[]}
+recapture: repin: new cases dep_tree_mermaid*, dep_tree_format_other, scn_mermaid_titles (round 8 lens: dep tree --format, OQ-130)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1278,3 +1278,30 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_enum_direction_dep_list.out
   757418d48a6409249b77b9b7fb995a8ab14f8efd60b9781727f9f2e1e0d7b07f  usage_enum_direction_dep_list.err
   53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  usage_enum_direction_dep_list.exit
+  74caa41c0851346e4c8bef00d723e45fa3c7cd19055d844806b2f5c0f5f34563  dep_tree_mermaid.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_mermaid.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_mermaid.exit
+  19c22c74b3818c6965e9e0df14430129875299eb7f5cb56bf8ee7d82fec58814  dep_tree_mermaid_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_mermaid_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_mermaid_json.exit
+  0692982a0fed94202d3760086c8a8b66b2c278d90303a1ee9466fbac4f0ea1ec  dep_tree_mermaid_up.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_mermaid_up.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_mermaid_up.exit
+  b7d12d2372db8ea2c4be42a4106ec3ae4d32f9caba6087a7b31ceeea0c3cd5b6  dep_tree_mermaid_leaf.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_mermaid_leaf.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_mermaid_leaf.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_mermaid_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_mermaid_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_mermaid_quiet.exit
+  e785593be47d31a83ef4139475f95d9a4057291b4a32f23a84c99e412d64cafe  dep_tree_mermaid_upper.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_mermaid_upper.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_mermaid_upper.exit
+  1dfb11c420b3eab393f0582a00831ae73c95123eea60f6e42168468f732a082c  dep_tree_mermaid_unicode.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_mermaid_unicode.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_mermaid_unicode.exit
+  f5b7be3efb443b7c8fefa6df4ccbbf11e1203afc0c25941307c15ca317dd92ef  dep_tree_format_other.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_format_other.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_format_other.exit
+  5b900e6130d11c7919fd3b9ac660996345419b798042b1fd94d18ffd2ac9b201  scn_mermaid_titles.out
+  26d4701c08e4628ab48deade1e96b94a35ac72a9f7aeb08cc0ac216b4ad45e84  scn_mermaid_titles.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_mermaid_titles.exit

@@ -1,10 +1,10 @@
-captured: 2026-09-22T03:04:43.448388+00:00
+captured: 2026-09-22T17:57:55.139848+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (414 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"2bd17e3aa27adacecfddb5b42efc25b2fd8df08031352d982510957b36e993c4"},"case_files":[],"stdin_files":[]}
-recapture: repin: new cases: dep tree repeat/truncated, --max-depth and --direction up|both, on the new hierarchy fixture (S4.182-S4.185 branches no case reached)
+cases: goldens/cases.tsv (424 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"e31198729b0e49a64b4d500540d81964a8e168d8cbe2fe96f2a7fbbab60fb1ac"},"case_files":[],"stdin_files":[]}
+recapture: repin: new cases dep_list_up*, dep_list_both*, usage_enum_direction_dep_list (round 7 lens: dep list --direction)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1248,3 +1248,33 @@ sha256:
   8c733dc25e09740322942b3435981e4e18e39e52e64bf9094a6b1c106739b486  dep_tree_up_basic.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_up_basic.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_up_basic.exit
+  9a10cb6205824dfccae965c3741eabc088e338c612ee2a1c4d1a790e718781f9  dep_list_up.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_list_up.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_list_up.exit
+  646794778fda0b38e7021af48ec1d7b7d3248540abd30273105d1ed907582903  dep_list_up_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_list_up_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_list_up_json.exit
+  07d98bb3cf273fecd2a5d1d2f725edad68e0a7668e28e838c9b75d34f0d08bf0  dep_list_up_none.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_list_up_none.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_list_up_none.exit
+  37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570  dep_list_up_none_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_list_up_none_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_list_up_none_json.exit
+  37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570  dep_list_up_type_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_list_up_type_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_list_up_type_json.exit
+  b9599a3b8576a708eadd91368b98898575d3a7cf7aace7efa3ae247c4d047769  dep_list_both.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_list_both.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_list_both.exit
+  10d24b0ec564adf2f959e9f4b33a9cd984305f79acfc2fe2ec8926ee4badd70b  dep_list_both_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_list_both_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_list_both_json.exit
+  8d9d6c7e7d58efff1f9cbc5d1806cb6a5ac8b02375b1a7a00c4529893cf366d5  dep_list_both_basic.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_list_both_basic.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_list_both_basic.exit
+  47bbdabb063963251fa7aabd68cb07e22ec36ccc6476174d0d61220011edc924  dep_list_both_none.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_list_both_none.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_list_both_none.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_enum_direction_dep_list.out
+  757418d48a6409249b77b9b7fb995a8ab14f8efd60b9781727f9f2e1e0d7b07f  usage_enum_direction_dep_list.err
+  53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  usage_enum_direction_dep_list.exit

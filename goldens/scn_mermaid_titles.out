@@ -1,0 +1,54 @@
+$ ["create", "Say \"hi\" [now]", "-p", "1"]
+✓ Created proj-huh: Say "hi" [now]
+--- .beads/issues.jsonl ---
+{"id":"proj-huh","title":"Say \"hi\" [now]","status":"open","priority":1,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-huh
+[exit 0]
+$ ["create", "Pipe | and ]] end", "-p", "3"]
+✓ Created proj-h6h: Pipe | and ]] end
+--- .beads/issues.jsonl ---
+{"id":"proj-h6h","title":"Pipe | and ]] end","status":"open","priority":3,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-huh","title":"Say \"hi\" [now]","status":"open","priority":1,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-h6h
+[exit 0]
+$ ["create", "Tab\there; semi", "-p", "2"]
+✓ Created proj-o4w: Tab\there; semi
+--- .beads/issues.jsonl ---
+{"id":"proj-h6h","title":"Pipe | and ]] end","status":"open","priority":3,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-huh","title":"Say \"hi\" [now]","status":"open","priority":1,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-o4w","title":"Tab\there; semi","status":"open","priority":2,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-o4w
+[exit 0]
+$ ["dep", "add", "proj-huh", "proj-h6h"]
+✓ Added dependency: proj-huh -> proj-h6h (blocks)
+--- .beads/issues.jsonl ---
+{"id":"proj-h6h","title":"Pipe | and ]] end","status":"open","priority":3,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-huh","title":"Say \"hi\" [now]","status":"open","priority":1,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-huh","depends_on_id":"proj-h6h","type":"blocks","created_at":"2026-03-04T05:06:07Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-o4w","title":"Tab\there; semi","status":"open","priority":2,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-huh
+[exit 0]
+$ ["dep", "add", "proj-huh", "proj-o4w"]
+✓ Added dependency: proj-huh -> proj-o4w (blocks)
+--- .beads/issues.jsonl ---
+{"id":"proj-h6h","title":"Pipe | and ]] end","status":"open","priority":3,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-huh","title":"Say \"hi\" [now]","status":"open","priority":1,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-huh","depends_on_id":"proj-h6h","type":"blocks","created_at":"2026-03-04T05:06:07Z","created_by":"tester","metadata":"{}","thread_id":""},{"issue_id":"proj-huh","depends_on_id":"proj-o4w","type":"blocks","created_at":"2026-03-04T05:06:07Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-o4w","title":"Tab\there; semi","status":"open","priority":2,"issue_type":"task","created_at":"2026-03-04T05:06:07Z","created_by":"tester","updated_at":"2026-03-04T05:06:07Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+[exit 0]
+$ ["dep", "tree", "proj-huh", "--format", "mermaid"]
+graph TD
+    n0["proj-huh: Say 'hi' [now] [P1]"]
+    n1["proj-o4w: Tab\there; semi [P2]"]
+    n2["proj-h6h: Pipe | and ]] end [P3]"]
+    n0 --> n1
+    n0 --> n2
+[exit 0]
+$ ["dep", "tree", "proj-h6h", "--format", "mermaid", "--direction", "up"]
+graph TD
+    n0["proj-h6h: Pipe | and ]] end [P3]"]
+    n1["proj-huh: Say 'hi' [now] [P1]"]
+    n0 --> n1
+[exit 0]

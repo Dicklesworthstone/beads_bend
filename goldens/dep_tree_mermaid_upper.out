@@ -1,0 +1,6 @@
+graph TD
+    n0["proj-170: Implement user auth [P1]"]
+    n1["proj-mta: Set up database schema [P1]"]
+    n2["proj-uly: Auth epic [P2]"]
+    n0 --> n1
+    n0 --> n2

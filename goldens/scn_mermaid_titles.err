@@ -1,0 +1,7 @@
+$ ["create", "Say \"hi\" [now]", "-p", "1"]
+$ ["create", "Pipe | and ]] end", "-p", "3"]
+$ ["create", "Tab\there; semi", "-p", "2"]
+$ ["dep", "add", "proj-huh", "proj-h6h"]
+$ ["dep", "add", "proj-huh", "proj-o4w"]
+$ ["dep", "tree", "proj-huh", "--format", "mermaid"]
+$ ["dep", "tree", "proj-h6h", "--format", "mermaid", "--direction", "up"]

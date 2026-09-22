@@ -1,0 +1,11 @@
+# mermaid_titles: `dep tree --format mermaid` over titles carrying a double quote, brackets, a pipe and a tab (OQ-130);
+# ids from probe_mermaid_ids.scn
+@fx=empty
+@time=2026-03-04 05:06:07
+["create","Say \"hi\" [now]","-p","1"]
+["create","Pipe | and ]] end","-p","3"]
+["create","Tab\there; semi","-p","2"]
+["dep","add","proj-huh","proj-h6h"]
+["dep","add","proj-huh","proj-o4w"]
+["dep","tree","proj-huh","--format","mermaid"]
+["dep","tree","proj-h6h","--format","mermaid","--direction","up"]
