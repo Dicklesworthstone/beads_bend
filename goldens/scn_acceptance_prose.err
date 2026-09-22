@@ -1,0 +1,20 @@
+$ ["update", "proj-b75", "--acceptance-criteria", "Just prose\nsecond line"]
+$ ["show", "proj-b75", "--json"]
+$ ["update", "proj-b75", "--check-acceptance", "1"]
+Error: Validation failed: check-acceptance: proj-b75: acceptance_criteria has no checklist items to tick; append items first (--add-acceptance / add_acceptance) or set the whole field (--acceptance-criteria)
+$ ["update", "proj-b75", "--uncheck-acceptance", "prose"]
+Error: Validation failed: check-acceptance: proj-b75: acceptance_criteria has no checklist items to tick; append items first (--add-acceptance / add_acceptance) or set the whole field (--acceptance-criteria)
+$ ["update", "proj-b75", "--add-acceptance", "A"]
+$ ["update", "proj-mta", "--acceptance-criteria", "ends\n", "--add-acceptance", "B"]
+error: the argument '--acceptance-criteria <ACCEPTANCE_CRITERIA>' cannot be used with '--add-acceptance <TEXT>'
+
+Usage: br update --acceptance-criteria <ACCEPTANCE_CRITERIA> <IDS>...
+
+For more information, try '--help'.
+$ ["update", "proj-mta", "--acceptance-criteria", "ends\n"]
+$ ["update", "proj-mta", "--add-acceptance", "B", "--check-acceptance", "1"]
+Error: Validation failed: check-acceptance: proj-mta: acceptance_criteria has no checklist items to tick; append items first (--add-acceptance / add_acceptance) or set the whole field (--acceptance-criteria)
+$ ["update", "proj-mta", "--add-acceptance", "B"]
+$ ["update", "proj-mta", "--add-acceptance", "C", "--uncheck-acceptance", "1", "--json"]
+$ ["list", "--json", "--priority", "2", "--type", "task"]
+$ ["show", "proj-mta"]

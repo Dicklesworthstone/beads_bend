@@ -1,0 +1,14 @@
+# acceptance_prose: the acceptance-list flags over criteria with no checklist line: show, the errors with no items, an append onto prose and onto text that ends in a newline, a selector judged before the append, list (S4.398)
+@fx=basic
+["update","proj-b75","--acceptance-criteria","Just prose\nsecond line"]
+["show","proj-b75","--json"]
+["update","proj-b75","--check-acceptance","1"]
+["update","proj-b75","--uncheck-acceptance","prose"]
+["update","proj-b75","--add-acceptance","A"]
+["update","proj-mta","--acceptance-criteria","ends\n","--add-acceptance","B"]
+["update","proj-mta","--acceptance-criteria","ends\n"]
+["update","proj-mta","--add-acceptance","B","--check-acceptance","1"]
+["update","proj-mta","--add-acceptance","B"]
+["update","proj-mta","--add-acceptance","C","--uncheck-acceptance","1","--json"]
+["list","--json","--priority","2","--type","task"]
+["show","proj-mta"]

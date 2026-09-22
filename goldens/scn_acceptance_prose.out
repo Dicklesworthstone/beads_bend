@@ -1,0 +1,101 @@
+$ ["update", "proj-b75", "--acceptance-criteria", "Just prose\nsecond line"]
+Updated proj-b75: Ünïcödé title — “quotes” & <tags> \ backslash
+--- .beads/issues.jsonl ---
+{"id":"proj-170","title":"Implement user auth","status":"open","priority":1,"issue_type":"feature","assignee":"alice","created_at":"2026-01-01T10:00:01Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["auth","backend"],"dependencies":[{"issue_id":"proj-170","depends_on_id":"proj-mta","type":"blocks","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""},{"issue_id":"proj-170","depends_on_id":"proj-uly","type":"parent-child","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-5u2","title":"Write API docs","status":"open","priority":3,"issue_type":"docs","created_at":"2026-01-01T10:00:03Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-5u2","depends_on_id":"proj-170","type":"related","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-7vm","title":"Refactor config loader","status":"deferred","priority":4,"issue_type":"chore","created_at":"2026-01-01T10:00:05Z","created_by":"tester","updated_at":"2026-01-01T14:00:00Z","defer_until":"2027-06-01T09:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-b75","title":"Ünïcödé title — “quotes” & <tags> \\ backslash","description":"Line one\nLine two\ttabbed","acceptance_criteria":"Just prose\nsecond line","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:06Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mkh","title":"Already finished work","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:07Z","created_by":"tester","updated_at":"2026-01-01T13:00:00Z","closed_at":"2026-01-01T13:00:00Z","close_reason":"Done before the fixture","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mta","title":"Set up database schema","description":"Create the initial tables.","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","created_by":"tester","updated_at":"2026-01-01T10:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["backend","db"]}
+{"id":"proj-ptp","title":"Fix login timeout","status":"in_progress","priority":0,"issue_type":"bug","assignee":"bob","created_at":"2026-01-01T10:00:02Z","created_by":"tester","updated_at":"2026-01-01T12:30:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"comments":[{"id":1,"issue_id":"proj-ptp","author":"tester","text":"Reproduced on staging.","created_at":"2026-01-01T12:30:00Z"}]}
+{"id":"proj-uly","title":"Auth epic","status":"open","priority":2,"issue_type":"epic","created_at":"2026-01-01T10:00:04Z","created_by":"tester","updated_at":"2026-01-01T10:00:04Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-b75
+[exit 0]
+$ ["show", "proj-b75", "--json"]
+[{"id":"proj-b75","title":"Ünïcödé title — “quotes” & <tags> \\ backslash","description":"Line one\nLine two\ttabbed","acceptance_criteria":"Just prose\nsecond line","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:06Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}]
+[exit 0]
+$ ["update", "proj-b75", "--check-acceptance", "1"]
+[exit 4]
+$ ["update", "proj-b75", "--uncheck-acceptance", "prose"]
+[exit 4]
+$ ["update", "proj-b75", "--add-acceptance", "A"]
+Updated proj-b75: Ünïcödé title — “quotes” & <tags> \ backslash
+proj-b75 acceptance criteria (1 item)
+  [ ] 1  A
+added 1 (1) · 0 of 1 complete · 1 remaining
+--- .beads/issues.jsonl ---
+{"id":"proj-170","title":"Implement user auth","status":"open","priority":1,"issue_type":"feature","assignee":"alice","created_at":"2026-01-01T10:00:01Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["auth","backend"],"dependencies":[{"issue_id":"proj-170","depends_on_id":"proj-mta","type":"blocks","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""},{"issue_id":"proj-170","depends_on_id":"proj-uly","type":"parent-child","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-5u2","title":"Write API docs","status":"open","priority":3,"issue_type":"docs","created_at":"2026-01-01T10:00:03Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-5u2","depends_on_id":"proj-170","type":"related","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-7vm","title":"Refactor config loader","status":"deferred","priority":4,"issue_type":"chore","created_at":"2026-01-01T10:00:05Z","created_by":"tester","updated_at":"2026-01-01T14:00:00Z","defer_until":"2027-06-01T09:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-b75","title":"Ünïcödé title — “quotes” & <tags> \\ backslash","description":"Line one\nLine two\ttabbed","acceptance_criteria":"Just prose\nsecond line\n- [ ] A","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:06Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mkh","title":"Already finished work","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:07Z","created_by":"tester","updated_at":"2026-01-01T13:00:00Z","closed_at":"2026-01-01T13:00:00Z","close_reason":"Done before the fixture","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mta","title":"Set up database schema","description":"Create the initial tables.","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","created_by":"tester","updated_at":"2026-01-01T10:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["backend","db"]}
+{"id":"proj-ptp","title":"Fix login timeout","status":"in_progress","priority":0,"issue_type":"bug","assignee":"bob","created_at":"2026-01-01T10:00:02Z","created_by":"tester","updated_at":"2026-01-01T12:30:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"comments":[{"id":1,"issue_id":"proj-ptp","author":"tester","text":"Reproduced on staging.","created_at":"2026-01-01T12:30:00Z"}]}
+{"id":"proj-uly","title":"Auth epic","status":"open","priority":2,"issue_type":"epic","created_at":"2026-01-01T10:00:04Z","created_by":"tester","updated_at":"2026-01-01T10:00:04Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+[exit 0]
+$ ["update", "proj-mta", "--acceptance-criteria", "ends\n", "--add-acceptance", "B"]
+[exit 2]
+$ ["update", "proj-mta", "--acceptance-criteria", "ends\n"]
+Updated proj-mta: Set up database schema
+--- .beads/issues.jsonl ---
+{"id":"proj-170","title":"Implement user auth","status":"open","priority":1,"issue_type":"feature","assignee":"alice","created_at":"2026-01-01T10:00:01Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["auth","backend"],"dependencies":[{"issue_id":"proj-170","depends_on_id":"proj-mta","type":"blocks","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""},{"issue_id":"proj-170","depends_on_id":"proj-uly","type":"parent-child","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-5u2","title":"Write API docs","status":"open","priority":3,"issue_type":"docs","created_at":"2026-01-01T10:00:03Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-5u2","depends_on_id":"proj-170","type":"related","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-7vm","title":"Refactor config loader","status":"deferred","priority":4,"issue_type":"chore","created_at":"2026-01-01T10:00:05Z","created_by":"tester","updated_at":"2026-01-01T14:00:00Z","defer_until":"2027-06-01T09:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-b75","title":"Ünïcödé title — “quotes” & <tags> \\ backslash","description":"Line one\nLine two\ttabbed","acceptance_criteria":"Just prose\nsecond line\n- [ ] A","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:06Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mkh","title":"Already finished work","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:07Z","created_by":"tester","updated_at":"2026-01-01T13:00:00Z","closed_at":"2026-01-01T13:00:00Z","close_reason":"Done before the fixture","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mta","title":"Set up database schema","description":"Create the initial tables.","acceptance_criteria":"ends\n","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["backend","db"]}
+{"id":"proj-ptp","title":"Fix login timeout","status":"in_progress","priority":0,"issue_type":"bug","assignee":"bob","created_at":"2026-01-01T10:00:02Z","created_by":"tester","updated_at":"2026-01-01T12:30:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"comments":[{"id":1,"issue_id":"proj-ptp","author":"tester","text":"Reproduced on staging.","created_at":"2026-01-01T12:30:00Z"}]}
+{"id":"proj-uly","title":"Auth epic","status":"open","priority":2,"issue_type":"epic","created_at":"2026-01-01T10:00:04Z","created_by":"tester","updated_at":"2026-01-01T10:00:04Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-mta
+[exit 0]
+$ ["update", "proj-mta", "--add-acceptance", "B", "--check-acceptance", "1"]
+[exit 4]
+$ ["update", "proj-mta", "--add-acceptance", "B"]
+Updated proj-mta: Set up database schema
+proj-mta acceptance criteria (1 item)
+  [ ] 1  B
+added 1 (1) · 0 of 1 complete · 1 remaining
+--- .beads/issues.jsonl ---
+{"id":"proj-170","title":"Implement user auth","status":"open","priority":1,"issue_type":"feature","assignee":"alice","created_at":"2026-01-01T10:00:01Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["auth","backend"],"dependencies":[{"issue_id":"proj-170","depends_on_id":"proj-mta","type":"blocks","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""},{"issue_id":"proj-170","depends_on_id":"proj-uly","type":"parent-child","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-5u2","title":"Write API docs","status":"open","priority":3,"issue_type":"docs","created_at":"2026-01-01T10:00:03Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-5u2","depends_on_id":"proj-170","type":"related","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-7vm","title":"Refactor config loader","status":"deferred","priority":4,"issue_type":"chore","created_at":"2026-01-01T10:00:05Z","created_by":"tester","updated_at":"2026-01-01T14:00:00Z","defer_until":"2027-06-01T09:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-b75","title":"Ünïcödé title — “quotes” & <tags> \\ backslash","description":"Line one\nLine two\ttabbed","acceptance_criteria":"Just prose\nsecond line\n- [ ] A","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:06Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mkh","title":"Already finished work","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:07Z","created_by":"tester","updated_at":"2026-01-01T13:00:00Z","closed_at":"2026-01-01T13:00:00Z","close_reason":"Done before the fixture","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mta","title":"Set up database schema","description":"Create the initial tables.","acceptance_criteria":"ends\n- [ ] B\n","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["backend","db"]}
+{"id":"proj-ptp","title":"Fix login timeout","status":"in_progress","priority":0,"issue_type":"bug","assignee":"bob","created_at":"2026-01-01T10:00:02Z","created_by":"tester","updated_at":"2026-01-01T12:30:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"comments":[{"id":1,"issue_id":"proj-ptp","author":"tester","text":"Reproduced on staging.","created_at":"2026-01-01T12:30:00Z"}]}
+{"id":"proj-uly","title":"Auth epic","status":"open","priority":2,"issue_type":"epic","created_at":"2026-01-01T10:00:04Z","created_by":"tester","updated_at":"2026-01-01T10:00:04Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+[exit 0]
+$ ["update", "proj-mta", "--add-acceptance", "C", "--uncheck-acceptance", "1", "--json"]
+[{"id":"proj-mta","title":"Set up database schema","status":"open","priority":1,"assignee":null,"owner":null,"updated_at":"2026-01-02T03:04:05Z","acceptance_criteria":{"items":[{"index":1,"text":"B","checked":false},{"index":2,"text":"C","checked":false}],"checked_count":0,"total":2,"remaining":2,"checked":[],"unchecked":[1],"added":[2]}}]
+--- .beads/issues.jsonl ---
+{"id":"proj-170","title":"Implement user auth","status":"open","priority":1,"issue_type":"feature","assignee":"alice","created_at":"2026-01-01T10:00:01Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["auth","backend"],"dependencies":[{"issue_id":"proj-170","depends_on_id":"proj-mta","type":"blocks","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""},{"issue_id":"proj-170","depends_on_id":"proj-uly","type":"parent-child","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-5u2","title":"Write API docs","status":"open","priority":3,"issue_type":"docs","created_at":"2026-01-01T10:00:03Z","created_by":"tester","updated_at":"2026-01-01T11:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-5u2","depends_on_id":"proj-170","type":"related","created_at":"2026-01-01T11:00:00Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-7vm","title":"Refactor config loader","status":"deferred","priority":4,"issue_type":"chore","created_at":"2026-01-01T10:00:05Z","created_by":"tester","updated_at":"2026-01-01T14:00:00Z","defer_until":"2027-06-01T09:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-b75","title":"Ünïcödé title — “quotes” & <tags> \\ backslash","description":"Line one\nLine two\ttabbed","acceptance_criteria":"Just prose\nsecond line\n- [ ] A","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:06Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mkh","title":"Already finished work","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:07Z","created_by":"tester","updated_at":"2026-01-01T13:00:00Z","closed_at":"2026-01-01T13:00:00Z","close_reason":"Done before the fixture","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-mta","title":"Set up database schema","description":"Create the initial tables.","acceptance_criteria":"ends\n- [ ] B\n- [ ] C\n","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["backend","db"]}
+{"id":"proj-ptp","title":"Fix login timeout","status":"in_progress","priority":0,"issue_type":"bug","assignee":"bob","created_at":"2026-01-01T10:00:02Z","created_by":"tester","updated_at":"2026-01-01T12:30:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"comments":[{"id":1,"issue_id":"proj-ptp","author":"tester","text":"Reproduced on staging.","created_at":"2026-01-01T12:30:00Z"}]}
+{"id":"proj-uly","title":"Auth epic","status":"open","priority":2,"issue_type":"epic","created_at":"2026-01-01T10:00:04Z","created_by":"tester","updated_at":"2026-01-01T10:00:04Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+[exit 0]
+$ ["list", "--json", "--priority", "2", "--type", "task"]
+{"issues":[{"id":"proj-b75","title":"Ünïcödé title — “quotes” & <tags> \\ backslash","description":"Line one\nLine two\ttabbed","acceptance_criteria":"Just prose\nsecond line\n- [ ] A","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:06Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependency_count":0,"dependent_count":0}],"total":1,"limit":0,"offset":0,"has_more":false}
+[exit 0]
+$ ["show", "proj-mta"]
+○ proj-mta · Set up database schema   [● P1 · OPEN]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-02
+Labels: backend, db
+
+Create the initial tables.
+
+Acceptance Criteria:
+ends
+- [ ] B
+- [ ] C
+
+
+Dependents:
+  <- proj-170 (blocks) - Implement user auth
+[exit 0]

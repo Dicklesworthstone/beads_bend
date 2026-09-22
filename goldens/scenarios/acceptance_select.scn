@@ -1,0 +1,12 @@
+# acceptance_select: selector rules: the field name of `--uncheck-acceptance` errors, a unique substring, an exact match over substrings, an ambiguous substring, check + uncheck + add in one run, a repeated number, show --json with labels and dependents (S4.398)
+@fx=basic
+["update","proj-mta","--acceptance-criteria","- [ ] Apple\n- [x] Banana\n- [ ] Cherry pie\n- [ ] cherry"]
+["update","proj-mta","--uncheck-acceptance","9"]
+["update","proj-mta","--uncheck-acceptance","zzz"]
+["update","proj-mta","--check-acceptance","an"]
+["update","proj-mta","--check-acceptance","CHERRY"]
+["update","proj-mta","--check-acceptance","e"]
+["update","proj-mta","--uncheck-acceptance","e","--json"]
+["update","proj-mta","--check-acceptance","1","--uncheck-acceptance","2","--add-acceptance","Date"]
+["update","proj-mta","--check-acceptance","1,1"]
+["show","proj-mta","--json"]

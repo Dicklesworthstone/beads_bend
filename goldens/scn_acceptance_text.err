@@ -1,0 +1,25 @@
+$ ["update", "proj-b75", "--acceptance-criteria", "Intro line\n- [ ] Alpha\n* [X] Beta\n  - [ ] Gamma nested\n- [] Delta\n1. [ ] Epsilon\nplain tail"]
+$ ["update", "proj-b75", "--check-acceptance", "beta"]
+$ ["update", "proj-b75", "--check-acceptance", "alpha"]
+$ ["update", "proj-b75", "--uncheck-acceptance", "Beta"]
+$ ["update", "proj-b75", "--check-acceptance", "a"]
+Error: Validation failed: check-acceptance: proj-b75: "a" matches 3 acceptance items; use the item number instead:
+  [x] 1  Alpha
+  [ ] 2  Beta
+  [ ] 3  Gamma nested
+$ ["update", "proj-b75", "--check-acceptance", "zzz"]
+Error: Validation failed: check-acceptance: proj-b75: no acceptance item matches "zzz"; items are:
+  [x] 1  Alpha
+  [ ] 2  Beta
+  [ ] 3  Gamma nested
+$ ["update", "proj-b75", "--check-acceptance", "1,3"]
+$ ["update", "proj-b75", "--check-acceptance", "0"]
+Error: Validation failed: check-acceptance: proj-b75: acceptance item numbers are 1-based; 0 is not an item
+$ ["update", "proj-b75", "--check-acceptance", "2,x"]
+Error: Validation failed: check-acceptance: proj-b75: no acceptance item matches "2,x"; items are:
+  [x] 1  Alpha
+  [ ] 2  Beta
+  [x] 3  Gamma nested
+$ ["update", "proj-b75", "--add-acceptance", "New one", "--json"]
+$ ["update", "proj-b75", "--uncheck-acceptance", "1", "--uncheck-acceptance", "Gamma"]
+$ ["show", "proj-b75", "--json"]

@@ -115,6 +115,16 @@ to change the contract. Keep the historical entry and its original evidence.
 - Impact measured: 1 of 476 cases; a workspace that sets both keys to different values.
 - Approver: none yet. OPEN until the repository owner decides between removing the case, keeping it as a documented failure, or a canonicalizing wrapper (as DISC-005 did for the ambiguous-id order).
 
+### DISC-011 — `events_removed` of `delete --cascade --hard --json` varies between runs of the original   [2026-09-22 | Nondeterminism | OPEN]
+- Spec clause: S4.336, S4.339
+- Original behavior (cite the golden): `delete proj-mta --cascade --hard --json` on fixture `basic` (three records purged, `dependencies_removed` 3) printed `events_removed` 1 in four of twelve sandbox runs, 2 in five and 3 in three (2026-09-22); every other member and the plain form (`delete proj-mta --cascade --hard`, six runs, one sha) are stable. Without `--cascade` the count is stable and equals `dependencies_removed` (six runs each of `delete proj-mta --hard --force --json` → 1, `delete proj-5u2 --hard --json` → 1, `delete proj-mta proj-5u2 --hard --force --json` → 2). `goldens/delete_hard_cascade_json.out` holds one draw (captured twice today: 3, then 1); it is not a reproducible golden. `scripts/floor.sh` over the 56 cases added on 2026-09-22 at `--repeat 3`: `{"repeat":3,"stable":55,"unstable":["delete_hard_cascade_json"],"inconclusive":[],"oracle_identity_checked":true,"verdict":"UNSTABLE"}`.
+- Port behavior: `events_removed` = `dependencies_removed` under `--cascade` too (3 for this case), the rule every stable hard delete follows.
+- Why: there is no single original answer to reproduce; the port takes the count the original gives when the purge order cannot matter.
+- Kill-switch: none (without `--json`, or without `--cascade`, the original and the port agree).
+- Affected cases: `delete_hard_cascade_json`, which fails on every lane whenever its captured draw is not 3.
+- Impact measured: 1 of 650 cases; one counter of one JSON form.
+- Approver: none yet. OPEN until the repository owner decides between removing the case, keeping it as a documented failure, or a canonicalizing wrapper (as DISC-005 did for the ambiguous-id order).
+
 ### DISC-008 — the JS lane faults on a store above about 30 KB   [2026-09-20 | Platform | RESOLVED]
 - Spec clause: S2.24 (load), S8.13 (the store read); PLAN §7 risk B7 (JS deep recursion)
 - Original behavior (cite the golden): `br --no-db count` answers on a store of any size the filesystem holds; the original's own `.beads/issues.jsonl` is 4.5 MB (PLAN §7). No captured case exercises a large store — the corpus's biggest fixture is 8 records — so no golden shows this; it was measured with a probe.

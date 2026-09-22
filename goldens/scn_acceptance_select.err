@@ -1,0 +1,20 @@
+$ ["update", "proj-mta", "--acceptance-criteria", "- [ ] Apple\n- [x] Banana\n- [ ] Cherry pie\n- [ ] cherry"]
+$ ["update", "proj-mta", "--uncheck-acceptance", "9"]
+Error: Validation failed: uncheck-acceptance: proj-mta: acceptance item 9 does not exist (4 items present)
+$ ["update", "proj-mta", "--uncheck-acceptance", "zzz"]
+Error: Validation failed: uncheck-acceptance: proj-mta: no acceptance item matches "zzz"; items are:
+  [ ] 1  Apple
+  [x] 2  Banana
+  [ ] 3  Cherry pie
+  [ ] 4  cherry
+$ ["update", "proj-mta", "--check-acceptance", "an"]
+$ ["update", "proj-mta", "--check-acceptance", "CHERRY"]
+$ ["update", "proj-mta", "--check-acceptance", "e"]
+Error: Validation failed: check-acceptance: proj-mta: "e" matches 3 acceptance items; use the item number instead:
+  [ ] 1  Apple
+  [ ] 3  Cherry pie
+  [x] 4  cherry
+$ ["update", "proj-mta", "--uncheck-acceptance", "e", "--json"]
+$ ["update", "proj-mta", "--check-acceptance", "1", "--uncheck-acceptance", "2", "--add-acceptance", "Date"]
+$ ["update", "proj-mta", "--check-acceptance", "1,1"]
+$ ["show", "proj-mta", "--json"]

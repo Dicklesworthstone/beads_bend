@@ -1,0 +1,8 @@
+$ ["update", "proj-b75", "--add-acceptance", "First", "--add-acceptance", "Second"]
+$ ["update", "proj-b75", "--check-acceptance", "1"]
+$ ["update", "proj-b75", "--check-acceptance", "1", "--json"]
+$ ["update", "proj-b75", "--uncheck-acceptance", "1"]
+$ ["update", "proj-b75", "--check-acceptance", "9"]
+Error: Validation failed: check-acceptance: proj-b75: acceptance item 9 does not exist (2 items present)
+$ ["update", "proj-b75", "--add-acceptance", "Third", "--check-acceptance", "2"]
+$ ["show", "proj-b75"]

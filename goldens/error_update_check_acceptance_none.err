@@ -1,0 +1,1 @@
+Error: Validation failed: check-acceptance: proj-b75: acceptance_criteria has no checklist items to tick; append items first (--add-acceptance / add_acceptance) or set the whole field (--acceptance-criteria)

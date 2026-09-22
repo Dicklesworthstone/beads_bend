@@ -1,0 +1,9 @@
+# acceptance_list: the acceptance-list flags on an issue without criteria: add, check by number, JSON, uncheck, a missing number, add with check, then show (S4.398)
+@fx=basic
+["update","proj-b75","--add-acceptance","First","--add-acceptance","Second"]
+["update","proj-b75","--check-acceptance","1"]
+["update","proj-b75","--check-acceptance","1","--json"]
+["update","proj-b75","--uncheck-acceptance","1"]
+["update","proj-b75","--check-acceptance","9"]
+["update","proj-b75","--add-acceptance","Third","--check-acceptance","2"]
+["show","proj-b75"]
