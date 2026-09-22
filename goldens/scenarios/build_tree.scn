@@ -1,0 +1,21 @@
+# build_tree: the scenario that PRODUCES goldens/fixtures/tree.jsonl (scripts/make-fixture.sh tree build_tree).
+# A root epic proj-abk (id from probe_tree_root.scn) with eleven children proj-abk.1 … proj-abk.11, so a child
+# number past 9 separates numeric from textual order (S5.127); priorities cycle 3, 1, 2 so a priority filter
+# hides some parents; proj-abk.10.1 and proj-abk.3.1 are grandchildren that a filter can leave without their
+# listed parent (adopted by the nearest listed ancestor).
+@fx=empty
+@time=2026-07-01 00:00:00
+["create", "Tree root", "-t", "epic", "-p", "2"]
+["create", "Child 1", "--parent", "proj-abk", "-p", "1"]
+["create", "Child 2", "--parent", "proj-abk", "-p", "2"]
+["create", "Child 3", "--parent", "proj-abk", "-p", "3"]
+["create", "Child 4", "--parent", "proj-abk", "-p", "1"]
+["create", "Child 5", "--parent", "proj-abk", "-p", "2"]
+["create", "Child 6", "--parent", "proj-abk", "-p", "3"]
+["create", "Child 7", "--parent", "proj-abk", "-p", "1"]
+["create", "Child 8", "--parent", "proj-abk", "-p", "2"]
+["create", "Child 9", "--parent", "proj-abk", "-p", "3"]
+["create", "Child 10", "--parent", "proj-abk", "-p", "1"]
+["create", "Child 11", "--parent", "proj-abk", "-p", "2"]
+["create", "Grand of 10", "--parent", "proj-abk.10", "-p", "0"]
+["create", "Grand of 3", "--parent", "proj-abk.3", "-p", "0"]

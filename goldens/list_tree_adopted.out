@@ -1,0 +1,7 @@
+○ proj-abk [● P2] [epic] - Tree root
+├── ○ proj-abk.2 [● P2] [task] - Child 2
+├── ○ proj-abk.5 [● P2] [task] - Child 5
+├── ○ proj-abk.8 [● P2] [task] - Child 8
+├── ○ proj-abk.11 [● P2] [task] - Child 11
+├── ○ proj-abk.10.1 [● P0] [task] - Grand of 10
+└── ○ proj-abk.3.1 [● P0] [task] - Grand of 3

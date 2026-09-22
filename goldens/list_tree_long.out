@@ -1,0 +1,6 @@
+○ proj-9vo [● P1] [epic] - Parent epic
+├── ○ proj-9vo.1 [● P2] [task] - Child one
+│   └── ○ proj-9vo.1.1 [● P1] [task] - Grandchild
+├── ○ proj-9vo.2 [● P3] [task] - Child two
+└── ○ proj-9vo.3 [● P0] [task] - Blocked child
+○ proj-3av [● P2] [task] - Loose task

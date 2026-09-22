@@ -1,10 +1,10 @@
-captured: 2026-09-22T21:47:47.369714+00:00
+captured: 2026-09-22T22:03:42.297887+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (578 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"048a7eb734379a248e56453bc4b43822d866cbc4a316986f3919c43e7958d16e"},"case_files":[],"stdin_files":[]}
-recapture: repin: new scenario stats_tombstone, case scn_stats_tombstone (the stats breakdowns leave tombstones out)
+original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
+cases: goldens/cases.tsv (584 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"2fa91b0bf9a41b0c90c5397daa1298a32caaa049606b88c210ec36332cb86d89"},"case_files":[],"stdin_files":[]}
+recapture: repin: new cases list_pretty* (S5.128)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1740,3 +1740,21 @@ sha256:
   e68215cd5d3c6891b59890f1d02c9a2902442eac9fbe30787c544f3a5ab67a66  scn_stats_tombstone.out
   79cf8eed1f8422c089e9edd247a806bef8f4a124f3f4a6a9cd2123b1a07c7603  scn_stats_tombstone.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_stats_tombstone.exit
+  8a2ff6d39635e7990b965383ea71ee65e5632352fed98c4df88ad27fc298bb5f  list_pretty.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  list_pretty.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  list_pretty.exit
+  db79446f4c2e6f4d3aec0de3b9188eda08e5928855df2ced49b2f23dfcf3f8cb  list_pretty_long.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  list_pretty_long.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  list_pretty_long.exit
+  a92ef6dae92829f6e5412df488a7cfaab4111e8b8f089d6d31d3e777fb8c9738  list_pretty_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  list_pretty_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  list_pretty_json.exit
+  5d5549ed430853edb51fcba7eda7a1258ad98db5d7e9b81f558eecf2050994d4  list_pretty_parents.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  list_pretty_parents.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  list_pretty_parents.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  list_pretty_empty.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  list_pretty_empty.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  list_pretty_empty.exit
+  5d9edc7572eeaeeedbd9f54bc4e020365552ae0b5db4934ed02c45b30e565349  list_pretty_limit.out
+  8bf73fefa082d7c73d3e5fb091bdcf39c027989f0668e0082bcbf4c159d5fddf  list_pretty_limit.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  list_pretty_limit.exit
