@@ -1,0 +1,16 @@
+# probe: the tie-break of `dep tree` children at equal priority.
+# pfz: created FIRST,  title "Zebra created first",  id pfz
+# t5y: created SECOND, title "Alpha created second", id t5y
+# created_at -> pfz, t5y ; title -> t5y, pfz ; id -> pfz, t5y
+# The dep adds are issued t5y FIRST to separate insertion order too.
+@fx=empty
+@time=2026-04-01 09:00:00
+["create","Root of the tie","-t","task","-p","1"]
+@time=2026-04-01 09:00:01
+["create","Zebra created first","-t","task","-p","2"]
+@time=2026-04-01 09:00:02
+["create","Alpha created second","-t","task","-p","2"]
+@time=2026-04-01 10:00:00
+["dep","add","proj-cx7","proj-t5y"]
+["dep","add","proj-cx7","proj-pfz"]
+["dep","tree","proj-cx7"]

@@ -1,0 +1,15 @@
+# probe: does `dep tree` order children by created_at, priority, or id?
+# ghv: created FIRST, priority 4 (worst), id ghv
+# kdd: created SECOND, priority 0 (best), id kdd
+# created_at order -> ghv, kdd ; priority order -> kdd, ghv ; id order -> ghv, kdd
+@fx=empty
+@time=2026-03-01 09:00:00
+["create","Root here","-t","task","-p","1"]
+@time=2026-03-01 09:00:01
+["create","Early but low priority","-t","task","-p","4"]
+@time=2026-03-01 09:00:02
+["create","Late but high priority","-t","task","-p","0"]
+@time=2026-03-01 10:00:00
+["dep","add","proj-3n3","proj-ghv"]
+["dep","add","proj-3n3","proj-kdd"]
+["dep","tree","proj-3n3"]

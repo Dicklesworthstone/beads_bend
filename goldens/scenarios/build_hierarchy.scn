@@ -1,0 +1,37 @@
+# build_hierarchy: the scenario that PRODUCES goldens/fixtures/hierarchy.jsonl.
+# The fixture is the original's own output, never hand-typed
+# (scripts/make-fixture.sh hierarchy build_hierarchy).
+#
+# It reaches the three branches of S4.184/S4.185 that no other fixture does:
+#   * SIBLING STATUS RANK — proj-0i4 "Zeta open branch" and proj-t11 "Alpha
+#     busy branch" share priority 2, so the status rank (open 0 before
+#     in_progress 1) decides, and it decides AGAINST the title order.
+#   * repeat TRUE — proj-in9 is reachable under both branches and HAS a
+#     child of its own, so the second occurrence is emitted with `repeat`
+#     true and its subtree is not repeated (the diamond of fixture `graph`
+#     cannot reach this: its shared leaf has no neighbours).
+#   * DEPTH — the root reaches depth 3, so `--max-depth` has something to cut.
+#
+# proj-t11 is moved to in_progress BEFORE the edges are added: once it depends
+# on the open proj-in9 the original refuses the claim
+# ("cannot claim blocked issue"), which is itself the reason the order here
+# is not the obvious one.
+@fx=empty
+@time=2026-06-01 09:00:00
+["create","Hierarchy root","-t","feature","-p","1"]
+@time=2026-06-01 09:00:01
+["create","Zeta open branch","-t","task","-p","2"]
+@time=2026-06-01 09:00:02
+["create","Alpha busy branch","-t","task","-p","2"]
+@time=2026-06-01 09:00:03
+["create","Shared node with a child","-t","task","-p","3"]
+@time=2026-06-01 09:00:04
+["create","Deep leaf","-t","task","-p","4"]
+@time=2026-06-01 09:30:00
+["update","proj-t11","--status","in_progress"]
+@time=2026-06-01 10:00:00
+["dep","add","proj-6ja","proj-0i4"]
+["dep","add","proj-6ja","proj-t11"]
+["dep","add","proj-0i4","proj-in9"]
+["dep","add","proj-t11","proj-in9"]
+["dep","add","proj-in9","proj-ig8"]

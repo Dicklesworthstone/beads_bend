@@ -1,0 +1,11 @@
+# probe: title-ascending vs id-descending as the tie-break at equal priority.
+# proj-170 "Implement user auth"       P1
+# proj-mta "Set up database schema"    P1
+# title ascending -> 170, mta ; id descending -> mta, 170
+@fx=basic
+@time=2026-05-01 09:00:00
+["create","Tie break root","-t","task","-p","1"]
+@time=2026-05-01 10:00:00
+["dep","add","proj-uzm","proj-mta"]
+["dep","add","proj-uzm","proj-170"]
+["dep","tree","proj-uzm"]

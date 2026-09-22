@@ -1,0 +1,12 @@
+# probe (phase 1): ids for the hierarchy fixture
+@fx=empty
+@time=2026-06-01 09:00:00
+["create","Hierarchy root","-t","feature","-p","1"]
+@time=2026-06-01 09:00:01
+["create","Zeta open branch","-t","task","-p","2"]
+@time=2026-06-01 09:00:02
+["create","Alpha busy branch","-t","task","-p","2"]
+@time=2026-06-01 09:00:03
+["create","Shared node with a child","-t","task","-p","3"]
+@time=2026-06-01 09:00:04
+["create","Deep leaf","-t","task","-p","4"]

@@ -1,10 +1,10 @@
-captured: 2026-09-22T00:49:02.590312+00:00
+captured: 2026-09-22T03:04:43.448388+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (403 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"5613faac0df673ae45f59061f250b26cc6ce80c3824be1d0fac36de3d4920545"},"case_files":[],"stdin_files":[]}
-recapture: repin: new cases: the dep-tree traversal beyond depth 0 (depth, diamond, back edge), the BLOCKED relation with two blockers and a blocking cycle, and the graph fixture they need
+cases: goldens/cases.tsv (414 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"2bd17e3aa27adacecfddb5b42efc25b2fd8df08031352d982510957b36e993c4"},"case_files":[],"stdin_files":[]}
+recapture: repin: new cases: dep tree repeat/truncated, --max-depth and --direction up|both, on the new hierarchy fixture (S4.182-S4.185 branches no case reached)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1215,3 +1215,36 @@ sha256:
   fb4fb93d1fda719c1290cea1feb33b4313cbde616a854416488341bcb6e362d6  show_graph_root_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  show_graph_root_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  show_graph_root_json.exit
+  78ab51ff594e238eaf941e6f8b36f6d96eb2834ce4062a41ad892388fb45e4ef  dep_tree_repeat.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_repeat.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_repeat.exit
+  19c22c74b3818c6965e9e0df14430129875299eb7f5cb56bf8ee7d82fec58814  dep_tree_repeat_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_repeat_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_repeat_json.exit
+  ecf4d73f0e049d724c5982ede94db15641f364fcaf6a2673b622760f840928e5  dep_tree_max_depth.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_max_depth.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_max_depth.exit
+  957cde49d73d7856417aa159537253adb7ef6f87fcbb69518f614e3408028cff  dep_tree_max_depth_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_max_depth_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_max_depth_json.exit
+  69dd89ad92b99487cdfd08493199ab17e82341cadfcad00512b9e14b758d76cf  dep_tree_max_depth_1.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_max_depth_1.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_max_depth_1.exit
+  d4505dae8bfb2afaab4b98cc67ded0bd97bb9cdc25a3572feb85cb61f1c9d410  dep_tree_max_depth_0.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_max_depth_0.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_max_depth_0.exit
+  38a6adf6b2bfc3b501c0b0be0d07f2c3026aefbe8007b29bb71872a97289a919  dep_tree_up.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_up.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_up.exit
+  b22302a12cb26a099aedda550bf3e0a5fc0ffdf5148e22ec456aa0169d1df32c  dep_tree_up_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_up_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_up_json.exit
+  128e1db8b3bf53bd0c531c82fcefa56a9525c5e7766e835232d92e0ea5f3458f  dep_tree_both.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_both.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_both.exit
+  0cefaf05d8d484c6d37f1105368c7b66d313130e4cc7faf19a16a3dc2b93deed  dep_tree_both_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_both_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_both_json.exit
+  8c733dc25e09740322942b3435981e4e18e39e52e64bf9094a6b1c106739b486  dep_tree_up_basic.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  dep_tree_up_basic.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  dep_tree_up_basic.exit
