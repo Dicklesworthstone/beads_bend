@@ -1,0 +1,9 @@
+# blocked_detailed_external: `blocked --detailed` when a blocker has no stored record (an `external:` target)
+# and when a blocker is closed and so drops out
+@fx=basic
+["dep","add","proj-ptp","external:other-1"]
+["blocked"]
+["blocked","--detailed"]
+["blocked","--detailed","--json"]
+["close","proj-mta"]
+["blocked","--detailed"]

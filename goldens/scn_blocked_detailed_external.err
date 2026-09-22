@@ -1,0 +1,6 @@
+$ ["dep", "add", "proj-ptp", "external:other-1"]
+$ ["blocked"]
+$ ["blocked", "--detailed"]
+$ ["blocked", "--detailed", "--json"]
+$ ["close", "proj-mta"]
+$ ["blocked", "--detailed"]

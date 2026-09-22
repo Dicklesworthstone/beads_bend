@@ -1,0 +1,9 @@
+
+🚫 Blocked issues (2):
+
+[● P1] proj-170: Implement user auth
+  Blocked by:
+    • proj-mta: Set up database schema [P1] [open]
+[● P2] proj-uly: Auth epic
+  Blocked by:
+    • proj-170: Implement user auth [P1] [open]

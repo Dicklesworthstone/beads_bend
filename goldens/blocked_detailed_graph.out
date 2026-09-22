@@ -1,0 +1,22 @@
+
+🚫 Blocked issues (6):
+
+[● P1] proj-697: Root of the diamond
+  Blocked by:
+    • proj-ah0: Right middle [P2] [open]
+    • proj-kxh: Left middle [P2] [open]
+[● P1] proj-9vw: Chain head
+  Blocked by:
+    • proj-wjh: Chain middle [P2] [open]
+[● P2] proj-wjh: Chain middle
+  Blocked by:
+    • proj-a14: Chain tail [P3] [open]
+[● P2] proj-ah0: Right middle
+  Blocked by:
+    • proj-tip: Shared leaf [P3] [open]
+[● P2] proj-kxh: Left middle
+  Blocked by:
+    • proj-tip: Shared leaf [P3] [open]
+[● P3] proj-a14: Chain tail
+  Blocked by:
+    • proj-9vw: Chain head [P1] [open]
