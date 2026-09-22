@@ -5,7 +5,7 @@
 # discards everything. The store is rewritten only when some issue changed
 # (S4.203); `.beads/last-touched` names the last id either way (S4.209).
 # Not here yet, each refused with the port's own failure by the dispatcher:
-# `--parent`, `--append-notes`, the acceptance-list flags, `--transition-comment`,
+# `--parent`, the acceptance-list flags, `--transition-comment`,
 # `--description-file`, `--agent-context`, `--session`. Nothing here consults the original.
 import Base
 import ./time.bend as Time
@@ -190,6 +190,25 @@ def body_of(+which: U32, +i: Model.Issue) -> String:
 def body_written(+i: Model.Issue, +which: U32, +value: String, +old: String, force: Bool) -> Edit:
   Bool.pick(Edit, (Bool.not(force) && Bool.not(String.is_empty(old)) && Bool.not(String.eq(old, value)) && Nat.is_lt(Nat.mul(String.length(value), 2n), String.length(old))), EditBad{context_refusal(Model.id_of(i), body_name(which), String.length(old), String.length(value))}, EditOk{set_text(which, i, optional(value)), True{}})
 
+# S4.395 (spec twin) the notes after `--append-notes`: the text alone onto empty notes, directly after notes that
+# already end in a newline, after one `\n` otherwise (`scn_append_notes`)
+def appended_to(+old: String, +text: String) -> String:
+  Bool.pick(String, String.is_empty(old), text, Bool.pick(String, String.ends_with(old, "\n"), old ++ text, old ++ "\n" ++ text))
+
+# S4.395 (spec twin) the notes with the text appended; an empty text is refused (`error_update_append_empty`)
+def append_written(+i: Model.Issue, +text: String) -> Edit:
+  Bool.pick(Edit, String.is_empty(text), EditBad{Create.invalid("append-notes", "text to append must not be empty")}, EditOk{set_text(4, i, Some{appended_to(Maybe.default(&2, String, Model.notes_of(i), ""), text)}), True{}})
+
+# S4.395 (spec twin) `--append-notes` folded in, after `--notes` (the two are refused together by the parser)
+def with_append(e: Edit, given: Maybe<&2, String>) -> Edit:
+  match e given:
+    case EditBad{f} _:
+      EditBad{f}
+    case EditOk{i, changed} None{}:
+      EditOk{i, changed}
+    case EditOk{i, changed} Some{text}:
+      append_written(i, text)
+
 # S4.265 S4.266 (spec twin) one body flag folded in
 def with_body(e: Edit, given: Maybe<&2, String>, +which: U32, force: Bool) -> Edit:
   match e given:
@@ -323,14 +342,37 @@ def person_text(value: Maybe<&2, String>) -> String:
     case Some{v}:
       v
 
-# S4.272 S4.273 (spec twin) the plain block of one updated issue: `Updated <id>: <title>` and one line per observed
-# change, in the fixed order status, priority, type, assignee, owner; without any field flag, one other line
-def block_plain(+old: Model.Issue, +new: Model.Issue, any_flag: Bool) -> String:
+# S4.395 (spec twin) how many newlines a text holds
+def newlines(s: String) -> Nat:
+  match s:
+    case SNil{}:
+      0n
+    case SCon{Chr{+c}, rest}:
+      (Bool.pick(Nat, U32.is_eq(c, 10), 1n, 0n) + newlines(rest) : Nat)
+
+# S4.395 (spec twin) the lines of a text as Rust's `str::lines` counts them: none for the empty text, and a trailing
+# newline ends the last line rather than opening another
+def line_count(+s: String) -> Nat:
+  Bool.pick(Nat, String.is_empty(s), 0n, Bool.pick(Nat, String.ends_with(s, "\n"), newlines(s), (newlines(s) + 1n : Nat)))
+
+# S4.395 (spec twin) the notes line of `--append-notes`: `  notes: appended <n> chars (now <l> line[s], <c> chars)`;
+# `chars` counts code points and is never singular, `line` is (`update_append_notes_unicode`, `scn_append_notes`)
+def append_line(appended: Maybe<&2, String>, +notes: String) -> String:
+  match appended:
+    case None{}:
+      ""
+    case Some{text}:
+      String.concat(["  notes: appended ", Nat.show(String.length(text)), " chars (now ", Nat.show(line_count(notes)), Bool.pick(String, Nat.is_eq(line_count(notes), 1n), " line, ", " lines, "), Nat.show(String.length(notes)), " chars)\n"])
+
+# S4.272 S4.273 S4.395 (spec twin) the plain block of one updated issue: `Updated <id>: <title>` and one line per
+# observed change, in the fixed order status, priority, type, assignee, owner, then the notes line of
+# `--append-notes`; without any field flag, one other line
+def block_plain(+old: Model.Issue, +new: Model.Issue, any_flag: Bool, appended: Maybe<&2, String>) -> String:
   match any_flag:
     case False{}:
       "No updates specified for " ++ Render.inline(Model.id_of(new)) ++ "\n"
     case True{}:
-      String.concat(["Updated ", Render.inline(Model.id_of(new)), ": ", Render.inline(Model.title_of(new)), "\n", change_line("status", Model.status_of(old), Model.status_of(new)), change_line("priority", "P" ++ Model.priority_of(old), "P" ++ Model.priority_of(new)), change_line("type", Model.type_of(old), Model.type_of(new)), change_line("assignee", person_text(Model.assignee_of(old)), person_text(Model.assignee_of(new))), change_line("owner", person_text(Model.owner_of(old)), person_text(Model.owner_of(new)))])
+      String.concat(["Updated ", Render.inline(Model.id_of(new)), ": ", Render.inline(Model.title_of(new)), "\n", change_line("status", Model.status_of(old), Model.status_of(new)), change_line("priority", "P" ++ Model.priority_of(old), "P" ++ Model.priority_of(new)), change_line("type", Model.type_of(old), Model.type_of(new)), change_line("assignee", person_text(Model.assignee_of(old)), person_text(Model.assignee_of(new))), change_line("owner", person_text(Model.owner_of(old)), person_text(Model.owner_of(new))), append_line(appended, Maybe.default(&2, String, Model.notes_of(new), ""))])
 
 # S5.39 (spec twin) a person in the JSON element: an explicit `null` when unset
 def person_json(value: Maybe<&2, String>) -> String:
@@ -340,14 +382,24 @@ def person_json(value: Maybe<&2, String>) -> String:
     case Some{v}:
       Failure.quoted(v)
 
-# S5.39 (spec twin) the JSON element of one updated issue: seven members in this order
-def block_json(+i: Model.Issue) -> String:
-  String.concat(["{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"status\":", Failure.quoted(Model.status_of(i)), ",\"priority\":", Model.priority_of(i), ",\"assignee\":", person_json(Model.assignee_of(i)), ",\"owner\":", person_json(Model.owner_of(i)), ",\"updated_at\":", Failure.quoted(Time.print(Model.updated_of(i), "Z")), "}"])
+# S5.39 S4.395 (spec twin) the `notes` member `--append-notes` adds: the text, `applied`, the lengths before and
+# after in code points, and the new notes (`update_append_notes_json`)
+def append_json(appended: Maybe<&2, String>, +before: String, +after: String) -> String:
+  match appended:
+    case None{}:
+      ""
+    case Some{text}:
+      String.concat([",\"notes\":{\"appended\":", Failure.quoted(text), ",\"applied\":true,\"chars_before\":", Nat.show(String.length(before)), ",\"chars_after\":", Nat.show(String.length(after)), ",\"text\":", Failure.quoted(after), "}"])
+
+# S5.39 (spec twin) the JSON element of one updated issue: seven members in this order, and `notes` after them
+# under `--append-notes`
+def block_json(+old: Model.Issue, +i: Model.Issue, appended: Maybe<&2, String>) -> String:
+  String.concat(["{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"status\":", Failure.quoted(Model.status_of(i)), ",\"priority\":", Model.priority_of(i), ",\"assignee\":", person_json(Model.assignee_of(i)), ",\"owner\":", person_json(Model.owner_of(i)), ",\"updated_at\":", Failure.quoted(Time.print(Model.updated_of(i), "Z")), append_json(appended, Maybe.default(&2, String, Model.notes_of(old), ""), Maybe.default(&2, String, Model.notes_of(i), "")), "}"])
 
 # S4.262–S4.268 (spec twin) every flag of one `update` applied to one issue, in a fixed order; `priority` is the
 # priority's digits when `-p` was given and judged
 def edited(i: Model.Issue, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, actor: String, +now: Time.Instant) -> Edit:
-  finished(with_labels(with_claim(with_date(with_date(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_body(with_body(with_body(with_body(with_body(with_compared(with_compared(with_status(start(i), Cli.value(opts, "status")), priority, 2), lowered_kind(Cli.value(opts, "type")), 3), Cli.value(opts, "description"), 0, Cli.given(opts, "force")), Cli.value(opts, "design"), 1, Cli.given(opts, "force")), Cli.value(opts, "acceptance-criteria"), 2, Cli.given(opts, "force")), Cli.value(opts, "prerequisites"), 3, Cli.given(opts, "force")), Cli.value(opts, "notes"), 4, Cli.given(opts, "force")), Cli.value(opts, "title"), 0), Cli.value(opts, "assignee"), 1), Cli.value(opts, "owner"), 2), Cli.value(opts, "external-ref"), 3), Cli.value(opts, "source-repo"), 4), Cli.value(opts, "source-repo-path"), 5), Cli.value(opts, "estimate"), 6), Cli.value(opts, "due"), 0, now, "due_at"), Cli.value(opts, "defer"), 1, now, "defer_until"), Cli.given(opts, "claim"), relation, actor, Cli.given(opts, "force")), Cli.values(opts, "set-labels"), Cli.values(opts, "add-label"), Cli.values(opts, "remove-label"), (Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label")), Cli.given(opts, "set-labels")), now)
+  finished(with_labels(with_claim(with_date(with_date(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_append(with_body(with_body(with_body(with_body(with_body(with_compared(with_compared(with_status(start(i), Cli.value(opts, "status")), priority, 2), lowered_kind(Cli.value(opts, "type")), 3), Cli.value(opts, "description"), 0, Cli.given(opts, "force")), Cli.value(opts, "design"), 1, Cli.given(opts, "force")), Cli.value(opts, "acceptance-criteria"), 2, Cli.given(opts, "force")), Cli.value(opts, "prerequisites"), 3, Cli.given(opts, "force")), Cli.value(opts, "notes"), 4, Cli.given(opts, "force")), Cli.value(opts, "append-notes")), Cli.value(opts, "title"), 0), Cli.value(opts, "assignee"), 1), Cli.value(opts, "owner"), 2), Cli.value(opts, "external-ref"), 3), Cli.value(opts, "source-repo"), 4), Cli.value(opts, "source-repo-path"), 5), Cli.value(opts, "estimate"), 6), Cli.value(opts, "due"), 0, now, "due_at"), Cli.value(opts, "defer"), 1, now, "defer_until"), Cli.given(opts, "claim"), relation, actor, Cli.given(opts, "force")), Cli.values(opts, "set-labels"), Cli.values(opts, "add-label"), Cli.values(opts, "remove-label"), (Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label")), Cli.given(opts, "set-labels")), now)
 
 # S4.261 (data) a batch so far: the refusal (sticky), or the model with the edits in it, the plain blocks and the JSON
 # elements (both REVERSED), whether any stored column changed, and the last id acted on
@@ -364,14 +416,14 @@ def replaced(model: List<&2, Model.Issue>, +new: Model.Issue) -> List<&2, Model.
       Bool.pick(Model.Issue, String.eq(Model.id_of(i), Model.id_of(new)), new, i) <> replaced(rest, new)
 
 # S4.261 (spec twin) one edited issue folded into the batch
-def batch_put(b: Batch, e: Edit, +old: Model.Issue, any_flag: Bool) -> Batch:
+def batch_put(b: Batch, e: Edit, +old: Model.Issue, any_flag: Bool, +appended: Maybe<&2, String>) -> Batch:
   match b e:
     case BatchBad{f} _:
       BatchBad{f}
     case BatchOk{model, plain, json, changed, last} EditBad{f}:
       BatchBad{f}
     case BatchOk{model, plain, json, changed, last} EditOk{+new, touched}:
-      BatchOk{replaced(model, new), block_plain(old, new, any_flag) <> plain, block_json(new) <> json, (changed || touched), Model.id_of(new)}
+      BatchOk{replaced(model, new), block_plain(old, new, any_flag, appended) <> plain, block_json(old, new, appended) <> json, (changed || touched), Model.id_of(new)}
 
 # S4.261 (spec twin) the current model of a batch; nothing once it was refused
 def batch_model(b: Batch) -> List<&2, Model.Issue>:
@@ -387,7 +439,7 @@ def batch_id(+b: Batch, found: Maybe<&2, Model.Issue>, +opts: List<&2, Cli.Occ>,
     case None{}:
       b
     case Some{+i}:
-      batch_put(b, edited(i, opts, priority, relation, actor, now), i, any_flag)
+      batch_put(b, edited(i, opts, priority, relation, actor, now), i, any_flag, Cli.value(opts, "append-notes"))
 
 # S4.261 (spec twin) every resolved id, in command-line order
 def batch_go(ids: List<&2, String>, +b: Batch, +opts: List<&2, Cli.Occ>, +priority: Maybe<&2, String>, +relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, +any_flag: Bool) -> Batch:
