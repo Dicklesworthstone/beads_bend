@@ -233,3 +233,15 @@ def Laws.run_dep_tree_mermaid():
 # one-pass children table and with the per-epic scan, and the two outcomes are one term
 def Laws.run_epic_status_spec_switch():
   {==}
+
+# S2.24 S2.27 the checker loads fixture `basic` both ways; the fork tree's halves join back into the one list
+def Laws.store_load_fast_basic():
+  {==}
+
+# S2.24 S2.35 the same over fixture `precision`
+def Laws.store_load_fast_precision():
+  {==}
+
+# S2.24 S2.27 both loaders reach the same refusal of line 2
+def Laws.store_load_fast_refusal():
+  {==}

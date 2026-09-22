@@ -150,6 +150,73 @@ def in_file_order(st: Loaded) -> Loaded:
     case LoadOk{sofar}:
       LoadOk{List.reverse(&2, Model.Issue, sofar)}
 
+# ---------------------------------------------------------------- the fast twin of the record loop
+
+# S2.24 (data) one trimmed line decoded on its own: blank, or the decoder's verdict
+type Step is Data:
+  Blank{}
+  Line{dec: Decode.Dec}
+
+# S2.24 S2.27 (fast twin) one trimmed line decoded on its own
+def step_of(+l: List<&2, U32>) -> Step:
+  match l:
+    case Nil{}:
+      Blank{}
+    case Con{c, rest}:
+      Line{Decode.issue_of(l, byte_len(l, 0))}
+
+# S2.24 (fast twin) every line trimmed and decoded, in order, one after another
+def steps_seq(ls: List<&2, List<&2, U32>>) -> List<&2, Step>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, rest}:
+      step_of(trim(l)) <> steps_seq(rest)
+
+# S2.24 (fast twin) the same decoded lines through a balanced fork tree `depth` levels deep: each half is decoded
+# as its own task (a parallel let; `--threads N` runs them side by side), and the halves are joined in order
+def steps_par(+depth: Nat, +ls: List<&2, List<&2, U32>>, +n: Nat) -> List<&2, Step>:
+  match depth:
+    case 0n:
+      steps_seq(ls)
+    case 1n+d:
+      a b = steps_par(d, List.take(&2, List<&2, U32>, ls, Nat.div(n, 2n)), Nat.div(n, 2n)) steps_par(d, List.drop(&2, List<&2, U32>, ls, Nat.div(n, 2n)), Nat.sub(n, Nat.div(n, 2n)))
+      List.append(&2, Step, a, b)
+
+# S2.24 S2.27 (fast twin) one decoded line folded in: a blank line counts but adds nothing
+def step_keep(st: Loaded, s: Step, n: U32) -> Loaded:
+  match s:
+    case Blank{}:
+      st
+    case Line{d}:
+      keep(st, d, n)
+
+# S2.24 S2.27 (fast twin) the fold over the decoded lines, exactly the spec loop's: a refusal is sticky and names
+# its 1-based line
+def fold_steps(steps: List<&2, Step>, +n: U32, st: Loaded) -> Loaded:
+  match steps:
+    case Nil{}:
+      st
+    case Con{s, rest}:
+      fold_steps(rest, (n + 1 : U32), step_keep(st, s, n))
+
+# S2.26 (fast twin) as `guarded`, the lines decoded in parallel before the fold (16 tasks)
+def guarded_fast(+ls: List<&2, List<&2, U32>>, path: String, report: String) -> Loaded:
+  match report:
+    case SNil{}:
+      in_file_order(fold_steps(steps_par(4n, ls, List.length(&2, List<&2, U32>, ls)), 1, LoadOk{Nil{}}))
+    case SCon{h, t}:
+      LoadBad{conflict(path, SCon{h, t})}
+
+# S2.26 (fast twin) the lines split once and read twice, as in `load_lines`
+def load_fast_lines(+ls: List<&2, List<&2, U32>>, +path: String) -> Loaded:
+  guarded_fast(ls, path, markers_go(ls, path, 1, Nil{}))
+
+# S2.24 S2.26 S2.27 (fast twin) `load` with the parallel decode; bound to `load` by the closed laws
+# `store_load_fast_basic`, `store_load_fast_precision` and `store_load_fast_refusal`; `BEADS_RUST_SPEC=1` selects `load`
+def load_fast(cs: List<&2, U32>, +path: String) -> Loaded:
+  load_fast_lines(lines_go(cs, Nil{}, Nil{}), path)
+
 # S2.26 (spec twin) markers refuse the load before any line is parsed as JSON
 def guarded(+ls: List<&2, List<&2, U32>>, path: String, report: String) -> Loaded:
   match report:

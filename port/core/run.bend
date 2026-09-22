@@ -1215,6 +1215,20 @@ def config_of(c: Call) -> String:
     case Call{path, opts, words, json, quiet, touched, env, cwd}:
       env_of(env, ".beads/config.yaml")
 
+# S4.190 S2.24 (spec twin) the kill-switch of a call: `BEADS_RUST_SPEC=1` runs every spec twin
+def spec_call(c: Call) -> Bool:
+  match c:
+    case Call{path, opts, words, json, quiet, touched, env, cwd}:
+      spec_of(env)
+
+# S2.24 (spec twin) the store loaded by the spec loop or by its fast twin (parallel decode)
+def load_chosen(spec: Bool, codes: List<&2, U32>, +path: String) -> Store.Loaded:
+  match spec:
+    case True{}:
+      Store.load(codes, path)
+    case False{}:
+      Store.load_fast(codes, path)
+
 # S2.12 (spec twin) the workspace directory of a call
 def cwd_of(c: Call) -> String:
   match c:
@@ -1317,7 +1331,7 @@ def decoded(d: Bytes.Decoded, path: String, +c: Call) -> Outcome:
     case Bytes.NotUtf8{}:
       failed(not_utf8(), wants_json(c))
     case Bytes.Utf8{codes}:
-      loaded(Store.load(codes, path), c)
+      loaded(load_chosen(spec_call(c), codes, path), c)
 
 # S2.1 S9.8 (spec twin) route on the workspace verdict; the store path the messages quote is absolute
 def routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
