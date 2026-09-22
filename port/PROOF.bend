@@ -218,3 +218,8 @@ def Laws.lead_tenths_quarter():
 # S5.170 OQ-078 the checker refuses a tie binary64 does not hold exactly
 def Laws.lead_tenths_odd_tie_refused():
   {==}
+
+# S4.182–S4.185 S5.179 the checker walks the tree of five records: the status rank orders the siblings, the
+# shared node repeats under the second branch and is truncated there
+def Laws.run_dep_tree_repeat():
+  {==}
