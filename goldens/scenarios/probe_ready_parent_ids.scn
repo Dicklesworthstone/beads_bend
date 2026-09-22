@@ -1,0 +1,5 @@
+# probe_ready_parent_ids: exploration only — the ids the original mints for ready_parent.scn's two roots
+@fx=empty
+@time=2026-04-05 06:07:08
+["create","Parent epic","-t","epic","-p","1"]
+["create","Loose task","-p","2"]

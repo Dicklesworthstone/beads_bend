@@ -1,0 +1,20 @@
+# build_parents: the scenario that PRODUCES goldens/fixtures/parents.jsonl.
+# The fixture is the original's own output, never hand-typed
+# (scripts/make-fixture.sh parents build_parents). Ids from probe_ready_parent_ids.scn.
+#
+# It gives `ready --parent`, `--recursive` and `--epic` (S1.49) a store that tells them apart:
+#   * proj-9vo, an epic with three children: proj-9vo.1 (ready, P2, which has a
+#     ready child of its own, proj-9vo.1.1, P1), proj-9vo.2 (ready, P3) and
+#     proj-9vo.3 (P0, blocked by proj-3av);
+#   * proj-3av, a loose task outside the epic, ready;
+#   * so direct children and all descendants differ (proj-9vo.1.1), and a
+#     blocked child is present in the subtree.
+@fx=empty
+@time=2026-04-05 06:07:08
+["create","Parent epic","-t","epic","-p","1"]
+["create","Loose task","-p","2"]
+["create","Child one","--parent","proj-9vo","-p","2"]
+["create","Child two","--parent","proj-9vo","-p","3"]
+["create","Grandchild","--parent","proj-9vo.1","-p","1"]
+["create","Blocked child","--parent","proj-9vo","-p","0"]
+["dep","add","proj-9vo.3","proj-3av"]

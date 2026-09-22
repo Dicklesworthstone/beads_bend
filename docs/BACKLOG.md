@@ -97,12 +97,14 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [x] E5.2b `search` (hidden closed matches, the 50-row page); `stats` (every figure; an average lead time that is not a whole number of tenths stays refused: OQ-078)
   - [ ] E5.2c the `stats` breakdowns (`--by-*`); `list --overdue/--tree/--pretty`
 - [x] E5.3 the BLOCKED relation (three ordered steps, the external overlay, fuel-bounded propagation) in `core/blocked.bend`; `ready` (three sort policies, the defer gate against the pinned instant) and `blocked` in `core/work.bend`
-  - [ ] E5.3a `ready --parent/--recursive/--epic`; `blocked --detailed`
+  - [ ] E5.3a `ready --parent/--recursive/--epic`
+  - [x] E5.3b `blocked --detailed` (S5.254, round 9, 2026-09-22): five cases captured first, among them the first `external:` blocker (`scn_blocked_detailed_external`); `Render.blocked_detail`; JSON unchanged by the flag
 - [x] E5.4 `show` (raw-record path, S2.39; partial ids in `core/resolve.bend`), `dep list` (two orders), `epic status`, `label list`, `label list-all`, `comments list`, `where` in `core/views.bend`
   - [x] E5.4a `dep tree` with children: the traversal of S4.182-S4.185 is `Views.tree_walk` in `core/views.bend`, a single
     fuel-bounded worklist DFS (Bend forbids the mutual recursion the shape invites). Fixtures `graph` and `hierarchy` were
     built through the ORIGINAL first (`build_graph.scn`, `build_hierarchy.scn`); 30 cases captured; all 22 `dep_tree_*`
     pass on c-1t, c-8t and js on their first run. Law `run_dep_tree_repeat`. S5.179 and S4.184 amended from the goldens
+  - [x] E5.4a-1 `dep tree --format mermaid` (S4.394, S5.253, OQ-130, round 8, 2026-09-22): nine cases captured first; `Views.tree_mermaid`; law `run_dep_tree_mermaid`. `dep list --direction up/both` (round 7): ten cases, no port change needed
   - [ ] E5.4a-2 `dep cycles` reporting a cycle (S4.187): unreachable through the original, which refuses a blocking cycle
     at `dep add` on every route tried and ignores `related` cycles. A `cycles` fixture would be the first hand-written
     store that is not the original's own output: the owner's call (OQ-129)
