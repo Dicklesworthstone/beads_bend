@@ -1,0 +1,5 @@
+✓ Created proj-cjn: Eighth second
+--- .beads/issues.jsonl ---
+{"id":"proj-cjn","title":"Eighth second","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05.125Z","created_by":"tester","updated_at":"2026-01-02T03:04:05.125Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-cjn

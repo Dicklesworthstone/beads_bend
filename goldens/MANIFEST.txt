@@ -1,10 +1,10 @@
-captured: 2026-09-22T18:22:21.880689+00:00
+captured: 2026-09-22T19:36:51.320995+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (454 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"baabe270f28ca4ee6b49fd9443f6f6fad205f3f2e2d188c0ebd422ab6e3947bf"},"case_files":[],"stdin_files":[]}
-recapture: repin: new fixture parents (build_parents.scn) and cases ready_parent*, ready_epic*, ready_recursive_only, usage_ready_parent_epic, error_ready_parent_missing* (round 10 lens: ready --parent/--recursive/--epic)
+cases: goldens/cases.tsv (459 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"9b046766465e2e83c0b6651759bfe4a504da888f94f90a11bb973231fe92abaa"},"case_files":[],"stdin_files":[]}
+recapture: repin: harness: ws_inner.py @time accepts a fraction (the port's wall clock, DISC-009); new cases create_fraction_json, create_fraction_eighth, q_fraction, update_fraction, close_fraction_json
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1368,3 +1368,18 @@ sha256:
   a1e9573d1d9cac159e67f95f4fe375e074fd1c8b6053a5db60d799ddfb970c5f  error_ready_parent_missing_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_ready_parent_missing_json.err
   1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_ready_parent_missing_json.exit
+  84a8769cfc2af3fffd00a3f953e2ac3b4c9337736f35ba261fbaf90ed9f3a905  create_fraction_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_fraction_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_fraction_json.exit
+  d7fd5eb80ae63d8346e8e4784ca8a5d036dbaa4752c112160774682d611c1831  create_fraction_eighth.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_fraction_eighth.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_fraction_eighth.exit
+  17121a05ce859dfb9ff2ed3e9f20959c54eaf77276daa0574a77e21391e52f1f  q_fraction.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  q_fraction.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  q_fraction.exit
+  09082c23555e5b7089d16b14395b84c8858bcf8a9d58153893e7f10f87263f91  update_fraction.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  update_fraction.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  update_fraction.exit
+  1602edc71dbbab37fad4ec2fd3e280cea58fa415f96a720441ab211d4c9704aa  close_fraction_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  close_fraction_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  close_fraction_json.exit

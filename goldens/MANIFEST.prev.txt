@@ -1,10 +1,10 @@
-captured: 2026-09-22T18:13:59.817124+00:00
+captured: 2026-09-22T18:22:21.880689+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/projects/beads_bend/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (438 cases)
-provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"0a391730d6fe5bb2a2d56cdc9d14aaf01a4f2bfad089e033292bb4a1dda21da0"},"case_files":[],"stdin_files":[]}
-recapture: repin: new cases blocked_detailed*, scn_blocked_detailed_external (round 9 lens: blocked --detailed)
+cases: goldens/cases.tsv (454 cases)
+provenance: {"cwd":"/data/projects/beads_bend","executable":{"path":"/data/projects/beads_bend/scripts/ws-run.sh","sha256":"db614d343e12e7264ad1f124c11e02a7afebbd9ceab1832e50d976e26f565056"},"command_files":[],"case_manifest":{"path":"/data/projects/beads_bend/goldens/cases.tsv","sha256":"baabe270f28ca4ee6b49fd9443f6f6fad205f3f2e2d188c0ebd422ab6e3947bf"},"case_files":[],"stdin_files":[]}
+recapture: repin: new fixture parents (build_parents.scn) and cases ready_parent*, ready_epic*, ready_recursive_only, usage_ready_parent_epic, error_ready_parent_missing* (round 10 lens: ready --parent/--recursive/--epic)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1320,3 +1320,51 @@ sha256:
   e10a25ca69ecdc37060f7aea0cc9d209ac17b32dbdafc8050600547c7902d142  scn_blocked_detailed_external.out
   c6f3e7165b759d17d7ca57dcc93f79d3bef78c3e3100e4605ff183e350ceef3d  scn_blocked_detailed_external.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_blocked_detailed_external.exit
+  6f3f3b6cdc96d203cbbeaecc8f80582dd3a60f6a18b821630d7c50b923e3fa88  ready_parents.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parents.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parents.exit
+  e4c4c95942aa823a1d88a569b36665567d7d1b00a3426721e01f4513fb6425bd  ready_parent.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parent.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parent.exit
+  6f68ad29ceb201405479b206a2f0aa0b5409486bcc8a1185bcd751996ad5a7c8  ready_parent_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parent_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parent_json.exit
+  46b63f7339c2816d339984915d16743ca7eb5ee44e2e1c26e5975080a77d3387  ready_parent_recursive.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parent_recursive.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parent_recursive.exit
+  68e0fc2e389525cc2e952bac66c7ded630fa5fe3da618cadb98e0eccc195409e  ready_parent_recursive_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parent_recursive_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parent_recursive_json.exit
+  46b63f7339c2816d339984915d16743ca7eb5ee44e2e1c26e5975080a77d3387  ready_parent_short_r.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parent_short_r.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parent_short_r.exit
+  133ca1cd1e2507c187c6d22c58bcebf8c4d022646048ff3350469386639d97b8  ready_parent_nested.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parent_nested.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parent_nested.exit
+  133ca1cd1e2507c187c6d22c58bcebf8c4d022646048ff3350469386639d97b8  ready_parent_partial.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parent_partial.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parent_partial.exit
+  5fa0dd46a1416a8cb835b7378a6b81d3216d58854b1bfdf9a18cf391978ce8e6  ready_parent_none.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parent_none.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parent_none.exit
+  37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570  ready_parent_none_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_parent_none_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_parent_none_json.exit
+  46b63f7339c2816d339984915d16743ca7eb5ee44e2e1c26e5975080a77d3387  ready_epic.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_epic.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_epic.exit
+  68e0fc2e389525cc2e952bac66c7ded630fa5fe3da618cadb98e0eccc195409e  ready_epic_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_epic_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_epic_json.exit
+  6f3f3b6cdc96d203cbbeaecc8f80582dd3a60f6a18b821630d7c50b923e3fa88  ready_recursive_only.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ready_recursive_only.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ready_recursive_only.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_ready_parent_epic.out
+  7960ecd6357dd9d6111157c72da92ffb5fa382a0758074aaca591dc5e4ddbafd  usage_ready_parent_epic.err
+  53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  usage_ready_parent_epic.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_ready_parent_missing.out
+  1988bbb477f5133a776ae90defe36c3daa060db0067fdc99902b2884bfc28d22  error_ready_parent_missing.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_ready_parent_missing.exit
+  a1e9573d1d9cac159e67f95f4fe375e074fd1c8b6053a5db60d799ddfb970c5f  error_ready_parent_missing_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_ready_parent_missing_json.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  error_ready_parent_missing_json.exit

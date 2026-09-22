@@ -12,7 +12,7 @@
 #
 # usage: ws-run.sh [--oracle] <inner command…> :: <case args…>
 #   --oracle   the inner command is the original: preload libfaketime
-#   case args  [@fx=<fixture>] [@time=<YYYY-MM-DD hh:mm:ss>] <argv of the CLI…>
+#   case args  [@fx=<fixture>] [@time=<YYYY-MM-DD hh:mm:ss[.fraction]>] <argv of the CLI…>
 #              or  @scn=<scenario>  (goldens/scenarios/<scenario>.scn, multi-step)
 # Capture:  scripts/golden-capture.sh goldens/cases.tsv goldens -- scripts/ws-run.sh --oracle br --no-db ::
 # Lanes:    LANE_WRAP=scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend"

@@ -41,10 +41,18 @@ def die(message):
 
 
 def epoch(stamp):
+    # "<seconds>" or "<seconds>.<fraction>": the port's BEADS_BEND_NOW. A fraction is
+    # passed to libfaketime as written, which parses it as a double, so a case pins
+    # only fractions a double holds exactly (.25, .125, .5): .123456789 came back as
+    # .123456788 from the original.
+    whole, dot, fraction = stamp.partition(".")
+    if dot and not (fraction.isdigit() and len(fraction) <= 9):
+        die(f"bad @time {stamp!r} (want YYYY-MM-DD hh:mm:ss[.fraction], UTC)")
     try:
-        return calendar.timegm(time.strptime(stamp, "%Y-%m-%d %H:%M:%S"))
+        seconds = calendar.timegm(time.strptime(whole, "%Y-%m-%d %H:%M:%S"))
     except ValueError:
-        die(f"bad @time {stamp!r} (want YYYY-MM-DD hh:mm:ss, UTC)")
+        die(f"bad @time {stamp!r} (want YYYY-MM-DD hh:mm:ss[.fraction], UTC)")
+    return f"{seconds}.{fraction}" if dot else str(seconds)
 
 
 def snapshot():
