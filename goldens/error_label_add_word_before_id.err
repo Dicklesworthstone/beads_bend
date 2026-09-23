@@ -1,0 +1,2 @@
+Error: Validation failed: issues: 'alpha' is not an issue ID and does not match any issue
+Hint: Labels go after all issue IDs: br label add <issue...> alpha; or pass -l alpha to name the label explicitly.

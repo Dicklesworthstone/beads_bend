@@ -1,0 +1,12 @@
+# label_shapes: which words count as issue ids when `label add` has more than two positionals (the word in the middle is a label unless id-shaped) (S4.370)
+@fx=basic
+["label","add","proj-mta","a-b","beta"]
+["label","add","proj-mta","1-2","beta"]
+["label","add","proj-mta","Proj-mta","beta"]
+["label","add","proj-mta","proj-MTA","beta"]
+["label","add","proj-mta","ab-c_d","beta"]
+["label","add","proj-mta","proj-mta.1","beta"]
+["label","add","proj-mta","my_proj-abc","beta"]
+["label","add","proj-mta","a-b-c","beta"]
+["label","add","proj-mta","proj-","beta"]
+["label","add","proj-mta","abc-ü","beta"]

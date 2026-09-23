@@ -1,0 +1,6 @@
+# dep_tombstone: `dep add` with a tombstoned endpoint, as the dependent and as the target, plain and JSON (S4.353)
+@fx=basic
+["delete","proj-b75"]
+["dep","add","proj-mta","proj-b75"]
+["dep","add","proj-b75","proj-mta"]
+["dep","add","proj-mta","proj-b75","--json"]

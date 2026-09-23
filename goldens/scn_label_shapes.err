@@ -1,0 +1,21 @@
+$ ["label", "add", "proj-mta", "a-b", "beta"]
+Error: Issue not found: a-b
+Hint: Run 'br list' to see available issues.
+$ ["label", "add", "proj-mta", "1-2", "beta"]
+Error: Issue not found: 1-2
+Hint: Run 'br list' to see available issues.
+$ ["label", "add", "proj-mta", "Proj-mta", "beta"]
+$ ["label", "add", "proj-mta", "proj-MTA", "beta"]
+$ ["label", "add", "proj-mta", "ab-c_d", "beta"]
+$ ["label", "add", "proj-mta", "proj-mta.1", "beta"]
+Error: Issue not found: proj-mta.1
+Hint: Run 'br list' to see available issues.
+$ ["label", "add", "proj-mta", "my_proj-abc", "beta"]
+Error: Issue not found: my_proj-abc
+Hint: Run 'br list' to see available issues.
+$ ["label", "add", "proj-mta", "a-b-c", "beta"]
+Error: Issue not found: a-b-c
+Hint: Run 'br list' to see available issues.
+$ ["label", "add", "proj-mta", "proj-", "beta"]
+$ ["label", "add", "proj-mta", "abc-ü", "beta"]
+Error: Validation failed: label: invalid characters (only alphanumeric, hyphen, underscore, colon allowed)

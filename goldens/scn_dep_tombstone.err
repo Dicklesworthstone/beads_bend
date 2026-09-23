@@ -1,0 +1,6 @@
+$ ["delete", "proj-b75"]
+$ ["dep", "add", "proj-mta", "proj-b75"]
+Error: Validation failed: depends_on_id: cannot depend on tombstone issue: proj-b75
+$ ["dep", "add", "proj-b75", "proj-mta"]
+Error: Validation failed: issue_id: cannot add dependency from tombstone issue: proj-b75
+$ ["dep", "add", "proj-mta", "proj-b75", "--json"]
