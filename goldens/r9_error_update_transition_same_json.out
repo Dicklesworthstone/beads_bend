@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: status: issue proj-b75: transition comments and workflow-policy bypasses cannot be attached to a same-status update",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "status",
+      "reason": "issue proj-b75: transition comments and workflow-policy bypasses cannot be attached to a same-status update"
+    }
+  }
+}

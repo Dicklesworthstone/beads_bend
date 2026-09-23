@@ -1,0 +1,4 @@
+# r9_dep_tombstone_quiet: round 9 — a tombstoned endpoint under --quiet (S4.353)
+@fx=basic
+["delete","proj-b75","--quiet"]
+["dep","add","proj-b75","proj-mta","--quiet"]

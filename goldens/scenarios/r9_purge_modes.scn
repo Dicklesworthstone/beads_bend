@@ -1,0 +1,6 @@
+# r9_purge_modes: round 9 — the purge under --quiet, then its empty run under --json (S4.339, S5.106)
+@fx=basic
+["delete","proj-b75"]
+["delete","--hard","--quiet"]
+["delete","--hard","--quiet"]
+["delete","--hard","--dry-run","--json"]

@@ -1,0 +1,6 @@
+$ ["create", "Kid", "--parent", "proj-b75", "--silent"]
+$ ["update", "proj-b75.1", "--parent", ""]
+$ ["close", "proj-b75", "--json"]
+$ ["close", "proj-b75", "--quiet"]
+Error: Nothing to do: all 1 issue(s) skipped — proj-b75: parent issue has 1 open dot-notation child issue(s): proj-b75.1 (use --force to close anyway)
+Hint: Skipped issue(s) have open children. Close the children first, or re-run with --force to close anyway.

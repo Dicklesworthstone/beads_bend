@@ -1,0 +1,3 @@
+$ ["delete", "proj-b75", "--quiet"]
+$ ["dep", "add", "proj-b75", "proj-mta", "--quiet"]
+Error: Validation failed: issue_id: cannot add dependency from tombstone issue: proj-b75

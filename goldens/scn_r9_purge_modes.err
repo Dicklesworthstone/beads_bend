@@ -1,0 +1,4 @@
+$ ["delete", "proj-b75"]
+$ ["delete", "--hard", "--quiet"]
+$ ["delete", "--hard", "--quiet"]
+$ ["delete", "--hard", "--dry-run", "--json"]

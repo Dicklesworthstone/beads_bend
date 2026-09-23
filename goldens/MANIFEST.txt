@@ -1,10 +1,10 @@
-captured: 2026-09-23T03:45:46.831720+00:00
+captured: 2026-09-23T17:35:02.261377+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (686 cases)
-provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"a61bd6b13b7ed014bf43420d6a9d6d7bbdf3edbb49a112c806e7b2a588386834"},"case_files":[],"stdin_files":[]}
-recapture: repin: new cases: the id-length boundaries (4 cases on oracle-built fixtures n163 n164 n983 n984, OQ-006, S4.9)
+cases: goldens/cases.tsv (712 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"1d42eb145c7f2812ae07c2e9142767dfc7508c98415d659739fee1badc8d6a2d"},"case_files":[],"stdin_files":[]}
+recapture: repin: find-fix round 9: --quiet and the JSON error envelopes over the session 5-6 closures (13 cases)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1401,7 +1401,7 @@ sha256:
   33c2af4b405ea7f0c89d67f5d5db98e99a8eeb1c845bbb257d1d8401182e8f50  prefix_config_nested.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_nested.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_nested.exit
-  2815415d064df2b6e8198c34c55589f026df346189972d37e7c53fd37e34d3f6  prefix_config_both.out
+  07bbf8f5f45acb259c7962eb3c9bba01344626c54b2e82d944953692a5fac699  prefix_config_both.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_both.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_both.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_prefix_config_bad.out
@@ -2064,3 +2064,81 @@ sha256:
   f5450bb028943a8f84e706eb46cda9ddaaf858e5d37f3c4ca728e714e27b8d38  edge_idlen_984.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_idlen_984.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_idlen_984.exit
+  cf93626cf0ecc34ab55c5aa664e05734650ef6f74c8bff4880969069082dd50f  r8_update_label_comment_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_update_label_comment_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r8_update_label_comment_json.exit
+  db656baadd388cfca039ee7bb4779e0190d236aeaa2296d13ea532da2b427528  r8_update_acceptance_comment.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_update_acceptance_comment.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r8_update_acceptance_comment.exit
+  190040d4a0fbc4badde63bf291f94cce005e95e19a61f063616044c32db51b64  r8_delete_hard_from_file.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_delete_hard_from_file.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r8_delete_hard_from_file.exit
+  57407904fd1dd15a0b3688c4c70aa106f15c3d38501aa287ea24b41b7c1fb898  r8_close_session_skip_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_close_session_skip_json.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  r8_close_session_skip_json.exit
+  514de32a09e4dd18441c0adeba85c5ba9ee7ca578919185bbab223efafdbcb5d  r8_close_force_comment.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_close_force_comment.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r8_close_force_comment.exit
+  6c49e1d9e9abcf9d1a1a77268b84633a8921c3a8769c8927a1d647e995bd3f49  r8_defer_until_comment_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_defer_until_comment_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r8_defer_until_comment_json.exit
+  8d694b612bec96c2d18faa0d16ce16aaf34c248088acbb2700b8d2892e4b1f14  r8_comments_file_author.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_comments_file_author.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r8_comments_file_author.exit
+  5eb7e95d4e343ccf657859e8d4b0387eb2ed4a9804a59fa920bc388bdd33cc90  r8_update_description_file_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_update_description_file_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r8_update_description_file_json.exit
+  046b6f23666a6416eddbe75669ca93f43f92d0fb3b60a181ed78e86b8aaa0835  r8_label_remove_walk.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_label_remove_walk.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r8_label_remove_walk.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_update_bad_label_status.out
+  3e8cfebef587184fe2c1ca8c9bed5974170c1cf21ee0543c481899b8a5c97166  r8_update_bad_label_status.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  r8_update_bad_label_status.exit
+  b5c985bc3ba61197d250e9c593521bead4bd6998eb6fca1532d7ca3f8e3e879f  r8_create_labels_64.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r8_create_labels_64.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r8_create_labels_64.exit
+  63c64140cd7e387d07cee8c5208b29f4735ec3c1e6f312f1610108e12fda5154  scn_r8_ceiling_json.out
+  472b7a3ba5adff16a4d93a5f214b4f2e95eeac2ee2275a1ca4e048ac04036a12  scn_r8_ceiling_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_r8_ceiling_json.exit
+  cd053f4e5dd4f2e56411a1d72d66df18781eddd6e1ba3c30f3b5d1b466435891  scn_r8_epic_json.out
+  98f9218709d5794b6bad9e30c62dc539b98e0f755216e74fc5d08fed8715644a  scn_r8_epic_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_r8_epic_json.exit
+  40d72c1daf1a12725c130bbe9bd5d25702774b9a54d91cf737a0b97082ca7db2  r9_bypass_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_bypass_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r9_bypass_quiet.exit
+  506bc1106cc08620a2d188ab99d0414a3b160b8514ba763bd9221ed4fadfadbf  r9_error_bypass_reason_alone_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_error_bypass_reason_alone_json.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  r9_error_bypass_reason_alone_json.exit
+  7e017979815bfdc89618fe90f0167399d154dfa566686745210c5bf3af32c0a3  r9_error_update_transition_same_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_error_update_transition_same_json.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  r9_error_update_transition_same_json.exit
+  6714ca19d22046c99935e6ac2c70ace3b98229f73c6537dcd62356ae37f0bf91  r9_label_add_walk_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_label_add_walk_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r9_label_add_walk_quiet.exit
+  fce646a1353089c9078e8df6d8185851932d2d8e01c16bcc82cc7b8275fa521c  r9_comments_file_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_comments_file_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r9_comments_file_quiet.exit
+  f097eebe6e11d820db732bcba050ec4d8edeaeea34cf456e6dba8aacaecfcf50  r9_acceptance_quiet.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_acceptance_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r9_acceptance_quiet.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_error_description_file_quiet.out
+  286f3542c5f03b584bfc437ac9ddb252bfa655c465e2dca7260ccb9c58b87701  r9_error_description_file_quiet.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  r9_error_description_file_quiet.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_error_delete_from_file_quiet.out
+  b85189e5401167cc4961ea88209a990011d605365ca4b9ca22dcb1793378c6ea  r9_error_delete_from_file_quiet.err
+  aa67a169b0bba217aa0aa88a65346920c84c42447c36ba5f7ea65f422c1fe5d8  r9_error_delete_from_file_quiet.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_error_update_session_quiet.out
+  3a22418f167fdaf8c715bac348ec77c270e6f2211aa9a3dd6cfa38bf77183d60  r9_error_update_session_quiet.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  r9_error_update_session_quiet.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r9_error_label_not_an_issue_quiet.out
+  739222d394dcc1812d25981df2add9050e8f86ea82fa97f045f9b1f357f1ba33  r9_error_label_not_an_issue_quiet.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  r9_error_label_not_an_issue_quiet.exit
+  eaf562048b5b069af617840b5ce636e32575098bcd1f178b4ce7c8155181f5c8  scn_r9_dotted_modes.out
+  efe0832bdb0817d1c7ecf89d55644c16a6803af22d2d45ad4b61caf95158caa7  scn_r9_dotted_modes.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_r9_dotted_modes.exit
+  5d0bf81efb830e20584edb6485fd87c5a0fe2c66f2ed42355583cade76fcd39f  scn_r9_purge_modes.out
+  752e4f07534b3142ecc9f8ffa62d752a1f4172123cf9ba964e8184051d582d25  scn_r9_purge_modes.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_r9_purge_modes.exit
+  80da7e636b0a428648320d8312767cca6cd37d8786418e90936b944c10757736  scn_r9_dep_tombstone_quiet.out
+  de19ddc6aba0b3d37f189b99cad18a76aaca2de710c7bf304dc7a3748f5964db  scn_r9_dep_tombstone_quiet.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_r9_dep_tombstone_quiet.exit

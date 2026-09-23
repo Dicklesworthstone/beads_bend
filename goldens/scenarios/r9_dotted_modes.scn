@@ -1,0 +1,6 @@
+# r9_dotted_modes: round 9 — the dot-notation skip under --json and --quiet (S4.292, S5.106)
+@fx=basic
+["create","Kid","--parent","proj-b75","--silent"]
+["update","proj-b75.1","--parent",""]
+["close","proj-b75","--json"]
+["close","proj-b75","--quiet"]

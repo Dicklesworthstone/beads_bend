@@ -1,0 +1,2 @@
+$ ["close", "proj-mta", "proj-170", "--force"]
+$ ["epic", "close-eligible", "--transition-comment", "done", "--json"]

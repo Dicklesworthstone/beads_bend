@@ -1,0 +1,4 @@
+# r8_epic_json: round 8 — epic close-eligible --transition-comment under --json, with a skip-free batch (S4.391, S4.396)
+@fx=basic
+["close","proj-mta","proj-170","--force"]
+["epic","close-eligible","--transition-comment","done","--json"]
