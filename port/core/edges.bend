@@ -12,6 +12,7 @@ import ./failure.bend as Failure
 import ./blocked.bend as Blocked
 import ./create.bend as Create
 import ./render.bend as Render
+import ./json.bend as Json
 
 # S4.350–S4.363 (data) what one edge command answered: the refusal, or the model to write (unchanged on a no-op),
 # the plain text, the JSON payload, and the dependent's id for `.beads/last-touched`
@@ -280,36 +281,61 @@ def replaced(model: List<&2, Model.Issue>, +new: Model.Issue) -> List<&2, Model.
 def payload(status: String, +dependent: String, +target: String, kind: String, action: String) -> String:
   String.concat(["{\"status\":", Failure.quoted(status), ",\"issue_id\":", Failure.quoted(dependent), ",\"depends_on_id\":", Failure.quoted(target), ",\"type\":", Failure.quoted(kind), ",\"action\":", Failure.quoted(action), "}\n"])
 
+# S4.350 S4.353 (data) the `metadata` of a new edge: the text to store, or the refusal
+type Meta is Data:
+  MetaOk{text: String}
+  MetaBad{failure: Failure.Failure}
+
+# S4.350 S4.353 (spec twin) the verdict on one JSON text: it is stored verbatim when it is one JSON value; otherwise
+# serde_json's message and column name the pair and the type. The text is quoted the way JSON escapes it, which is
+# Rust's debug quoting except for control characters other than tab, line feed and carriage return
+def meta_checked(c: Json.Checked, +raw: String, +dependent: String, +target: String, +kind: String) -> Meta:
+  match c:
+    case Json.CheckOk{toks}:
+      MetaOk{raw}
+    case Json.CheckBad{msg, at}:
+      MetaBad{Create.invalid("metadata", "dependency metadata must be valid JSON for " ++ dependent ++ " -> " ++ target ++ " (type=" ++ kind ++ "); found " ++ Failure.quoted(raw) ++ ": " ++ msg ++ " at line 1 column " ++ U32.show(at))}
+    case Json.CheckOdd{}:
+      MetaBad{Failure.unported()}
+
+# S4.350 (spec twin) `--metadata`: absent or blank is the literal `{}`; anything else is judged as one JSON value
+def meta_of(given: Maybe<&2, String>, +dependent: String, +target: String, +kind: String) -> Meta:
+  match given:
+    case None{}:
+      MetaOk{"{}"}
+    case Some{+raw}:
+      Bool.pick(Meta, String.is_empty(String.trim(raw)), MetaOk{"{}"}, meta_checked(Json.value(raw), raw, dependent, target, kind))
+
 # S4.350 S4.355 S4.361 (spec twin) `dep add` once every check has passed: the cycle is the LAST check (S4.353),
-# and the edge is written at the end of the dependent's array
-def add_edge(+model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: String, +target: String, +kind: String, +now: Time.Instant, actor: String, cycles: Bool) -> Done:
+# and the edge is written at the end of the dependent's array with its `metadata`
+def add_edge(+model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: String, +target: String, +kind: String, meta: String, +now: Time.Instant, actor: String, cycles: Bool) -> Done:
   match cycles:
     case True{}:
       EdgeBad{cycle_found(dependent, target)}
     case False{}:
-      EdgeOk{replaced(model, with_edge(i, Model.Dependency{dependent, target, kind, now, Some{actor}, Some{"{}"}, Some{""}}, now)), "✓ Added dependency: " ++ Render.inline(dependent) ++ " -> " ++ Render.inline(target) ++ " (" ++ Render.inline(kind) ++ ")\n", payload("ok", dependent, target, kind, "added"), dependent, True{}}
+      EdgeOk{replaced(model, with_edge(i, Model.Dependency{dependent, target, kind, now, Some{actor}, Some{meta}, Some{""}}, now)), "✓ Added dependency: " ++ Render.inline(dependent) ++ " -> " ++ Render.inline(target) ++ " (" ++ Render.inline(kind) ++ ")\n", payload("ok", dependent, target, kind, "added"), dependent, True{}}
 
 # S4.358 (spec twin) an edge that is already there is a success no-op that rewrites nothing. The duplicate check
 # comes BEFORE the cycle check (S4.353), so re-adding an existing edge never reports a cycle
-def add_dup(+model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: String, +target: String, +kind: String, +now: Time.Instant, actor: String, exists: Bool, cycles: Bool) -> Done:
+def add_dup(+model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: String, +target: String, +kind: String, meta: String, +now: Time.Instant, actor: String, exists: Bool, cycles: Bool) -> Done:
   match exists:
     case True{}:
       EdgeOk{model, "Dependency already exists: " ++ Render.inline(dependent) ++ " → " ++ Render.inline(target) ++ "\n", payload("exists", dependent, target, kind, "already_exists"), dependent, False{}}
     case False{}:
-      add_edge(model, i, dependent, target, kind, now, actor, cycles)
+      add_edge(model, i, dependent, target, kind, meta, now, actor, cycles)
 
 # S4.363 (spec twin) a second, different parent is refused before the duplicate and the cycle are looked at
-def add_parented(+model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: String, +target: String, +kind: String, +now: Time.Instant, actor: String, exists: Bool, cycles: Bool, +held: String) -> Done:
-  Bool.pick(Done, (String.eq(kind, "parent-child") && Bool.not(String.is_empty(held)) && Bool.not(String.eq(held, target))), EdgeBad{Create.invalid("depends_on_id", "issue " ++ dependent ++ " already has parent " ++ held ++ "; clear or replace the existing parent before adding " ++ target)}, add_dup(model, i, dependent, target, kind, now, actor, exists, cycles))
+def add_parented(+model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: String, +target: String, +kind: String, +meta: String, +now: Time.Instant, actor: String, exists: Bool, cycles: Bool, +held: String) -> Done:
+  Bool.pick(Done, (String.eq(kind, "parent-child") && Bool.not(String.is_empty(held)) && Bool.not(String.eq(held, target))), EdgeBad{Create.invalid("depends_on_id", "issue " ++ dependent ++ " already has parent " ++ held ++ "; clear or replace the existing parent before adding " ++ target)}, add_dup(model, i, dependent, target, kind, meta, now, actor, exists, cycles))
 
 # S4.353 S4.356 (spec twin) the checks of `dep add` in the order of S4.353: self-dependency, the single parent,
 # the duplicate edge, the cycle
-def add_checked(model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: String, +target: String, +kind: String, now: Time.Instant, actor: String, itself: Bool, cycles: Bool) -> Done:
+def add_checked(model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: String, +target: String, +kind: String, meta: String, now: Time.Instant, actor: String, itself: Bool, cycles: Bool) -> Done:
   match itself:
     case True{}:
       EdgeBad{self_edge(dependent)}
     case False{}:
-      add_parented(model, i, dependent, target, kind, now, actor, has_edge(Model.deps_of(i), target, kind), cycles, parent_of(Model.deps_of(i)))
+      add_parented(model, i, dependent, target, kind, meta, now, actor, has_edge(Model.deps_of(i), target, kind), cycles, parent_of(Model.deps_of(i)))
 
 # S4.359 (spec twin) `dep remove --type`: the named type must be one of the edges that connect the pair
 def remove_typed(+model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: String, +target: String, +kind: String, +now: Time.Instant, present: Bool) -> Done:

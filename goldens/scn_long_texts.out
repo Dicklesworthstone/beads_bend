@@ -1,0 +1,30 @@
+$ ["create", "A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title", "--silent"]
+proj-js6
+--- .beads/issues.jsonl ---
+{"id":"proj-js6","title":"A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-js6
+[exit 0]
+$ ["list"]
+○ proj-js6 [● P2] [task] - A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title
+[exit 0]
+$ ["create", "Body", "--description", "Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word", "--estimate", "90", "--external-ref", "gh-1", "--due", "2026-03-01", "--silent"]
+proj-sil
+--- .beads/issues.jsonl ---
+{"id":"proj-js6","title":"A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-sil","title":"Body","description":"Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word","status":"open","priority":2,"issue_type":"task","estimated_minutes":90,"created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","due_at":"2026-03-01T09:00:00Z","external_ref":"gh-1","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-sil
+[exit 0]
+$ ["show"]
+○ proj-sil · Body   [● P2 · OPEN]
+Owner: tester · Type: task
+Created: 2026-01-02 · Updated: 2026-01-02
+Ref: gh-1
+Due: 2026-03-01
+Estimate: 1h 30m
+
+Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word
+Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word
+Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word Word
+[exit 0]

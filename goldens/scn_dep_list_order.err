@@ -1,0 +1,8 @@
+$ ["create", "Dep A", "--parent", "proj-5u2", "--silent"]
+$ ["create", "Dep B", "--parent", "proj-5u2", "--silent"]
+$ ["create", "Dep C", "--parent", "proj-5u2", "--silent"]
+$ ["dep", "add", "proj-mta", "proj-5u2.3"]
+$ ["dep", "add", "proj-mta", "proj-5u2.1"]
+$ ["dep", "add", "proj-mta", "proj-5u2.2"]
+$ ["dep", "list", "proj-mta"]
+$ ["dep", "list", "proj-mta", "--json"]

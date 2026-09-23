@@ -1,0 +1,5 @@
+{"id":"proj-u5m","title":"X","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","agent_context":"{\"b\":1,\"a\":[true,null,\"x\",1.5,-0.0,1000.0,12345678901234567890],\"c\":{\"z\":\"éé\",\"y\":2.0}}","compaction_level":0,"original_size":0}
+--- .beads/issues.jsonl ---
+{"id":"proj-u5m","title":"X","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","agent_context":"{\"b\":1,\"a\":[true,null,\"x\",1.5,-0.0,1000.0,12345678901234567890],\"c\":{\"z\":\"éé\",\"y\":2.0}}","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-u5m

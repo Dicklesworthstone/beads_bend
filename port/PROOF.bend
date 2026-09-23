@@ -253,3 +253,15 @@ def Laws.work_child_index_epic():
 # S4.190 the table and the scan agree on a leaf
 def Laws.work_child_index_leaf():
   {==}
+
+# S5.115 the greedy wrap of a small body
+def Laws.show_wrap_closed():
+  {==}
+
+# S4.232 the canonical agent context of goldens/create_agent_context
+def Laws.agent_context_closed():
+  {==}
+
+# S4.350 the metadata refusal of goldens/error_dep_add_metadata_bad
+def Laws.metadata_refusal_closed():
+  {==}

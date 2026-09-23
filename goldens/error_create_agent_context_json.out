@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: agent-context: inline argument is not valid JSON: key must be a string at line 1 column 2 (hint: use `--agent-context @path/to/instructions.yaml` for a file, or pass an empty string to clear)",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

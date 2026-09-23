@@ -1,0 +1,67 @@
+$ ["create", "İstanbul match", "--silent"]
+proj-gp1
+--- .beads/issues.jsonl ---
+{"id":"proj-gp1","title":"İstanbul match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-gp1
+[exit 0]
+$ ["create", "jackal match", "--silent"]
+proj-1pg
+--- .beads/issues.jsonl ---
+{"id":"proj-1pg","title":"jackal match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-gp1","title":"İstanbul match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-1pg
+[exit 0]
+$ ["create", "hotel match", "--silent"]
+proj-ick
+--- .beads/issues.jsonl ---
+{"id":"proj-1pg","title":"jackal match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-gp1","title":"İstanbul match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ick","title":"hotel match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-ick
+[exit 0]
+$ ["create", "ZULU match", "--silent"]
+proj-15k
+--- .beads/issues.jsonl ---
+{"id":"proj-15k","title":"ZULU match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-1pg","title":"jackal match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-gp1","title":"İstanbul match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ick","title":"hotel match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-15k
+[exit 0]
+$ ["create", "apple match", "--silent"]
+proj-t4w
+--- .beads/issues.jsonl ---
+{"id":"proj-15k","title":"ZULU match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-1pg","title":"jackal match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-gp1","title":"İstanbul match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ick","title":"hotel match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-t4w","title":"apple match","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-t4w
+[exit 0]
+$ ["list", "--sort", "title"]
+○ proj-t4w [● P2] [task] - apple match
+○ proj-ick [● P2] [task] - hotel match
+○ proj-1pg [● P2] [task] - jackal match
+○ proj-15k [● P2] [task] - ZULU match
+○ proj-gp1 [● P2] [task] - İstanbul match
+[exit 0]
+$ ["search", "match", "--sort", "title"]
+Found 5 issue(s) matching 'match'
+○ proj-t4w [● P2] [task] - apple match
+○ proj-ick [● P2] [task] - hotel match
+○ proj-1pg [● P2] [task] - jackal match
+○ proj-15k [● P2] [task] - ZULU match
+○ proj-gp1 [● P2] [task] - İstanbul match
+[exit 0]
+$ ["search", "match", "--sort", "title", "--offset", "1"]
+Found 4 issue(s) matching 'match'
+○ proj-ick [● P2] [task] - hotel match
+○ proj-1pg [● P2] [task] - jackal match
+○ proj-15k [● P2] [task] - ZULU match
+○ proj-gp1 [● P2] [task] - İstanbul match
+[exit 0]

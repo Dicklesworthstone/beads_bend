@@ -115,11 +115,12 @@ def edges_of(+i: Model.Issue, +all: List<&2, Model.Issue>, direction: U32, +kind
     case _:
       List.append(&2, Edge, List.sort(~Edge, ~edge_le_query, down_edges(Model.deps_of(i), all, kind)), List.sort(~Edge, ~edge_le_query, up_edges(all, Model.id_of(i), kind)))
 
-# S5.177 (spec twin) the other end's title, priority and status; a missing end shows an empty title, priority 2 and `unknown` (OQ-122)
-def other_title(other: Maybe<&2, Model.Issue>) -> String:
+# S5.177 S5.151 (spec twin) the other end's title, priority and status; a missing end shows an empty title, priority 2 and
+# `unknown` (OQ-122), except an `external:` end, which shows `⏳ {ref}` and `blocked` (OQ-045)
+def other_title(other: Maybe<&2, Model.Issue>, +id: String) -> String:
   match other:
     case None{}:
-      ""
+      Bool.pick(String, String.starts_with(id, "external:"), "⏳ " ++ id, "")
     case Some{i}:
       Model.title_of(i)
 
@@ -131,29 +132,33 @@ def other_priority(other: Maybe<&2, Model.Issue>) -> String:
     case Some{i}:
       Model.priority_of(i)
 
-# S5.177 (spec twin) the other end's status
-def other_status(other: Maybe<&2, Model.Issue>) -> String:
+# S5.177 S5.151 (spec twin) the other end's status
+def other_status(other: Maybe<&2, Model.Issue>, +id: String) -> String:
   match other:
     case None{}:
-      "unknown"
+      Bool.pick(String, String.starts_with(id, "external:"), "blocked", "unknown")
     case Some{i}:
       Model.status_of(i)
 
 # S5.177 (spec twin) one text row: `  -> {other} ({type}): {title} [P{n}] [{status}]`, `<-` when the issue is the target
+def edge_row(+oid: String, +kind: String, +other: Maybe<&2, Model.Issue>, outgoing: Bool) -> String:
+  String.concat([Bool.pick(String, outgoing, "  -> ", "  <- "), Render.inline(oid), " (", Render.inline(kind), "): ", Render.inline(other_title(other, oid)), " [P", other_priority(other), "] [", Render.inline(other_status(other, oid)), "]\n"])
+
+# S5.177 (spec twin) the text rows in order
 def edge_lines(es: List<&2, Edge>) -> List<&2, String>:
   match es:
     case Nil{}:
       Nil{}
     case Con{Edge{issue_id, depends_on_id, +kind, +other, +outgoing}, rest}:
-      String.concat([Bool.pick(String, outgoing, "  -> ", "  <- "), Render.inline(other_id(Edge{issue_id, depends_on_id, kind, other, outgoing})), " (", Render.inline(kind), "): ", Render.inline(other_title(other)), " [P", other_priority(other), "] [", Render.inline(other_status(other)), "]\n"]) <> edge_lines(rest)
+      edge_row(other_id(Edge{issue_id, depends_on_id, kind, other, outgoing}), kind, other, outgoing) <> edge_lines(rest)
 
 # S5.46 (spec twin) one JSON row: six members in this order, all always present
 def edge_objects(es: List<&2, Edge>, first: Bool) -> List<&2, String>:
   match es first:
     case Nil{} _:
       Nil{}
-    case Con{Edge{issue_id, depends_on_id, kind, +other, outgoing}, rest} lead:
-      String.concat([Bool.pick(String, lead, "", ","), "{\"issue_id\":", Failure.quoted(issue_id), ",\"depends_on_id\":", Failure.quoted(depends_on_id), ",\"type\":", Failure.quoted(kind), ",\"title\":", Failure.quoted(other_title(other)), ",\"status\":", Failure.quoted(other_status(other)), ",\"priority\":", other_priority(other), "}"]) <> edge_objects(rest, False{})
+    case Con{Edge{issue_id, +depends_on_id, kind, +other, outgoing}, rest} lead:
+      String.concat([Bool.pick(String, lead, "", ","), "{\"issue_id\":", Failure.quoted(issue_id), ",\"depends_on_id\":", Failure.quoted(depends_on_id), ",\"type\":", Failure.quoted(kind), ",\"title\":", Failure.quoted(other_title(other, depends_on_id)), ",\"status\":", Failure.quoted(other_status(other, depends_on_id)), ",\"priority\":", other_priority(other), "}"]) <> edge_objects(rest, False{})
 
 # S5.176 S5.178 (spec twin) the noun phrase of a direction: `dependencies`, `dependents`, `dependencies or dependents`
 # in the empty line; `Dependencies`, `Dependents`, `Dependencies and dependents` in the header
@@ -366,11 +371,11 @@ type TNode is Data:
   TNode{id: String, title: String, depth: Nat, parent: String, priority: String, status: String, cut: Bool, again: Bool}
 
 # S4.183 S5.47 (spec twin) the emitted node; a neighbour with no stored record shows an empty title, priority 2
-# and `unknown`, as `dep list` does for a missing end
+# and `unknown`, as `dep list` does for a missing end, and an `external:` one `⏳ {ref}` and `blocked`
 def tnode_of(found: Maybe<&2, Model.Issue>, +id: String, depth: Nat, parent: String, cut: Bool, again: Bool) -> TNode:
   match found:
     case None{}:
-      TNode{id, "", depth, parent, "2", "unknown", cut, again}
+      TNode{id, other_title(None{}, id), depth, parent, "2", other_status(None{}, id), cut, again}
     case Some{+i}:
       TNode{id, Model.title_of(i), depth, parent, Model.priority_of(i), Model.status_of(i), cut, again}
 

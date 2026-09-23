@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: file: must have .md or .markdown extension",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "file",
+      "reason": "must have .md or .markdown extension"
+    }
+  }
+}

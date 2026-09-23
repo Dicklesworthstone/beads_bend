@@ -1,0 +1,14 @@
+# child_export_order: the export order of child ids past .9 (OQ-079)
+@fx=basic
+["create","C1","--parent","proj-uly","--silent"]
+["create","C2","--parent","proj-uly","--silent"]
+["create","C3","--parent","proj-uly","--silent"]
+["create","C4","--parent","proj-uly","--silent"]
+["create","C5","--parent","proj-uly","--silent"]
+["create","C6","--parent","proj-uly","--silent"]
+["create","C7","--parent","proj-uly","--silent"]
+["create","C8","--parent","proj-uly","--silent"]
+["create","C9","--parent","proj-uly","--silent"]
+["create","C10","--parent","proj-uly","--silent"]
+["create","C11","--parent","proj-uly","--silent"]
+["list","--parent","proj-uly","--json","--fields","id"]

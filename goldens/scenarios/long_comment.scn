@@ -1,0 +1,7 @@
+# long_comment: a comment and an indented body longer than 100 columns in show, with --no-wrap and --wrap (S5.115)
+@fx=basic
+["comments","add","proj-mta","Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment"]
+["update","proj-mta","--notes","    indented     indented     indented     indented     indented     indented     indented     indented     indented     indented     indented     indented"]
+["show","proj-mta"]
+["show","proj-mta","--no-wrap"]
+["show","proj-mta","--wrap"]

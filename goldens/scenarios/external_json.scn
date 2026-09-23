@@ -1,0 +1,7 @@
+# external_json: an external: dependency in show --json, dep list and dep tree (OQ-045, S5.151)
+@fx=basic
+["dep","add","proj-mta","external:other-1"]
+["show","proj-mta","--json"]
+["dep","list","proj-mta"]
+["dep","list","proj-mta","--json"]
+["dep","tree","proj-mta"]

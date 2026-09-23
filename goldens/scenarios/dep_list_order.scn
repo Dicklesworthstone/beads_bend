@@ -1,0 +1,13 @@
+# dep_list_order: three same-priority dependencies added out of id order; text vs JSON order (OQ-080)
+@fx=basic
+["create","Dep A","--parent","proj-5u2","--silent"]
+["create","Dep B","--parent","proj-5u2","--silent"]
+["create","Dep C","--parent","proj-5u2","--silent"]
+@time=2026-01-02 09:00:00
+["dep","add","proj-mta","proj-5u2.3"]
+@time=2026-01-02 10:00:00
+["dep","add","proj-mta","proj-5u2.1"]
+@time=2026-01-02 11:00:00
+["dep","add","proj-mta","proj-5u2.2"]
+["dep","list","proj-mta"]
+["dep","list","proj-mta","--json"]

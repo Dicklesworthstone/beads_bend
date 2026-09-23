@@ -1,0 +1,8 @@
+$ ["create", "İstanbul match", "--silent"]
+$ ["create", "jackal match", "--silent"]
+$ ["create", "hotel match", "--silent"]
+$ ["create", "ZULU match", "--silent"]
+$ ["create", "apple match", "--silent"]
+$ ["list", "--sort", "title"]
+$ ["search", "match", "--sort", "title"]
+$ ["search", "match", "--sort", "title", "--offset", "1"]

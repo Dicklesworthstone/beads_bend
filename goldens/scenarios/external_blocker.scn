@@ -1,0 +1,7 @@
+# external_blocker: does an external: blocking edge block its source? (OQ-045)
+@fx=basic
+["dep","add","proj-mta","external:other-1"]
+["blocked"]
+["blocked","--json"]
+["ready"]
+["show","proj-mta"]

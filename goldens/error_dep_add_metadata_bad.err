@@ -1,0 +1,1 @@
+Error: Validation failed: metadata: dependency metadata must be valid JSON for proj-ptp -> proj-mta (type=blocks); found "{bad": key must be a string at line 1 column 2

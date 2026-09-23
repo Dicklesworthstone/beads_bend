@@ -37,11 +37,22 @@ def lookup(issues: List<&2, Model.Issue>, +id: String) -> Maybe<&2, Model.Issue>
     case Con{+i, rest}:
       Bool.pick(Maybe<&2, Model.Issue>, String.eq(Model.id_of(i), id), Some{i}, lookup(rest, id))
 
-# S5.31 (spec twin) an edge's other end as a Related; an end that is not stored contributes nothing
-def related_put(found: Maybe<&2, Model.Issue>, kind: String, rest: List<&2, Related>) -> List<&2, Related>:
+# S5.151 S5.31 (spec twin) an `external:` end stands for itself: its reference is the id, `⏳ ` and the reference the
+# title, `blocked` the status and 2 the priority (OQ-045); its creation instant, a sort key, is unmeasured and taken
+# as the epoch. Any other end that is not stored contributes nothing
+def external_put(+target: String, kind: String, keep: Bool, rest: List<&2, Related>) -> List<&2, Related>:
+  match keep:
+    case True{}:
+      Related{target, "⏳ " ++ target, "blocked", "2", kind, Time.Instant{0, 0, 0}} <> rest
+    case False{}:
+      rest
+
+# S5.31 S5.151 (spec twin) an edge's other end as a Related; an end that is not stored contributes nothing, except an
+# `external:` end
+def related_put(found: Maybe<&2, Model.Issue>, +target: String, kind: String, rest: List<&2, Related>) -> List<&2, Related>:
   match found:
     case None{}:
-      rest
+      external_put(target, kind, String.starts_with(target, "external:"), rest)
     case Some{+t}:
       Related{Model.id_of(t), Model.title_of(t), Model.status_of(t), Model.priority_of(t), kind, Model.created_of(t)} <> rest
 
@@ -51,13 +62,13 @@ def dependencies(edges: List<&2, Model.Dependency>, +all: List<&2, Model.Issue>)
     case Nil{}:
       Nil{}
     case Con{+e, rest}:
-      related_put(lookup(all, Model.target_of(e)), Model.dep_type_of(e), dependencies(rest, all))
+      related_put(lookup(all, Model.target_of(e)), Model.target_of(e), Model.dep_type_of(e), dependencies(rest, all))
 
 # S5.31 (spec twin) keep the pointing record when the edge points at the issue
 def pointing_put(from: Model.Issue, kind: String, hit: Bool, later: List<&2, Related>) -> List<&2, Related>:
   match hit:
     case True{}:
-      related_put(Some{from}, kind, later)
+      related_put(Some{from}, "", kind, later)
     case False{}:
       later
 
@@ -183,11 +194,89 @@ def closed_line(at: Maybe<&2, Time.Instant>, reason: Maybe<&2, String>) -> Strin
     case Some{when} other:
       "Closed: " ++ Render.date(when) ++ " (closed)\n"
 
-# S5.150 (spec twin) a body section: one blank line, the heading line when it has one, the body
-def section(heading: String, value: Maybe<&2, String>) -> String:
+# S5.115 (spec twin) the leading spaces of a line: its indentation, carried onto every continuation
+def indent_of(s: String) -> String:
+  match s:
+    case SNil{}:
+      ""
+    case SCon{Chr{+c}, rest}:
+      Bool.pick(String, U32.is_eq(c, 32), SCon{Chr{c}, indent_of(rest)}, "")
+
+# S5.115 (data) greedy filling: the finished lines (REVERSED), the line being built and its length in code points
+type Fill is Data:
+  Fill{done: List<&2, String>, cur: String, used: Nat}
+
+# S5.115 (spec twin) one word: after one space it joins the line when the line stays within the width; otherwise the
+# line is finished and the word starts the next one after the indentation
+def fill_pick(fits: Bool, done: List<&2, String>, cur: String, used: Nat, +w: String, +indent: String) -> Fill:
+  match fits:
+    case True{}:
+      Fill{done, cur ++ " " ++ w, Nat.add(used, Nat.add(String.length(w), 1n))}
+    case False{}:
+      Fill{cur <> done, indent ++ w, Nat.add(String.length(indent), String.length(w))}
+
+# S5.115 (spec twin) fold one word into the filling
+def fill_word(st: Fill, +w: String, +indent: String, +width: Nat) -> Fill:
+  match st:
+    case Fill{done, cur, +used}:
+      fill_pick(Nat.is_le(Nat.add(used, Nat.add(String.length(w), 1n)), width), done, cur, used, w, indent)
+
+# S5.115 (spec twin) the words left to right
+def fill(words: List<&2, String>, st: Fill, +indent: String, +width: Nat) -> Fill:
+  match words:
+    case Nil{}:
+      st
+    case Con{+w, rest}:
+      fill(rest, fill_word(st, w, indent, width), indent, width)
+
+# S5.115 (spec twin) the finished filling as lines joined by line feeds
+def filled(st: Fill) -> String:
+  match st:
+    case Fill{done, cur, used}:
+      String.join(List.reverse(&2, String, cur <> done), "\n")
+
+# S5.115 (spec twin) the first word opens the first line after the indentation; the words are the text after the
+# indentation split at single spaces, so a line that fits comes back unchanged
+def wrap_words(words: List<&2, String>, +indent: String, +width: Nat) -> String:
+  match words:
+    case Nil{}:
+      indent
+    case Con{+w, rest}:
+      filled(fill(rest, Fill{Nil{}, indent ++ w, Nat.add(String.length(indent), String.length(w))}, indent, width))
+
+# S5.115 (spec twin) one line of a body, soft-wrapped: breaks at spaces only, never inside a word
+def wrap_line(+line: String, +width: Nat) -> String:
+  wrap_words(String.split(String.drop(line, String.length(indent_of(line))), Chr{32}), indent_of(line), width)
+
+# S5.115 (spec twin) every line of a body, its existing line breaks preserved
+def wrap_lines(lines: List<&2, String>, +width: Nat) -> List<&2, String>:
+  match lines:
+    case Nil{}:
+      Nil{}
+    case Con{+l, rest}:
+      wrap_line(l, width) <> wrap_lines(rest, width)
+
+# S5.115 (spec twin) a rendered body at a width; width 0 is `--no-wrap`
+def wrapped(+text: String, width: Nat) -> String:
+  match width:
+    case 0n:
+      text
+    case 1n+w:
+      String.join(wrap_lines(String.split(text, Chr{10}), Nat.add(w, 1n)), "\n")
+
+# S5.115 (spec twin) the wrap width: `COLUMNS` when it reads as a number of at least 20, else 100; 0 under `--no-wrap`
+def width_of(+columns: String, no_wrap: Bool) -> Nat:
+  match no_wrap:
+    case True{}:
+      0n
+    case False{}:
+      Bool.pick(Nat, Nat.is_ge(Maybe.default(&2, Nat, Nat.read(columns), 0n), 20n), Maybe.default(&2, Nat, Nat.read(columns), 0n), 100n)
+
+# S5.150 S5.115 (spec twin) a body section: one blank line, the heading line when it has one, the body wrapped
+def section(heading: String, value: Maybe<&2, String>, +width: Nat) -> String:
   match value:
     case Some{SCon{h, t}}:
-      "\n" ++ heading ++ body(SCon{h, t}) ++ "\n"
+      "\n" ++ heading ++ wrapped(body(SCon{h, t}), width) ++ "\n"
     case other:
       ""
 
@@ -215,21 +304,22 @@ def minute_of(+full: String) -> String:
 def minute_text(at: Time.Instant) -> String:
   minute_of(Time.print(at, "Z"))
 
-# S5.153 (spec twin) one comment line: `  [{when}] {author}: {body}`
-def comment_lines(items: List<&2, Model.Comment>) -> List<&2, String>:
+# S5.153 S5.115 (spec twin) one comment line: `  [{when}] {author}: {body}`, the body wrapped on its own before the
+# prefix is put in front, so its continuation lines start at column 0 (`scn_long_comment`)
+def comment_lines(items: List<&2, Model.Comment>, +width: Nat) -> List<&2, String>:
   match items:
     case Nil{}:
       Nil{}
     case Con{Model.Comment{id, issue_id, author, text, created_at}, rest}:
-      String.concat(["  [", minute_text(created_at), "] ", Render.inline(author), ": ", body(text), "\n"]) <> comment_lines(rest)
+      String.concat(["  [", minute_text(created_at), "] ", Render.inline(author), ": ", wrapped(body(text), width), "\n"]) <> comment_lines(rest, width)
 
 # S5.153 (spec twin) the comments section: nothing when empty
-def comment_section(items: List<&2, Model.Comment>) -> String:
+def comment_section(items: List<&2, Model.Comment>, +width: Nat) -> String:
   match items:
     case Nil{}:
       ""
     case Con{c, rest}:
-      "\nComments:\n" ++ String.concat(comment_lines(c <> rest))
+      "\nComments:\n" ++ String.concat(comment_lines(c <> rest, width))
 
 # S4.113 DISC-001 (spec twin) the instant from its epoch seconds and nanoseconds; none when either is missing or
 # not a number. Day 719468 of the instant calendar (days since 0000-03-01) is 1970-01-01
@@ -284,8 +374,8 @@ def countdown(until: Maybe<&2, Time.Instant>, now: Maybe<&2, Time.Instant>) -> S
 
 # S5.143–S5.153 (spec twin) one issue in plain text: the header, the owner line, the dates, the optional metadata
 # in S5.146's order, the bodies, the edges, the comments
-def plain_one(+i: Model.Issue, +all: List<&2, Model.Issue>, user: String, now: Maybe<&2, Time.Instant>) -> String:
-  String.concat([Render.icon(Model.status_of(i)), " ", Render.inline(Model.id_of(i)), " · ", Render.inline(Model.title_of(i)), "   [● P", Model.priority_of(i), " · ", shouted(Render.inline(Model.status_of(i))), "]\nOwner: ", Render.inline(owner_text(Model.owner_of(i), user)), " · Type: ", Render.inline(Model.type_of(i)), "\nCreated: ", Render.date(Model.created_of(i)), " · Updated: ", Render.date(Model.updated_of(i)), "\n", meta_text("Assignee: ", Model.assignee_of(i)), labels_line(Model.labels_of(i)), meta_text("Ref: ", Model.external_ref_of(i)), meta_date("Due: ", Model.due_of(i), ""), meta_date("Deferred until: ", Model.defer_of(i), countdown(Model.defer_of(i), now)), estimate_line(Model.estimate_of(i)), closed_line(Model.closed_of(i), Model.close_reason_of(i)), section("", Model.description_of(i)), section("Design:\n", Model.design_of(i)), section("Prerequisites:\n", Model.prerequisites_of(i)), section("Acceptance Criteria:\n", Model.acceptance_of(i)), section("Notes:\n", Model.notes_of(i)), edge_section("Dependencies:", List.sort(~Related, ~related_le, dependencies(Model.deps_of(i), all)), "->"), edge_section("Dependents:", List.sort(~Related, ~related_le, dependents(all, Model.id_of(i))), "<-"), comment_section(Model.comments_of(i))])
+def plain_one(+i: Model.Issue, +all: List<&2, Model.Issue>, user: String, now: Maybe<&2, Time.Instant>, +width: Nat) -> String:
+  String.concat([Render.icon(Model.status_of(i)), " ", Render.inline(Model.id_of(i)), " · ", Render.inline(Model.title_of(i)), "   [● P", Model.priority_of(i), " · ", shouted(Render.inline(Model.status_of(i))), "]\nOwner: ", Render.inline(owner_text(Model.owner_of(i), user)), " · Type: ", Render.inline(Model.type_of(i)), "\nCreated: ", Render.date(Model.created_of(i)), " · Updated: ", Render.date(Model.updated_of(i)), "\n", meta_text("Assignee: ", Model.assignee_of(i)), labels_line(Model.labels_of(i)), meta_text("Ref: ", Model.external_ref_of(i)), meta_date("Due: ", Model.due_of(i), ""), meta_date("Deferred until: ", Model.defer_of(i), countdown(Model.defer_of(i), now)), estimate_line(Model.estimate_of(i)), closed_line(Model.closed_of(i), Model.close_reason_of(i)), section("", Model.description_of(i), width), section("Design:\n", Model.design_of(i), width), section("Prerequisites:\n", Model.prerequisites_of(i), width), section("Acceptance Criteria:\n", Model.acceptance_of(i), width), section("Notes:\n", Model.notes_of(i), width), edge_section("Dependencies:", List.sort(~Related, ~related_le, dependencies(Model.deps_of(i), all)), "->"), edge_section("Dependents:", List.sort(~Related, ~related_le, dependents(all, Model.id_of(i))), "<-"), comment_section(Model.comments_of(i), width)])
 
 # ---------------------------------------------------------------- JSON (S5.30, S5.31)
 
@@ -347,14 +437,14 @@ def ids_of(issues: List<&2, Model.Issue>) -> List<&2, String>:
       Model.id_of(i) <> ids_of(rest)
 
 # S5.30 S5.154 (spec twin) one resolved issue rendered: plain blocks are separated by ONE blank line, JSON elements by `,`
-def shown_one(found: Maybe<&2, Model.Issue>, +all: List<&2, Model.Issue>, user: String, now: Maybe<&2, Time.Instant>, json: Bool, first: Bool) -> String:
+def shown_one(found: Maybe<&2, Model.Issue>, +all: List<&2, Model.Issue>, user: String, now: Maybe<&2, Time.Instant>, width: Nat, json: Bool, first: Bool) -> String:
   match found json:
     case None{} _:
       ""
     case Some{i} True{}:
       Bool.pick(String, first, "", ",") ++ json_one(i, all)
     case Some{i} False{}:
-      Bool.pick(String, first, "", "\n") ++ plain_one(i, all, user, now)
+      Bool.pick(String, first, "", "\n") ++ plain_one(i, all, user, now, width)
 
 # S4.48 (data) the run so far: the first refusal (sticky), or the rendered issues (REVERSED) and whether none was rendered yet
 type Acc is Data:
@@ -362,22 +452,22 @@ type Acc is Data:
   AccOk{done: List<&2, String>, first: Bool}
 
 # S4.48 (spec twin) fold one resolved id in: the FIRST refusal ends the run
-def show_step(acc: Acc, found: Resolve.Found, +all: List<&2, Model.Issue>, user: String, now: Maybe<&2, Time.Instant>, json: Bool) -> Acc:
+def show_step(acc: Acc, found: Resolve.Found, +all: List<&2, Model.Issue>, user: String, now: Maybe<&2, Time.Instant>, width: Nat, json: Bool) -> Acc:
   match acc found:
     case AccBad{f} _:
       AccBad{f}
     case AccOk{done, first} Resolve.FoundBad{f}:
       AccBad{f}
     case AccOk{done, first} Resolve.FoundOk{id}:
-      AccOk{shown_one(lookup(all, id), all, user, now, json, first) <> done, False{}}
+      AccOk{shown_one(lookup(all, id), all, user, now, width, json, first) <> done, False{}}
 
 # S4.48 S5.154 (spec twin) the ids left to right
-def show_go(inputs: List<&2, String>, +all: List<&2, Model.Issue>, +user: String, +now: Maybe<&2, Time.Instant>, +prefix: String, +json: Bool, acc: Acc) -> Acc:
+def show_go(inputs: List<&2, String>, +all: List<&2, Model.Issue>, +user: String, +now: Maybe<&2, Time.Instant>, +width: Nat, +prefix: String, +json: Bool, acc: Acc) -> Acc:
   match inputs:
     case Nil{}:
       acc
     case Con{input, rest}:
-      show_go(rest, all, user, now, prefix, json, show_step(acc, Resolve.resolve(ids_of(all), input, prefix), all, user, now, json))
+      show_go(rest, all, user, now, width, prefix, json, show_step(acc, Resolve.resolve(ids_of(all), input, prefix), all, user, now, width, json))
 
 # S5.20 S5.30 S5.155 (spec twin) a refusal prints nothing of the issues; JSON is one array and one newline
 def show_done(acc: Acc, json: Bool) -> Shown:
@@ -400,15 +490,16 @@ def wanted(words: List<&2, String>, touched: String) -> List<&2, String>:
       Nil{}
 
 # S1.55 S9 (spec twin) no id at all is refused before anything is resolved
-def show_ids(ids: List<&2, String>, +all: List<&2, Model.Issue>, user: String, now: Maybe<&2, Time.Instant>, prefix: String, +json: Bool) -> Shown:
+def show_ids(ids: List<&2, String>, +all: List<&2, Model.Issue>, user: String, now: Maybe<&2, Time.Instant>, width: Nat, prefix: String, +json: Bool) -> Shown:
   match ids:
     case Nil{}:
       ShowBad{no_ids()}
     case Con{id, rest}:
-      show_done(show_go(id <> rest, all, user, now, prefix, json, AccOk{Nil{}, True{}}), json)
+      show_done(show_go(id <> rest, all, user, now, width, prefix, json, AccOk{Nil{}, True{}}), json)
 
 # S1.55 S5.30 S5.143–S5.155 (spec twin) `show`: `all` is the file's records as they are; `touched` is the trimmed text of
-# `.beads/last-touched`; `user` is `USER`; `now_digits` is the pinned instant's epoch seconds ("" when there is none)
-def run(words: List<&2, String>, all: List<&2, Model.Issue>, touched: String, user: String, now_digits: String, prefix: String, json: Bool) -> Shown:
-  show_ids(wanted(words, touched), all, user, pinned(now_digits), prefix, json)
+# `.beads/last-touched`; `user` is `USER`; `now_digits` is the pinned instant's epoch seconds ("" when there is none);
+# `width` is the wrap width of S5.115 (`width_of`)
+def run(words: List<&2, String>, all: List<&2, Model.Issue>, touched: String, user: String, now_digits: String, width: Nat, prefix: String, json: Bool) -> Shown:
+  show_ids(wanted(words, touched), all, user, pinned(now_digits), width, prefix, json)
 

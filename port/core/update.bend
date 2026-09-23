@@ -23,6 +23,7 @@ import ./edges.bend as Edges
 import ./status.bend as Status
 import ./acceptance.bend as Acceptance
 import ./labels.bend as Labels
+import ./decode.bend as Decode
 
 # S4.262–S4.268 (data) an issue under edit: the refusal (sticky), or the issue so far and whether a stored column changed
 type Edit is Data:
@@ -143,6 +144,17 @@ def with_flag(e: Edit, given: Maybe<&2, String>, kind: U32) -> Edit:
       EditOk{i, changed}
     case EditOk{i, changed} Some{value}:
       EditOk{put(kind, i, value), True{}}
+
+# S4.232 S4.265 (spec twin) `--agent-context`: written whenever given; the empty string clears the member, anything
+# else is stored as its canonical JSON text (a text that is not one JSON value was refused before any issue was read)
+def with_context(e: Edit, given: Maybe<&2, String>) -> Edit:
+  match e given:
+    case EditBad{f} _:
+      EditBad{f}
+    case EditOk{i, changed} None{}:
+      EditOk{i, changed}
+    case EditOk{i, changed} Some{value}:
+      EditOk{Decode.set_agent_context(i, Create.context_text(Create.context_of(Some{value}))), True{}}
 
 # S4.262 S4.263 (spec twin) `--status`: written unconditionally, in the model's spelling; a non-terminal status clears
 # the closing members (a terminal one was refused before any issue was read, S4.269)
@@ -470,7 +482,7 @@ def with_acceptance(e: Edit, acc: Acceptance.Done, given: Bool, now: Time.Instan
 # S4.262–S4.268 (spec twin) every flag of one `update` applied to one issue, in a fixed order; `priority` is the
 # priority's digits when `-p` was given and judged
 def edited(i: Model.Issue, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, parent: Maybe<&2, String>, model: List<&2, Model.Issue>) -> Edit:
-  finished(with_parent(with_labels(with_claim(with_date(with_date(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_append(with_body(with_body(with_body(with_body(with_body(with_compared(with_compared(with_status(start(i), Cli.value(opts, "status")), priority, 2), lowered_kind(Cli.value(opts, "type")), 3), Cli.value(opts, "description"), 0, Cli.given(opts, "force")), Cli.value(opts, "design"), 1, Cli.given(opts, "force")), Cli.value(opts, "acceptance-criteria"), 2, Cli.given(opts, "force")), Cli.value(opts, "prerequisites"), 3, Cli.given(opts, "force")), Cli.value(opts, "notes"), 4, Cli.given(opts, "force")), Cli.value(opts, "append-notes")), Cli.value(opts, "title"), 0), Cli.value(opts, "assignee"), 1), Cli.value(opts, "owner"), 2), Cli.value(opts, "external-ref"), 3), Cli.value(opts, "source-repo"), 4), Cli.value(opts, "source-repo-path"), 5), Cli.value(opts, "estimate"), 6), Cli.value(opts, "due"), 0, now, "date"), Cli.value(opts, "defer"), 1, now, "date"), Cli.given(opts, "claim"), relation, actor, Cli.given(opts, "force")), Cli.values(opts, "set-labels"), Cli.values(opts, "add-label"), Cli.values(opts, "remove-label"), (Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label")), Cli.given(opts, "set-labels")), parent, model, actor, now), now)
+  finished(with_context(with_parent(with_labels(with_claim(with_date(with_date(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_append(with_body(with_body(with_body(with_body(with_body(with_compared(with_compared(with_status(start(i), Cli.value(opts, "status")), priority, 2), lowered_kind(Cli.value(opts, "type")), 3), Cli.value(opts, "description"), 0, Cli.given(opts, "force")), Cli.value(opts, "design"), 1, Cli.given(opts, "force")), Cli.value(opts, "acceptance-criteria"), 2, Cli.given(opts, "force")), Cli.value(opts, "prerequisites"), 3, Cli.given(opts, "force")), Cli.value(opts, "notes"), 4, Cli.given(opts, "force")), Cli.value(opts, "append-notes")), Cli.value(opts, "title"), 0), Cli.value(opts, "assignee"), 1), Cli.value(opts, "owner"), 2), Cli.value(opts, "external-ref"), 3), Cli.value(opts, "source-repo"), 4), Cli.value(opts, "source-repo-path"), 5), Cli.value(opts, "estimate"), 6), Cli.value(opts, "due"), 0, now, "date"), Cli.value(opts, "defer"), 1, now, "date"), Cli.given(opts, "claim"), relation, actor, Cli.given(opts, "force")), Cli.values(opts, "set-labels"), Cli.values(opts, "add-label"), Cli.values(opts, "remove-label"), (Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label")), Cli.given(opts, "set-labels")), parent, model, actor, now), Cli.value(opts, "agent-context")), now)
 
 # S4.396 (spec twin) `--transition-comment` on one edited issue: refused unless `--status` moved it to another
 # status; otherwise a comment by the actor at the invocation instant

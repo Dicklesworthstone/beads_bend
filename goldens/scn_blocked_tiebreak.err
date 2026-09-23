@@ -1,0 +1,7 @@
+$ ["create", "One blocker", "--parent", "proj-5u2", "-p", "4", "--silent"]
+$ ["create", "Two blockers", "--parent", "proj-5u2", "-p", "4", "--silent"]
+$ ["dep", "add", "proj-5u2.1", "proj-mta"]
+$ ["dep", "add", "proj-5u2.2", "proj-mta"]
+$ ["dep", "add", "proj-5u2.2", "proj-ptp"]
+$ ["blocked"]
+$ ["blocked", "--json"]

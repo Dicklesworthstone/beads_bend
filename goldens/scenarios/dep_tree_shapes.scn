@@ -1,0 +1,10 @@
+# dep_tree_shapes: a diamond, siblings of mixed priority and status, and depth (OQ-043, OQ-049, OQ-065)
+@fx=basic
+["dep","add","proj-mta","proj-5u2"]
+["dep","add","proj-170","proj-5u2"]
+["dep","add","proj-170","proj-ptp"]
+["dep","add","proj-170","proj-mkh"]
+["dep","tree","proj-170"]
+["dep","tree","proj-170","--json"]
+["dep","tree","proj-5u2","--direction","up"]
+["dep","tree","proj-170","--max-depth","1"]

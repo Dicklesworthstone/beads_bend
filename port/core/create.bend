@@ -14,6 +14,8 @@ import ./query.bend as Query
 import ./resolve.bend as Resolve
 import ./when.bend as When
 import ./render.bend as Render
+import ./json.bend as Json
+import ./decode.bend as Decode
 
 # S4.200 S4.220 S4.221 (data) what a mutation knows of the world: every stored id (the raw file's, tombstones
 # included: S4.10, S4.13), the acting actor, the invocation instant and its nanoseconds since the epoch as digits
@@ -163,7 +165,7 @@ def hashed_id(+w: World, +slug: String, +title: String, +description: String, +c
 # and third parts (S4.15: the raw description and the actor for `create`; S4.16: both EMPTY for `q`); `quick` is `q`,
 # which never sets `source_repo` and `source_repo_path` (S5.19)
 type Request is Data:
-  Request{title: String, seed_description: String, seed_creator: String, description: Maybe<&2, String>, kind: Maybe<&2, String>, priority: Maybe<&2, String>, status: Maybe<&2, String>, assignee: Maybe<&2, String>, owner: Maybe<&2, String>, labels: List<&2, String>, parent: Maybe<&2, String>, deps: List<&2, String>, estimate: Maybe<&2, String>, due: Maybe<&2, String>, defer: Maybe<&2, String>, external_ref: Maybe<&2, String>, acceptance: Maybe<&2, String>, prerequisites: Maybe<&2, String>, slug: Maybe<&2, String>, ephemeral: Bool, quick: Bool}
+  Request{title: String, seed_description: String, seed_creator: String, description: Maybe<&2, String>, kind: Maybe<&2, String>, priority: Maybe<&2, String>, status: Maybe<&2, String>, assignee: Maybe<&2, String>, owner: Maybe<&2, String>, labels: List<&2, String>, parent: Maybe<&2, String>, deps: List<&2, String>, estimate: Maybe<&2, String>, due: Maybe<&2, String>, defer: Maybe<&2, String>, external_ref: Maybe<&2, String>, acceptance: Maybe<&2, String>, prerequisites: Maybe<&2, String>, slug: Maybe<&2, String>, ephemeral: Bool, quick: Bool, agent_context: Maybe<&2, String>}
 
 # S4.235 S5.37 (data) the new issue: as the write-back spells it (repaired, which is what `--json` prints), and as it
 # was built in memory (which is what `--dry-run --json` prints); or the refusal
@@ -349,7 +351,7 @@ def record_status(+status: String, i: Model.Issue, actor: String, +now: Time.Ins
 # S4.220–S4.234 (spec twin) the record a request builds, once its id, priority, dates and edges are known
 def record(r: Request, +w: World, id: String, priority: String, due: Maybe<&2, Time.Instant>, defer: Maybe<&2, Time.Instant>, edges: List<&2, Model.Dependency>) -> Model.Issue:
   match r w:
-    case Request{title, seed_description, seed_creator, description, kind, rank, status, assignee, owner, labels, parent, deps, estimate, due_text, defer_text, external_ref, acceptance, prerequisites, slug, ephemeral, +quick} World{ids, +actor, +now, nanos, prefix, +repo_path}:
+    case Request{title, seed_description, seed_creator, description, kind, rank, status, assignee, owner, labels, parent, deps, estimate, due_text, defer_text, external_ref, acceptance, prerequisites, slug, ephemeral, +quick, context} World{ids, +actor, +now, nanos, prefix, +repo_path}:
       record_status(Maybe.default(&2, String, status, "open"), Model.Issue{Model.Head{id, title, "open", priority, Maybe.default(&2, String, kind, "task")}, Model.Texts{description, None{}, acceptance, prerequisites, None{}}, Model.People{assignee, owner, Some{actor}, None{}}, Model.Times{now, now, None{}, due, defer, None{}, None{}}, Model.Closing{None{}, None{}, None{}, None{}, None{}}, Model.Source{external_ref, None{}, source_part(quick, Resolve.remainder_of(Resolve.cut_last(repo_path, 47))), source_part(quick, repo_path), None{}}, Model.Deletion{None{}, None{}, None{}}, Model.Compaction{None{}, None{}, None{}}, Model.Meta{minutes(estimate)}, Model.Flags{ephemeral, False{}, False{}}, first_seen(Query.comma_split(labels), Nil{}), edges, Nil{}}, actor, now)
 
 # ---------------------------------------------------------------- make (S4.238)
@@ -412,29 +414,109 @@ def with_id(+id: String, p: Parent, +r: Request, +w: World, priority: String, du
     case SCon{h, t}:
       made(edges_go(Query.comma_split(deps), parent_edges(p, id, w), id, w), r, w, id, priority, due, defer)
 
-# S4.238 S4.239 S4.372 (spec twin) the checks in the original's order: the priority, the dates, the parent, then the
-# title (empty, then too long) and the labels (their characters, then more than 64 of them); the first refusal wins
-def checked(rank: Rank, due: Date, defer: Date, p: Parent, title_empty: Bool, title_long: Bool, labels_bad: Bool, labels_many: Bool, +r: Request, +w: World, +title: String, slug: String, seed_description: String, seed_creator: String, deps: List<&2, String>) -> Made:
-  match rank due defer p title_empty title_long labels_bad:
-    case RankBad{f} _ _ _ _ _ _:
+# ---------------------------------------------------------------- `--agent-context` (S4.232)
+
+# S4.232 (data) the verdict on `--agent-context`: nothing to store (not given, or the empty string, which leaves the
+# field unset on create and clears it on update), the canonical JSON text to store, or the refusal
+type Context is Data:
+  CtxNone{}
+  CtxSet{text: String}
+  CtxBad{failure: Failure.Failure}
+
+# S4.232 (spec twin) one canonical token as serde_json writes it: strings re-escaped, nothing between tokens
+def tok_text(kind: Json.TokKind) -> String:
+  match kind:
+    case Json.KLBrace{}:
+      "{"
+    case Json.KRBrace{}:
+      "}"
+    case Json.KLBrack{}:
+      "["
+    case Json.KRBrack{}:
+      "]"
+    case Json.KColon{}:
+      ":"
+    case Json.KComma{}:
+      ","
+    case Json.KStr{text}:
+      Failure.quoted(text)
+    case Json.KLit{text}:
+      text
+
+# S4.232 (spec twin) the canonical tokens as one compact text
+def canon_text(toks: List<&2, Json.Tok>) -> String:
+  match toks:
+    case Nil{}:
+      ""
+    case Con{Json.Tok{kind, at}, rest}:
+      tok_text(kind) ++ canon_text(rest)
+
+# S4.232 S9 (spec twin) inline text that is not one JSON value: CONFIG_ERROR, exit 7, with serde_json's message
+def context_invalid(+msg: String, +at: U32) -> Failure.Failure:
+  Failure.Failure{"CONFIG_ERROR", "Configuration error: agent-context: inline argument is not valid JSON: " ++ msg ++ " at line 1 column " ++ U32.show(at) ++ " (hint: use `--agent-context @path/to/instructions.yaml` for a file, or pass an empty string to clear)", None{}, False{}, Nil{}, 7}
+
+# S4.232 (spec twin) the verdict on an inline text judged as one JSON value; a value the port does not print is the
+# port's own failure
+def context_checked(c: Json.Checked) -> Context:
+  match c:
+    case Json.CheckBad{msg, at}:
+      CtxBad{context_invalid(msg, at)}
+    case Json.CheckOdd{}:
+      CtxBad{Failure.unported()}
+    case Json.CheckOk{toks}:
+      CtxSet{canon_text(toks)}
+
+# S4.232 (spec twin) `--agent-context`: absent or empty stores nothing; `@path` reads a file, which is not ported;
+# anything else is inline JSON
+def context_of(given: Maybe<&2, String>) -> Context:
+  match given:
+    case None{}:
+      CtxNone{}
+    case Some{+text}:
+      Bool.pick(Context, String.is_empty(text), CtxNone{}, Bool.pick(Context, String.starts_with(text, "@"), CtxBad{Failure.unported()}, context_checked(Json.value(text))))
+
+# S4.232 (spec twin) the stored text of a verdict that passed
+def context_text(c: Context) -> Maybe<&2, String>:
+  match c:
+    case CtxSet{text}:
+      Some{text}
+    case _:
+      None{}
+
+# S4.232 (spec twin) the new issue with its `agent_context`, as built and as the write-back spells it
+def contextual(m: Made, +v: Maybe<&2, String>) -> Made:
+  match m:
+    case MadeBad{f}:
       MadeBad{f}
-    case RankOk{digits} DateBad{f} _ _ _ _ _:
+    case MadeOk{issue, built}:
+      MadeOk{Decode.set_agent_context(issue, v), Decode.set_agent_context(built, v)}
+
+# S4.238 S4.239 S4.372 S4.232 (spec twin) the checks in the original's order: the priority, the dates, the agent
+# context, the parent, then the title (empty, then too long) and the labels (their characters, then more than 64 of
+# them); the first refusal wins
+def checked(rank: Rank, due: Date, defer: Date, ctx: Context, p: Parent, title_empty: Bool, title_long: Bool, labels_bad: Bool, labels_many: Bool, +r: Request, +w: World, +title: String, slug: String, seed_description: String, seed_creator: String, deps: List<&2, String>) -> Made:
+  match rank due defer ctx p title_empty title_long labels_bad:
+    case RankBad{f} _ _ _ _ _ _ _:
       MadeBad{f}
-    case RankOk{digits} DateOk{a} DateBad{f} _ _ _ _:
+    case RankOk{digits} DateBad{f} _ _ _ _ _ _:
       MadeBad{f}
-    case RankOk{digits} DateOk{a} DateOk{b} ParentBad{f} _ _ _:
+    case RankOk{digits} DateOk{a} DateBad{f} _ _ _ _ _:
       MadeBad{f}
-    case RankOk{digits} DateOk{a} DateOk{b} parent True{} _ _:
+    case RankOk{digits} DateOk{a} DateOk{b} CtxBad{f} _ _ _ _:
+      MadeBad{f}
+    case RankOk{digits} DateOk{a} DateOk{b} good ParentBad{f} _ _ _:
+      MadeBad{f}
+    case RankOk{digits} DateOk{a} DateOk{b} good parent True{} _ _:
       MadeBad{invalid("title", "cannot be empty")}
-    case RankOk{digits} DateOk{a} DateOk{b} parent False{} True{} _:
+    case RankOk{digits} DateOk{a} DateOk{b} good parent False{} True{} _:
       MadeBad{invalid("title", "exceeds 500 characters")}
-    case RankOk{digits} DateOk{a} DateOk{b} parent False{} False{} True{}:
+    case RankOk{digits} DateOk{a} DateOk{b} good parent False{} False{} True{}:
       MadeBad{invalid("label", "invalid characters (only alphanumeric, hyphen, underscore, colon allowed)")}
-    case RankOk{digits} DateOk{a} DateOk{b} +parent False{} False{} False{}:
-      Bool.pick(Made, labels_many, MadeBad{invalid("labels", "exceeds 64 labels")}, with_id(new_id(parent, w, slug, title, seed_description, seed_creator), parent, r, w, digits, a, b, deps))
+    case RankOk{digits} DateOk{a} DateOk{b} good +parent False{} False{} False{}:
+      Bool.pick(Made, labels_many, MadeBad{invalid("labels", "exceeds 64 labels")}, contextual(with_id(new_id(parent, w, slug, title, seed_description, seed_creator), parent, r, w, digits, a, b, deps), context_text(good)))
 
 # S4.220–S4.239 (spec twin) a new issue from a request, or the first refusal
 def make(+r: Request, +w: World) -> Made:
   match r w:
-    case Request{+title, seed_description, seed_creator, description, kind, rank, status, assignee, owner, +labels, parent, deps, estimate, due_text, defer_text, external_ref, acceptance, prerequisites, slug, ephemeral, quick} World{ids, actor, +now, nanos, prefix, repo_path}:
-      checked(rank_of(rank), date_of(due_text, now, "date"), date_of(defer_text, now, "date"), parent_of(parent, w), String.is_empty(String.trim(title)), Nat.is_gt(String.length(title), 500n), Bool.not(labels_ok(Query.comma_split(labels))), Nat.is_gt(List.length(&2, String, Model.dedup(List.sort(~String, ~String.is_le, Query.comma_split(labels)))), 64n), r, w, title, slug_of(slug), seed_description, seed_creator, deps)
+    case Request{+title, seed_description, seed_creator, description, kind, rank, status, assignee, owner, +labels, parent, deps, estimate, due_text, defer_text, external_ref, acceptance, prerequisites, slug, ephemeral, quick, context} World{ids, actor, +now, nanos, prefix, repo_path}:
+      checked(rank_of(rank), date_of(due_text, now, "date"), date_of(defer_text, now, "date"), context_of(context), parent_of(parent, w), String.is_empty(String.trim(title)), Nat.is_gt(String.length(title), 500n), Bool.not(labels_ok(Query.comma_split(labels))), Nat.is_gt(List.length(&2, String, Model.dedup(List.sort(~String, ~String.is_le, Query.comma_split(labels)))), 64n), r, w, title, slug_of(slug), seed_description, seed_creator, deps)

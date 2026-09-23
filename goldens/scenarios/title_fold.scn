@@ -1,0 +1,9 @@
+# title_fold: is --sort title folded ASCII-only, in list and in search with an offset? (OQ-083)
+["create","İstanbul match","--silent"]
+["create","jackal match","--silent"]
+["create","hotel match","--silent"]
+["create","ZULU match","--silent"]
+["create","apple match","--silent"]
+["list","--sort","title"]
+["search","match","--sort","title"]
+["search","match","--sort","title","--offset","1"]

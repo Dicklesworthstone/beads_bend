@@ -458,3 +458,320 @@ def sp_finish(st: Sp, eof: U32) -> Split:
 def members(toks: List<&2, Tok>, eof: U32) -> Split:
   sp_finish(sp_go(toks, Sp{PStart{}, 0n, "", 0, Nil{}, Nil{}, NoErr{}}), eof)
 
+# ------------------------------------------------------------------ values
+# A whole JSON text from the command line (`dep add --metadata`, S4.350; `--agent-context`, S4.232) is judged
+# as ONE value of any shape: serde_json's structural message with its column, or the value's tokens as
+# serde_json prints them back (keys in input order, numbers in serde_json's spelling). The port prints only
+# what it can print exactly: a literal that is not `true`, `false`, `null` or a JSON number, an integer outside
+# i64/u64, a float with more than 15 significant digits or outside ryu's plain notation, and a repeated key
+# make the verdict `CheckOdd` (the port's "not ported yet" failure), never a guess.
+
+# S4.232 (data) an open container: a list, or an object with the keys it has so far
+type Frame is Data:
+  FArr{}
+  FObj{keys: List<&2, String>}
+
+# S4.232 (data) what comes next: a value (`open` right after `[`, `comma` right after `,` in a list); a key
+# (`first` right after `{`); the `:`; or, after a complete value, `,` or the innermost closing bracket
+type Want is Data:
+  WValue{open: Bool, comma: Bool}
+  WKey{first: Bool}
+  WColon{}
+  WAfter{}
+
+# S4.232 (data) the checker's state: what comes next, the open containers (innermost first), the canonical
+# tokens so far (REVERSED), the sticky error, and whether something the port does not print was seen
+type Vs is Data:
+  Vs{want: Want, stack: List<&2, Frame>, out: List<&2, Tok>, err: LexErr, odd: Bool}
+
+# S4.232 (data) the verdict on a whole text
+type Checked is Data:
+  CheckBad{msg: String, at: U32}
+  CheckOdd{}
+  CheckOk{toks: List<&2, Tok>}
+
+# S4.232 (data) a literal: its canonical spelling, or one the port does not print
+type Lit is Data:
+  LitOk{text: String}
+  LitOdd{}
+
+# S4.232 (spec twin) a String's code points
+def codes(s: String) -> List<&2, U32>:
+  match s:
+    case SNil{}:
+      Nil{}
+    case SCon{Chr{c}, rest}:
+      c <> codes(rest)
+
+# S2.27 (spec twin) the byte length of code points: serde_json's column at the end of the input
+def byte_len(cs: List<&2, U32>) -> U32:
+  match cs:
+    case Nil{}:
+      0
+    case Con{+c, rest}:
+      (width(c) + byte_len(rest) : U32)
+
+# S4.232 (spec twin) is every code point an ASCII digit (and there is at least one)
+def digits_go(s: String) -> Bool:
+  match s:
+    case SNil{}:
+      True{}
+    case SCon{Chr{+c}, rest}:
+      ((c >= 48 : U32) && (c <= 57 : U32) && digits_go(rest))
+
+# S4.232 (spec twin) a non-empty run of ASCII digits
+def all_digits(+s: String) -> Bool:
+  Bool.not(String.is_empty(s)) && digits_go(s)
+
+# S4.232 (spec twin) JSON's integer part: `0`, or digits without a leading zero
+def int_part(+s: String) -> Bool:
+  all_digits(s) && (String.eq(s, "0") || Bool.not(String.starts_with(s, "0")))
+
+# S4.232 (spec twin) the leading zeros of a digit string, counted
+def zeros_of(s: String) -> Nat:
+  match s:
+    case SNil{}:
+      0n
+    case SCon{Chr{+c}, rest}:
+      Bool.pick(Nat, U32.is_eq(c, 48), Nat.add(zeros_of(rest), 1n), 0n)
+
+# S4.232 (spec twin) a digit string without its trailing zeros
+def trimmed_zeros(+s: String) -> String:
+  String.reverse(String.drop(String.reverse(s), zeros_of(String.reverse(s))))
+
+# S4.232 (spec twin) an integer serde_json keeps as an integer: within u64 when positive, within i64 when negative
+def int_fits(+digits: String, neg: Bool) -> Bool:
+  match neg:
+    case False{}:
+      (Nat.is_lt(String.length(digits), 20n) || (Nat.is_eq(String.length(digits), 20n) && String.is_le(digits, "18446744073709551615")))
+    case True{}:
+      (Nat.is_lt(String.length(digits), 19n) || (Nat.is_eq(String.length(digits), 19n) && String.is_le(digits, "9223372036854775808")))
+
+# S4.232 (spec twin) an integer literal: `-0` is serde_json's float `-0.0`; an integer outside i64/u64 is a
+# float the port does not print
+def int_canon(+text: String, +digits: String, +neg: Bool) -> Lit:
+  Bool.pick(Lit, (neg && String.eq(digits, "0")), LitOk{"-0.0"}, Bool.pick(Lit, int_fits(digits, neg), LitOk{text}, LitOdd{}))
+
+# S4.232 (spec twin) significant digits `d` whose decimal point sits at `p` - 1000 (so `0.d` times ten to that power),
+# as ryu writes a float: `d000.0`, `d.dd`, or `0.00d`. Only -3 <= p - 1000 <= 15 and at most 15 digits are printed
+def float_place(+d: String, +p: Nat, neg: Bool) -> Lit:
+  Bool.pick(Lit, (Nat.is_gt(String.length(d), 15n) || Nat.is_lt(p, 997n) || Nat.is_gt(p, 1015n)), LitOdd{}, LitOk{Bool.pick(String, neg, "-", "") ++ Bool.pick(String, Nat.is_ge(p, Nat.add(1000n, String.length(d))), d ++ String.repeat("0", Nat.sub(Nat.sub(p, 1000n), String.length(d))) ++ ".0", Bool.pick(String, Nat.is_gt(p, 1000n), String.take(d, Nat.sub(p, 1000n)) ++ "." ++ String.drop(d, Nat.sub(p, 1000n)), "0." ++ String.repeat("0", Nat.sub(1000n, p)) ++ d))})
+
+# S4.232 (spec twin) a float from all its digits and the biased position of its decimal point: leading zeros move
+# the point left, trailing zeros go; no digit left is zero, `0.0` or `-0.0`
+def float_digits(+all: String, +p: Nat, +neg: Bool) -> Lit:
+  Bool.pick(Lit, String.is_empty(trimmed_zeros(String.drop(all, zeros_of(all)))), LitOk{Bool.pick(String, neg, "-0.0", "0.0")}, float_place(trimmed_zeros(String.drop(all, zeros_of(all))), Nat.sub(p, zeros_of(all)), neg))
+
+# S4.232 (spec twin) the exponent's sign and digits: at most three digits are taken, a longer one is not printed
+def float_exp(+ip: String, +fp: String, +exp: String, +neg: Bool) -> Lit:
+  Bool.pick(Lit, (all_digits(String.drop(exp, Bool.pick(Nat, (String.starts_with(exp, "-") || String.starts_with(exp, "+")), 1n, 0n))) && Nat.is_lt(String.length(exp), 5n)), float_digits(ip ++ fp, Bool.pick(Nat, String.starts_with(exp, "-"), Nat.sub(Nat.add(String.length(ip), 1000n), Maybe.default(&2, Nat, Nat.read(String.drop(exp, 1n)), 0n)), Nat.add(Nat.add(String.length(ip), 1000n), Maybe.default(&2, Nat, Nat.read(String.drop(exp, Bool.pick(Nat, String.starts_with(exp, "+"), 1n, 0n))), 0n))), neg), LitOdd{})
+
+# S4.232 (spec twin) the mantissa split at `.`: an integer part, then a non-empty fraction when there is a point
+def mantissa(parts: List<&2, String>, +exp: String, +text: String, neg: Bool, has_exp: Bool) -> Lit:
+  match parts has_exp:
+    case Con{+ip, Nil{}} False{}:
+      Bool.pick(Lit, int_part(ip), int_canon(text, ip, neg), LitOdd{})
+    case Con{+ip, Nil{}} True{}:
+      Bool.pick(Lit, int_part(ip), float_exp(ip, "", exp, neg), LitOdd{})
+    case Con{+ip, Con{+fp, Nil{}}} _:
+      Bool.pick(Lit, (int_part(ip) && all_digits(fp)), float_exp(ip, fp, exp, neg), LitOdd{})
+    case _ _:
+      LitOdd{}
+
+# S4.232 (spec twin) a number split at the exponent marker (`e` or `E`)
+def number_parts(parts: List<&2, String>, +text: String, neg: Bool) -> Lit:
+  match parts:
+    case Con{m, Nil{}}:
+      mantissa(String.split(m, Chr{46}), "0", text, neg, False{})
+    case Con{m, Con{e, Nil{}}}:
+      mantissa(String.split(m, Chr{46}), e, text, neg, True{})
+    case _:
+      LitOdd{}
+
+# S4.232 (spec twin) a literal as serde_json prints it back
+def lit_canon(+text: String) -> Lit:
+  Bool.pick(Lit, (String.eq(text, "true") || String.eq(text, "false") || String.eq(text, "null")), LitOk{text}, number_parts(String.split(String.to_lower(String.drop(text,Bool.pick(Nat, String.starts_with(text, "-"), 1n, 0n))), Chr{101}), text, String.starts_with(text, "-")))
+
+# S4.232 (spec twin) the state with an error set
+def vs_fail(msg: String, at: U32) -> Vs:
+  Vs{WAfter{}, Nil{}, Nil{}, ErrAt{msg, at}, False{}}
+
+# S4.232 (spec twin) the open containers without the innermost
+def popped(stack: List<&2, Frame>) -> List<&2, Frame>:
+  match stack:
+    case Nil{}:
+      Nil{}
+    case Con{f, rest}:
+      rest
+
+# S4.232 (spec twin) is this key among these
+def has_key(keys: List<&2, String>, +key: String) -> Bool:
+  match keys:
+    case Nil{}:
+      False{}
+    case Con{k, rest}:
+      (String.eq(k, key) || has_key(rest, key))
+
+# S4.232 (spec twin) is this key already in the innermost object
+def repeated(stack: List<&2, Frame>, +key: String) -> Bool:
+  match stack:
+    case Con{FObj{keys}, rest}:
+      has_key(keys, key)
+    case _:
+      False{}
+
+# S4.232 (spec twin) the innermost object with one more key
+def keyed(stack: List<&2, Frame>, +key: String) -> List<&2, Frame>:
+  match stack:
+    case Con{FObj{keys}, rest}:
+      FObj{key <> keys} <> rest
+    case other:
+      other
+
+# S4.232 (spec twin) a literal in a value position
+def v_lit(l: Lit, +at: U32, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool) -> Vs:
+  match l:
+    case LitOk{text}:
+      Vs{WAfter{}, stack, Tok{KLit{text}, at} <> out, NoErr{}, odd}
+    case LitOdd{}:
+      Vs{WAfter{}, stack, out, NoErr{}, True{}}
+
+# S4.232 (spec twin) `]` in a value position: it closes an empty list; after `,` it is a trailing comma
+def v_close_list(open: Bool, comma: Bool, +at: U32, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool) -> Vs:
+  match open comma:
+    case True{} _:
+      Vs{WAfter{}, popped(stack), Tok{KRBrack{}, at} <> out, NoErr{}, odd}
+    case False{} True{}:
+      vs_fail("trailing comma", at)
+    case False{} False{}:
+      vs_fail("expected value", at)
+
+# S4.232 (spec twin) a value position: a scalar completes a value, a bracket opens a container
+def v_value(kind: TokKind, +at: U32, open: Bool, comma: Bool, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool) -> Vs:
+  match kind:
+    case KStr{text}:
+      Vs{WAfter{}, stack, Tok{KStr{text}, at} <> out, NoErr{}, odd}
+    case KLit{+text}:
+      v_lit(lit_canon(text), at, stack, out, odd)
+    case KLBrace{}:
+      Vs{WKey{True{}}, FObj{Nil{}} <> stack, Tok{KLBrace{}, at} <> out, NoErr{}, odd}
+    case KLBrack{}:
+      Vs{WValue{True{}, False{}}, FArr{} <> stack, Tok{KLBrack{}, at} <> out, NoErr{}, odd}
+    case KRBrack{}:
+      v_close_list(open, comma, at, stack, out, odd)
+    case _:
+      vs_fail("expected value", at)
+
+# S4.232 (spec twin) a key position: a string names a member; `}` closes an EMPTY object only
+def v_key(kind: TokKind, +at: U32, first: Bool, +stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool) -> Vs:
+  match kind first:
+    case KStr{+text} _:
+      Vs{WColon{}, keyed(stack, text), Tok{KStr{text}, at} <> out, NoErr{}, (odd || repeated(stack, text))}
+    case KRBrace{} True{}:
+      Vs{WAfter{}, popped(stack), Tok{KRBrace{}, at} <> out, NoErr{}, odd}
+    case KRBrace{} False{}:
+      vs_fail("trailing comma", at)
+    case _ _:
+      vs_fail("key must be a string", at)
+
+# S4.232 (spec twin) after a key: `:`
+def v_colon(kind: TokKind, +at: U32, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool) -> Vs:
+  match kind:
+    case KColon{}:
+      Vs{WValue{False{}, False{}}, stack, Tok{KColon{}, at} <> out, NoErr{}, odd}
+    case _:
+      vs_fail("expected `:`", at)
+
+# S4.232 (spec twin) after a complete value: `,` or the innermost closing bracket; nothing more at the top
+def v_after(stack: List<&2, Frame>, kind: TokKind, +at: U32, out: List<&2, Tok>, odd: Bool) -> Vs:
+  match stack kind:
+    case Nil{} _:
+      vs_fail("trailing characters", at)
+    case Con{FArr{}, rest} KComma{}:
+      Vs{WValue{False{}, True{}}, FArr{} <> rest, Tok{KComma{}, at} <> out, NoErr{}, odd}
+    case Con{FArr{}, rest} KRBrack{}:
+      Vs{WAfter{}, rest, Tok{KRBrack{}, at} <> out, NoErr{}, odd}
+    case Con{FArr{}, rest} _:
+      vs_fail("expected `,` or `]`", at)
+    case Con{FObj{keys}, rest} KComma{}:
+      Vs{WKey{False{}}, FObj{keys} <> rest, Tok{KComma{}, at} <> out, NoErr{}, odd}
+    case Con{FObj{keys}, rest} KRBrace{}:
+      Vs{WAfter{}, rest, Tok{KRBrace{}, at} <> out, NoErr{}, odd}
+    case Con{FObj{keys}, rest} _:
+      vs_fail("expected `,` or `}`", at)
+
+# S4.232 (spec twin) route one token by what comes next
+def vs_want(want: Want, kind: TokKind, at: U32, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool) -> Vs:
+  match want:
+    case WValue{open, comma}:
+      v_value(kind, at, open, comma, stack, out, odd)
+    case WKey{first}:
+      v_key(kind, at, first, stack, out, odd)
+    case WColon{}:
+      v_colon(kind, at, stack, out, odd)
+    case WAfter{}:
+      v_after(stack, kind, at, out, odd)
+
+# S4.232 (spec twin) a set error is sticky
+def vs_step(st: Vs, tok: Tok) -> Vs:
+  match st tok:
+    case Vs{want, stack, out, ErrAt{msg, at}, odd} _:
+      Vs{want, stack, out, ErrAt{msg, at}, odd}
+    case Vs{want, stack, out, NoErr{}, odd} Tok{kind, at}:
+      vs_want(want, kind, at, stack, out, odd)
+
+# S4.232 (spec twin) the loop: the token list is the measure
+def vs_go(toks: List<&2, Tok>, st: Vs) -> Vs:
+  match toks:
+    case Nil{}:
+      st
+    case Con{tok, rest}:
+      vs_go(rest, vs_step(st, tok))
+
+# S4.232 (spec twin) a complete value: its tokens, unless something the port does not print was seen
+def vs_ok(out: List<&2, Tok>, odd: Bool) -> Checked:
+  match odd:
+    case True{}:
+      CheckOdd{}
+    case False{}:
+      CheckOk{List.reverse(&2, Tok, out)}
+
+# S4.232 (spec twin) the end of the input: only a complete top-level value is accepted; otherwise serde_json's
+# end-of-input message for the innermost container, at the input's byte length
+def vs_end(want: Want, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool, eof: U32) -> Checked:
+  match want stack:
+    case WAfter{} Nil{}:
+      vs_ok(out, odd)
+    case WAfter{} Con{FArr{}, rest}:
+      CheckBad{"EOF while parsing a list", eof}
+    case WAfter{} Con{FObj{keys}, rest}:
+      CheckBad{"EOF while parsing an object", eof}
+    case WValue{True{}, comma} _:
+      CheckBad{"EOF while parsing a list", eof}
+    case WValue{False{}, comma} _:
+      CheckBad{"EOF while parsing a value", eof}
+    case WKey{first} _:
+      CheckBad{"EOF while parsing an object", eof}
+    case WColon{} _:
+      CheckBad{"EOF while parsing an object", eof}
+
+# S4.232 (spec twin) a sticky error wins over the end-of-input verdict
+def vs_finish(st: Vs, eof: U32) -> Checked:
+  match st:
+    case Vs{want, stack, out, ErrAt{msg, at}, odd}:
+      CheckBad{msg, at}
+    case Vs{want, stack, out, NoErr{}, odd}:
+      vs_end(want, stack, out, odd, eof)
+
+# S4.232 (spec twin) the tokens of a lexed text judged as one value
+def checked_lexed(l: Lexed, eof: U32) -> Checked:
+  match l:
+    case LexBad{msg, at}:
+      CheckBad{msg, at}
+    case LexOk{toks}:
+      vs_finish(vs_go(toks, Vs{WValue{False{}, False{}}, Nil{}, Nil{}, NoErr{}, False{}}), eof)
+
+# S4.350 S4.232 (spec twin) a whole text judged as ONE JSON value
+def value(+s: String) -> Checked:
+  checked_lexed(lex(codes(s)), byte_len(codes(s)))
+

@@ -24,6 +24,9 @@ import ./core/render.bend as Render
 import ./core/resolve.bend as Resolve
 import ./core/work.bend as Work
 import ./core/run.bend as Run
+import ./core/show.bend as Show
+import ./core/create.bend as Create
+import ./core/edges.bend as Edges
 import ./fixtures.bend as Fixtures
 
 # S0.1 the fast twin equals the spec twin, for every input. One `for` per
@@ -300,3 +303,18 @@ law work_child_index_epic:
 # S4.190 fast == spec, closed: the same for an issue no `parent-child` edge names (`proj-170` is a child, not a parent)
 law work_child_index_leaf:
   {Work.children_in(Work.child_index(False{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl"))), "proj-170") == Work.children_in(Work.child_index(True{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl"))), "proj-170") : Work.Children}
+
+# S5.115 closed: a body wraps greedily at spaces, never inside a word, and a line that fits comes back unchanged
+law show_wrap_closed:
+  {Show.wrapped("Word Word Word\nWord", 9n) == "Word Word\nWord\nWord" : String}
+
+# S4.232 closed, from goldens/create_agent_context without its floats: the inline value as serde_json prints it back:
+# compact, keys in input order, `é` decoded. The float spellings (`1.5`, `-0.0`, `1000.0`) stay golden-tested:
+# they go through a biased Nat the checker would normalize in Peano form (the rule at the top of this file)
+law agent_context_closed:
+  {Create.context_of(Some{"{\"b\": 1, \"a\": [true, null, \"x\"], \"c\": {\"z\": \"é\\u00e9\"}}"}) == Create.CtxSet{"{\"b\":1,\"a\":[true,null,\"x\"],\"c\":{\"z\":\"éé\"}}"} : Create.Context}
+
+# S4.350 closed golden (goldens/error_dep_add_metadata_bad): metadata that is not one JSON value names the pair, the
+# type, the text and serde_json's message with its column
+law metadata_refusal_closed:
+  {Edges.meta_of(Some{"{bad"}, "proj-ptp", "proj-mta", "blocks") == Edges.MetaBad{Create.invalid("metadata", "dependency metadata must be valid JSON for proj-ptp -> proj-mta (type=blocks); found \"{bad\": key must be a string at line 1 column 2")} : Edges.Meta}

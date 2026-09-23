@@ -1,0 +1,61 @@
+$ ["create", "A", "--silent"]
+proj-d4i
+--- .beads/issues.jsonl ---
+{"id":"proj-d4i","title":"A","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-02T00:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-d4i
+[exit 0]
+$ ["close"]
+✓ Closed proj-d4i: A (done)
+--- .beads/issues.jsonl ---
+{"id":"proj-d4i","title":"A","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-02T00:00:01Z","closed_at":"2026-01-02T00:00:01Z","close_reason":"done","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+[exit 0]
+$ ["create", "B", "--silent"]
+proj-ljf
+--- .beads/issues.jsonl ---
+{"id":"proj-d4i","title":"A","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-02T00:00:01Z","closed_at":"2026-01-02T00:00:01Z","close_reason":"done","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ljf","title":"B","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-02T00:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-ljf
+[exit 0]
+$ ["close"]
+✓ Closed proj-ljf: B (done)
+--- .beads/issues.jsonl ---
+{"id":"proj-d4i","title":"A","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-02T00:00:01Z","closed_at":"2026-01-02T00:00:01Z","close_reason":"done","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ljf","title":"B","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-05T07:13:11Z","closed_at":"2026-01-05T07:13:11Z","close_reason":"done","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+[exit 0]
+$ ["create", "C", "--silent"]
+proj-n8k
+--- .beads/issues.jsonl ---
+{"id":"proj-d4i","title":"A","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-02T00:00:01Z","closed_at":"2026-01-02T00:00:01Z","close_reason":"done","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ljf","title":"B","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-05T07:13:11Z","closed_at":"2026-01-05T07:13:11Z","close_reason":"done","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-n8k","title":"C","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-02T00:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-n8k
+[exit 0]
+$ ["close"]
+✓ Closed proj-n8k: C (done)
+--- .beads/issues.jsonl ---
+{"id":"proj-d4i","title":"A","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-02T00:00:01Z","closed_at":"2026-01-02T00:00:01Z","close_reason":"done","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ljf","title":"B","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-05T07:13:11Z","closed_at":"2026-01-05T07:13:11Z","close_reason":"done","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-n8k","title":"C","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-02T00:00:00Z","created_by":"tester","updated_at":"2026-01-03T11:22:33Z","closed_at":"2026-01-03T11:22:33Z","close_reason":"done","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+[exit 0]
+$ ["stats"]
+📊 Issue Database Status
+
+Summary:
+  Total Issues:           3
+  Open:                   0
+  In Progress:            0
+  Blocked:                0
+  Closed:                 3
+  Ready to Work:          0
+
+Extended:
+  Avg Lead Time:          1.6 days
+
+For more details, use 'br list' to see individual issues.
+[exit 0]
+$ ["stats", "--json"]
+{"summary":{"total_issues":3,"open_issues":0,"in_progress_issues":0,"closed_issues":3,"blocked_issues":0,"deferred_issues":0,"draft_issues":0,"ready_issues":0,"tombstone_issues":0,"pinned_issues":0,"epics_eligible_for_closure":0,"average_lead_time_hours":38.0}}
+[exit 0]

@@ -1,0 +1,8 @@
+# parent_blocked: does a blocked epic block its grandchild in ready and blocked? (OQ-041)
+@fx=basic
+["create","Grandkid","--parent","proj-170","--silent"]
+["dep","add","proj-uly","proj-5u2"]
+["ready"]
+["ready","--json"]
+["blocked"]
+["blocked","--json"]

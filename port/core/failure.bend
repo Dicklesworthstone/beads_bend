@@ -163,3 +163,9 @@ def exit_of(f: Failure) -> U32:
 # S9.8 (spec twin) no `.beads` workspace was found: NOT_INITIALIZED, exit 2
 def not_initialized() -> Failure:
   Failure{"NOT_INITIALIZED", "Beads not initialized: run 'br init' first", Some{"Run: br init"}, False{}, Nil{}, 2}
+
+# S9.6 (spec twin) a surface of the contract the port does not implement yet. Exit 1 is the
+# contract's internal-error code; the message is the port's own, so every such case FAILS
+# its golden, which is the truthful state of an unported command.
+def unported() -> Failure:
+  Failure{"INTERNAL_ERROR", "beads_bend: this command is not ported yet", None{}, False{}, Nil{}, 1}
