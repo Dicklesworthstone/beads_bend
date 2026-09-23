@@ -633,6 +633,12 @@ def external_ref_of(i: Issue) -> Maybe<&2, String>:
     case Issue{_, _, _, _, _, Source{external_ref, _, _, _, _}, _, _, _, _, _, _, _}:
       external_ref
 
+# S3.1 (spec twin) the system an issue came from, when it says
+def source_system_of(i: Issue) -> Maybe<&2, String>:
+  match i:
+    case Issue{_, _, _, _, _, Source{_, source_system, _, _, _}, _, _, _, _, _, _, _}:
+      source_system
+
 # S3.1 (spec twin) an issue's estimate in minutes, as its digits, when it has one
 def estimate_of(i: Issue) -> Maybe<&2, String>:
   match i:

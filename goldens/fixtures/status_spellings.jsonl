@@ -1,0 +1,5 @@
+{"id":"proj-aaa","title":"camel","status":"InProgress","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+{"id":"proj-aab","title":"flat","status":"inprogress","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+{"id":"proj-aac","title":"custom","status":"QaReview","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+{"id":"proj-aad","title":"done word","status":"done","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+{"id":"proj-aae","title":"plain","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}

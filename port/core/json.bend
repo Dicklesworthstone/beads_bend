@@ -99,7 +99,8 @@ def hex_pick(+c: U32, num: Bool, low: Bool, up: Bool) -> U32:
 def hex_val(+c: U32) -> U32:
   hex_pick(c, ((c >= 48 : U32) && (c <= 57 : U32)), ((c >= 97 : U32) && (c <= 102 : U32)), ((c >= 65 : U32) && (c <= 70 : U32)))
 
-# S2.24 (spec twin) push a punctuation token, or report `expected value`
+# S2.24 S2.25 (spec twin) push a punctuation token, or report `expected value` at the column of the character's FIRST
+# byte (`col` is past its last: a BOM, three bytes, is reported at column 1, `error_jsonl_bom`)
 def punct(+c: U32, +col: U32, toks: List<&2, Tok>, lb: Bool, rb: Bool, lk: Bool, rk: Bool, co: Bool, cm: Bool) -> Lex:
   match lb rb lk rk co cm:
     case True{} _ _ _ _ _:
@@ -115,7 +116,7 @@ def punct(+c: U32, +col: U32, toks: List<&2, Tok>, lb: Bool, rb: Bool, lk: Bool,
     case False{} False{} False{} False{} False{} True{}:
       Lex{MDefault{}, col, Nil{}, 0, 0, Tok{KComma{}, col} <> toks, NoErr{}}
     case False{} False{} False{} False{} False{} False{}:
-      Lex{MDefault{}, col, Nil{}, 0, 0, toks, ErrAt{"expected value", col}}
+      Lex{MDefault{}, col, Nil{}, 0, 0, toks, ErrAt{"expected value", ((col - width(c) : U32) + 1 : U32)}}
 
 # S2.24 (spec twin) between tokens: skip whitespace, open a string or a literal, or take punctuation
 def in_default(+c: U32, +col: U32, toks: List<&2, Tok>, ws: Bool, quote: Bool, lit: Bool) -> Lex:

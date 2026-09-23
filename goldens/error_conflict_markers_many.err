@@ -1,0 +1,7 @@
+Error: Configuration error: Merge conflict markers detected in /mnt/proj/.beads/issues.jsonl.
+/mnt/proj/.beads/issues.jsonl:2 Start (HEAD)
+/mnt/proj/.beads/issues.jsonl:4 Separator
+/mnt/proj/.beads/issues.jsonl:6 End (branch)
+/mnt/proj/.beads/issues.jsonl:7 Start (HEAD)
+/mnt/proj/.beads/issues.jsonl:9 Separator
+Resolve conflicts before importing.

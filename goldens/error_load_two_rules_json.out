@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: Validation failed for issue proj-aab at line 2: title: cannot be empty, assignee: exceeds 200 characters, priority: must be 0-4",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

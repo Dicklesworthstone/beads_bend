@@ -259,11 +259,12 @@ def fields(ok: Bool, +y: U32, +m: U32, +d: U32, +hh: U32, +mm: U32, +ss: U32, zo
   assemble((ok && in_range(y, m, d, hh, mm, ss)), y, m, d, ((((hh * 3600 : U32)) + (mm * 60 : U32) : U32) + ss : U32), zone)
 
 # S4.57 (spec twin) `YYYY-MM-DDTHH:MM:SS`, then an optional fraction, then the zone.
-# `T` or `t` separates date and time. 45 is `-`, 58 is `:`, 84 is `T`, 116 is `t`.
+# `T`, `t` or a space separates date and time (`edge_time_spellings`: `2026-01-01 10:00:00Z` loads, OQ-099).
+# 45 is `-`, 58 is `:`, 84 is `T`, 116 is `t`, 32 is the space.
 def parse_codes(cs: List<&2, U32>) -> Parsed:
   match cs:
     case Con{+y1, Con{+y2, Con{+y3, Con{+y4, Con{+k1, Con{+m1, Con{+m2, Con{+k2, Con{+d1, Con{+d2, Con{+tt, Con{+h1, Con{+h2, Con{+k3, Con{+n1, Con{+n2, Con{+k4, Con{+s1, Con{+s2, rest}}}}}}}}}}}}}}}}}}}:
-      fields((is_dig(y1) && is_dig(y2) && is_dig(y3) && is_dig(y4) && is_dig(m1) && is_dig(m2) && is_dig(d1) && is_dig(d2) && is_dig(h1) && is_dig(h2) && is_dig(n1) && is_dig(n2) && is_dig(s1) && is_dig(s2) && U32.is_eq(k1, 45) && U32.is_eq(k2, 45) && (U32.is_eq(tt, 84) || U32.is_eq(tt, 116)) && U32.is_eq(k3, 58) && U32.is_eq(k4, 58)), (((two(y1, y2) * 100 : U32)) + two(y3, y4) : U32), two(m1, m2), two(d1, d2), two(h1, h2), two(n1, n2), two(s1, s2), zone_pick(List.reverse(&2, U32, rest)))
+      fields((is_dig(y1) && is_dig(y2) && is_dig(y3) && is_dig(y4) && is_dig(m1) && is_dig(m2) && is_dig(d1) && is_dig(d2) && is_dig(h1) && is_dig(h2) && is_dig(n1) && is_dig(n2) && is_dig(s1) && is_dig(s2) && U32.is_eq(k1, 45) && U32.is_eq(k2, 45) && (U32.is_eq(tt, 84) || U32.is_eq(tt, 116) || U32.is_eq(tt, 32)) && U32.is_eq(k3, 58) && U32.is_eq(k4, 58)), (((two(y1, y2) * 100 : U32)) + two(y3, y4) : U32), two(m1, m2), two(d1, d2), two(h1, h2), two(n1, n2), two(s1, s2), zone_pick(List.reverse(&2, U32, rest)))
     case _:
       Bad{}
 

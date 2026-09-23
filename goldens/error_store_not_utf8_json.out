@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "IO_ERROR",
+    "message": "I/O error: stream did not contain valid UTF-8",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

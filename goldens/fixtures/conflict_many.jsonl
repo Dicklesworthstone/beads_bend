@@ -1,0 +1,11 @@
+{"id":"proj-aaa","title":"before the conflict","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+<<<<<<< HEAD
+{"id":"proj-aab","title":"ours","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+=======
+{"id":"proj-aab","title":"theirs","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+>>>>>>> branch
+<<<<<<< HEAD
+{"id":"proj-aac","title":"ours two","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+=======
+{"id":"proj-aac","title":"theirs two","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+>>>>>>> other

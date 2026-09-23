@@ -1,0 +1,2 @@
+{"id":"proj-aaa","title":"blocker","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
+{"id":"proj-aab","title":"dependent","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z","dependencies":[{"issue_id":"proj-aab","depends_on_id":"proj-aaa","type":"blocks","created_at":"2026-01-01T11:00:00Z"}]}

@@ -80,10 +80,10 @@ def failed(+f: Failure.Failure, json: Bool) -> Outcome:
     case False{}:
       Outcome{"", Failure.plain_text(f), Failure.exit_of(f), Nil{}}
 
-# S2.24 S9 (spec twin) a file that is not UTF-8 refuses the load. The original's exact words for this
-# refusal are not captured yet (OQ register): the code and exit follow the other load refusals.
+# S2.24 S9 (spec twin) a file that is not UTF-8 refuses the load as the read fails: IO_ERROR, exit 8, Rust's
+# `io::Error` words (`error_store_not_utf8`, a lone 0xFF byte; OQ-101)
 def not_utf8() -> Failure.Failure:
-  Failure.Failure{"CONFIG_ERROR", "Configuration error: .beads/issues.jsonl is not valid UTF-8", None{}, False{}, Nil{}, 7}
+  Failure.Failure{"IO_ERROR", "I/O error: stream did not contain valid UTF-8", None{}, False{}, Nil{}, 8}
 
 # S1.1 S1.6 (data) an accepted command line: the words that name the command, its option occurrences in argv
 # order, its positionals, and the output mode (JSON beats Quiet, S1.6)
@@ -1583,12 +1583,15 @@ def spec_call(c: Call) -> Bool:
     case Call{path, opts, words, json, quiet, touched, env, cwd}:
       spec_of(env)
 
-# S2.24 (spec twin) the store loaded by the spec loop or by its fast twin (parallel decode)
-def load_chosen(spec: Bool, codes: List<&2, U32>, +path: String) -> Store.Loaded:
-  match spec:
-    case True{}:
+# S2.24 S2.38 (spec twin) the store loaded by the spec loop or by its fast twin (parallel decode); `show` reads the
+# file directly instead (`Store.load_read`: no validation, no import check)
+def load_chosen(spec: Bool, reading: Bool, codes: List<&2, U32>, +path: String) -> Store.Loaded:
+  match spec reading:
+    case _ True{}:
+      Store.load_read(codes, path)
+    case True{} False{}:
       Store.load(codes, path)
-    case False{}:
+    case False{} False{}:
       Store.load_fast(codes, path)
 
 # S2.12 (spec twin) the workspace directory of a call
@@ -1693,7 +1696,7 @@ def decoded(d: Bytes.Decoded, path: String, +c: Call) -> Outcome:
     case Bytes.NotUtf8{}:
       failed(not_utf8(), wants_json(c))
     case Bytes.Utf8{codes}:
-      loaded(load_chosen(spec_call(c), codes, path), c)
+      loaded(load_chosen(spec_call(c), String.eq(path_of(c), "show"), codes, path), c)
 
 # S2.1 S9.8 (spec twin) route on the workspace verdict; the store path the messages quote is absolute
 def routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:

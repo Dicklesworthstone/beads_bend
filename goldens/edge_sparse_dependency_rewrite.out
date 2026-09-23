@@ -1,0 +1,7 @@
+Updated proj-aaa: blocker
+  priority: P2 → P1
+--- .beads/issues.jsonl ---
+{"id":"proj-aaa","title":"blocker","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-02T03:04:05Z","source_repo":".","compaction_level":0,"original_size":0}
+{"id":"proj-aab","title":"dependent","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z","source_repo":".","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-aab","depends_on_id":"proj-aaa","type":"blocks","created_at":"2026-01-01T11:00:00Z","created_by":"import","metadata":"{}","thread_id":""}]}
+--- .beads/last-touched ---
+proj-aaa
