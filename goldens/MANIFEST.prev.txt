@@ -1,10 +1,10 @@
-captured: 2026-09-23T02:26:00.282175+00:00
+captured: 2026-09-23T02:31:30.582973+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (681 cases)
-provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"528e5f643b9b3693192b38afd3f2dad9036da8d0c1f70ac40b188840f3c64fc1"},"case_files":[],"stdin_files":[]}
-recapture: repin: new case scn_label_ceiling (S4.372, OQ-125)
+cases: goldens/cases.tsv (682 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"2d5a5f42b0e05cedbebb7519e3c437342e08799768974fd52adeb89c7c33e816"},"case_files":[],"stdin_files":[]}
+recapture: repin: new cases scn_label_ceiling, scn_label_ceiling_update (S4.372, OQ-125)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1401,7 +1401,7 @@ sha256:
   33c2af4b405ea7f0c89d67f5d5db98e99a8eeb1c845bbb257d1d8401182e8f50  prefix_config_nested.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_nested.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_nested.exit
-  07bbf8f5f45acb259c7962eb3c9bba01344626c54b2e82d944953692a5fac699  prefix_config_both.out
+  2815415d064df2b6e8198c34c55589f026df346189972d37e7c53fd37e34d3f6  prefix_config_both.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_both.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_both.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_prefix_config_bad.out
@@ -1794,7 +1794,7 @@ sha256:
   5b901780df63af03b7785c360be7936f5b9e54b4e84afede380febb7e149155c  delete_hard_force_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_force_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_force_json.exit
-  422056cffdfd2d4bbccb504c841fe05084ba7a972dcb6def8bffbeb38e9094b7  delete_hard_cascade_json.out
+  17ebd38a3919c99d296ab73fbde849a050d589affe31e5347c64ea7826dce8fe  delete_hard_cascade_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_cascade_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_cascade_json.exit
   77c8c846694dd370c92a17b3e29a6201601c3f3a42fd0fee94b1980f08e27233  delete_hard_preview.out
@@ -2049,3 +2049,6 @@ sha256:
   e5210b5c72e1c9bf2a38a34e4b6ee8d7c6c44a2e8e48ae1de99c69f1ae107a23  scn_label_ceiling.out
   98c2f208f17475d403f70c2b6714f51d812ca42cab0a083aa05926471f9811b5  scn_label_ceiling.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_label_ceiling.exit
+  54815ae6aebc27f4230fcc5e26ee1a62b4e58dae1e527cd26956ad0a60ed7ed9  scn_label_ceiling_update.out
+  04a1cd677f6df2ce4481c3796e3b4c0debfda157250d99108464e035033d8ab3  scn_label_ceiling_update.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  scn_label_ceiling_update.exit
