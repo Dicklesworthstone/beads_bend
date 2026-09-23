@@ -1,0 +1,7 @@
+# epic_close_comment: `epic close-eligible --transition-comment` on an eligible epic, with its dry run, and on nothing eligible (S4.391, S4.396)
+@fx=basic
+["epic","close-eligible","--transition-comment","none left"]
+["close","proj-mta","--reason","Schema done"]
+["close","proj-170","--reason","Auth done"]
+["epic","close-eligible","--dry-run","--transition-comment","rolled up"]
+["epic","close-eligible","--transition-comment","rolled up","--actor","ann"]

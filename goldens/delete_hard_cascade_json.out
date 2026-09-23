@@ -1,4 +1,4 @@
-{"deleted":["proj-170","proj-mta","proj-uly"],"deleted_count":3,"dependencies_removed":3,"labels_removed":4,"events_removed":1,"references_updated":0,"orphaned_issues":[]}
+{"deleted":["proj-170","proj-mta","proj-uly"],"deleted_count":3,"dependencies_removed":3,"labels_removed":4,"events_removed":3,"references_updated":0,"orphaned_issues":[]}
 --- .beads/issues.jsonl ---
 {"id":"proj-5u2","title":"Write API docs","status":"open","priority":3,"issue_type":"docs","created_at":"2026-01-01T10:00:03Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
 {"id":"proj-7vm","title":"Refactor config loader","status":"deferred","priority":4,"issue_type":"chore","created_at":"2026-01-01T10:00:05Z","created_by":"tester","updated_at":"2026-01-01T14:00:00Z","defer_until":"2027-06-01T09:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
