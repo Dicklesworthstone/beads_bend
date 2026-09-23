@@ -674,3 +674,5 @@ error_close_bypass_no_reason_json	["@fx=basic","close","proj-b75","--bypass-poli
 error_close_bypass_blank	["@fx=basic","close","proj-b75","--bypass-policy","--bypass-reason","  "]
 error_close_bypass_reason_alone	["@fx=basic","close","proj-zzz","--bypass-reason","x"]
 error_close_bypass_no_ids	["@fx=basic_touched","close","--bypass-policy"]
+scn_close_dotted	["@scn=close_dotted"]
+scn_close_dotted_many	["@scn=close_dotted_many"]

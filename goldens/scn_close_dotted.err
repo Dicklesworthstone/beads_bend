@@ -1,0 +1,27 @@
+$ ["create", "Kid 1", "--parent", "proj-b75", "--silent"]
+$ ["create", "Kid 2", "--parent", "proj-b75", "--silent"]
+$ ["create", "Kid 3", "--parent", "proj-b75", "--silent"]
+$ ["create", "Kid 4", "--parent", "proj-b75", "--silent"]
+$ ["create", "Kid 5", "--parent", "proj-b75", "--silent"]
+$ ["create", "Kid 6", "--parent", "proj-b75", "--silent"]
+$ ["update", "proj-b75.1", "--parent", ""]
+$ ["update", "proj-b75.2", "--parent", ""]
+$ ["update", "proj-b75.3", "--parent", ""]
+$ ["update", "proj-b75.4", "--parent", ""]
+$ ["update", "proj-b75.5", "--parent", ""]
+$ ["update", "proj-b75.6", "--parent", ""]
+$ ["close", "proj-b75"]
+Warning: Skipped proj-b75: parent issue has 6 open dot-notation child issue(s): proj-b75.1, proj-b75.2, proj-b75.3, proj-b75.4, proj-b75.5, +1 more (use --force to close anyway)
+Error: Nothing to do: all 1 issue(s) skipped — proj-b75: parent issue has 6 open dot-notation child issue(s): proj-b75.1, proj-b75.2, proj-b75.3, proj-b75.4, proj-b75.5, +1 more (use --force to close anyway)
+Hint: Skipped issue(s) have open children. Close the children first, or re-run with --force to close anyway.
+$ ["close", "proj-b75.6"]
+$ ["close", "proj-b75", "--json"]
+$ ["close", "proj-b75.1"]
+$ ["close", "proj-b75.2"]
+$ ["close", "proj-b75.3"]
+$ ["close", "proj-b75.4"]
+$ ["close", "proj-b75"]
+Warning: Skipped proj-b75: parent issue has 1 open dot-notation child issue(s): proj-b75.5 (use --force to close anyway)
+Error: Nothing to do: all 1 issue(s) skipped — proj-b75: parent issue has 1 open dot-notation child issue(s): proj-b75.5 (use --force to close anyway)
+Hint: Skipped issue(s) have open children. Close the children first, or re-run with --force to close anyway.
+$ ["close", "proj-b75", "--force"]
