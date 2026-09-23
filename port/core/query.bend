@@ -104,9 +104,31 @@ def comma_split(values: List<&2, String>) -> List<&2, String>:
 
 # ---------------------------------------------------------------- priorities (S4.107, S4.108)
 
-# S9.15 (spec twin) the refusal of a priority: the value is quoted as it was judged, in upper case
-def bad_priority(+shown: String) -> Failure.Failure:
-  Failure.Failure{"INVALID_PRIORITY", "Priority must be 0-4, got: " ++ shown, Some{"Priority must be 0-4 or P0-P4 (0=critical, 4=backlog); list filters also accept ranges and comma lists such as 0-1 or 0,2."}, True{}, [Failure.CtxMember{"priority", Failure.CStr{shown}}, Failure.CtxMember{"hint", Failure.CStr{"Priority must be 0-4 or P0-P4 (0=critical, 4=backlog); list filters also accept ranges and comma lists such as 0-1 or 0,2."}}], 4}
+# S9.15 (spec twin) every code point an ASCII digit, and at least one
+def all_digits(s: String) -> Bool:
+  match s:
+    case SNil{}:
+      False{}
+    case SCon{Chr{+c}, +rest}:
+      ((c >= 48 : U32) && (c <= 57 : U32) && (String.is_empty(rest) || all_digits(rest)))
+
+# S9.15 (spec twin) the value as the refusal quotes it: a `P` in front of digits is dropped (`P9` → `9`)
+def quoted_priority(+shown: String) -> String:
+  Bool.pick(String, (String.starts_with(shown, "P") && all_digits(String.drop(shown, 1n))), String.drop(shown, 1n), shown)
+
+# S9.15 (spec twin) the generic hint of a priority refusal
+def priority_hint() -> String:
+  "Priority must be 0-4 or P0-P4 (0=critical, 4=backlog); list filters also accept ranges and comma lists such as 0-1 or 0,2."
+
+# S9.15 (spec twin) the number a priority WORD means, "" for any other word: CRITICAL and URGENT 0, HIGH 1, MEDIUM 2,
+# LOW 3, BACKLOG 4 (the value is judged in upper case)
+def word_rank(+shown: String) -> String:
+  Bool.pick(String, (String.eq(shown, "CRITICAL") || String.eq(shown, "URGENT")), "0", Bool.pick(String, String.eq(shown, "HIGH"), "1", Bool.pick(String, String.eq(shown, "MEDIUM"), "2", Bool.pick(String, String.eq(shown, "LOW"), "3", Bool.pick(String, String.eq(shown, "BACKLOG"), "4", "")))))
+
+# S9.15 (spec twin) the hint a priority word earns: `Did you mean --priority <n>?`, else the generic one
+def word_hint(+rank: String) -> String:
+  Bool.pick(String, String.is_empty(rank), priority_hint(), "Did you mean --priority " ++ rank ++ "?")
+
 
 # S4.107 (spec twin) one priority's digit after the optional `P`: exactly one of `0`..`4`; 9 means "not a priority"
 def priority_digit(cs: String) -> U32:
@@ -158,6 +180,20 @@ def cut_at_dash(s: String, acc: List<&2, U32>) -> Cut:
       Cut{Cli.text_rev(acc, ""), rest, True{}}
     case SCon{Chr{c}, rest}:
       cut_at_dash(rest, c <> acc)
+
+# S9.15 (spec twin) the top-level hint of a backwards range `<hi>-<lo>`: `Ranges run low to high: use <lo>-<hi>.`
+def range_hint(c: Cut, +fallback: String) -> String:
+  match c:
+    case Cut{+left, +right, True{}}:
+      Bool.pick(String, (all_digits(left) && all_digits(right) && (Maybe.default(&2, U32, U32.read(left), 0) > Maybe.default(&2, U32, U32.read(right), 0) : U32)), "Ranges run low to high: use " ++ right ++ "-" ++ left ++ ".", fallback)
+    case Cut{left, right, False{}}:
+      fallback
+
+# S9.15 (spec twin) the refusal of a priority: the value is quoted as it was judged, in upper case, with a leading `P`
+# of a number dropped; a priority word suggests its number (in the hint and the context's hint), and a backwards range
+# says so in the top-level hint only (the context keeps the generic hint)
+def bad_priority(+shown: String) -> Failure.Failure:
+  Failure.Failure{"INVALID_PRIORITY", "Priority must be 0-4, got: " ++ quoted_priority(shown), Some{range_hint(cut_at_dash(shown, Nil{}), word_hint(word_rank(shown)))}, True{}, [Failure.CtxMember{"priority", Failure.CStr{quoted_priority(shown)}}, Failure.CtxMember{"hint", Failure.CStr{word_hint(word_rank(shown))}}], 4}
 
 # S4.107 (spec twin) keep priority `p` when both ends are priorities and lo <= p <= hi
 def span_keep(+p: U32, lo: U32, +hi: U32, +rest: List<&2, U32>) -> List<&2, U32>:
@@ -263,9 +299,10 @@ def sort_key(given: Maybe<&2, String>) -> U32:
       Bool.pick(U32, String.eq(k, "priority"), 0, Bool.pick(U32, (String.eq(k, "created_at") || String.eq(k, "created")), 1, Bool.pick(U32, (String.eq(k, "updated_at") || String.eq(k, "updated")), 2, Bool.pick(U32, String.eq(k, "title"), 3, 9))))
 
 # S4.100 S4.122 (spec twin) the filter once its statuses and priorities are known; `closed` and `deferred`
-# are include_closed and include_deferred; `explicit` says a status was named
+# are include_closed and include_deferred; `explicit` says a status was named. A tombstone is listed only when
+# `tombstone` itself is named: `--status all` hides them as `--all` does (`scn_list_status_all`, OQ-039)
 def filter_of(+opts: List<&2, Cli.Occ>, +statuses: List<&2, String>, priorities: List<&2, U32>, +closed: Bool, deferred: Bool, explicit: Bool, split_types: Bool) -> Filter:
-  Filter{Bool.pick(List<&2, String>, among(statuses, "all"), Nil{}, statuses), Bool.not(closed), Bool.not((closed && explicit)), (Bool.not(closed) && Bool.not(deferred)), folded_all(Bool.pick(List<&2, String>, split_types, comma_split(Cli.values(opts, "type")), Cli.values(opts, "type"))), priorities, Cli.value(opts, "assignee"), Cli.given(opts, "unassigned"), Cli.values(opts, "id"), Cli.values(opts, "label"), Cli.values(opts, "label-any"), bound_of(Cli.value(opts, "priority-min"), 0), bound_of(Cli.value(opts, "priority-max"), 4), Cli.value(opts, "title-contains"), Cli.value(opts, "desc-contains"), Cli.value(opts, "notes-contains"), Cli.given(opts, "include-templates")}
+  Filter{Bool.pick(List<&2, String>, among(statuses, "all"), Nil{}, statuses), Bool.not(closed), Bool.not((closed && explicit && among(statuses, "tombstone"))), (Bool.not(closed) && Bool.not(deferred)), folded_all(Bool.pick(List<&2, String>, split_types, comma_split(Cli.values(opts, "type")), Cli.values(opts, "type"))), priorities, Cli.value(opts, "assignee"), Cli.given(opts, "unassigned"), Cli.values(opts, "id"), Cli.values(opts, "label"), Cli.values(opts, "label-any"), bound_of(Cli.value(opts, "priority-min"), 0), bound_of(Cli.value(opts, "priority-max"), 4), Cli.value(opts, "title-contains"), Cli.value(opts, "desc-contains"), Cli.value(opts, "notes-contains"), Cli.given(opts, "include-templates")}
 
 # S4.108 (spec twin) a bound outside 0..=4 is refused, the lower one first; the value is quoted in decimal
 def bounds_pick(f: Filter, pmin: U32, pmax: U32, low_bad: Bool, high_bad: Bool) -> Built:

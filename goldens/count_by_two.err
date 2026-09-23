@@ -1,0 +1,1 @@
+Error: Validation failed: by: only one count grouping selector can be specified; got --by-status, --by-type

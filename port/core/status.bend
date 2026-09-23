@@ -119,9 +119,18 @@ def close_pick(+i: Model.Issue, now: Time.Instant, reason: String, terminal: Boo
 def close_counted(+i: Model.Issue, +c: Work.Children, dotted: List<&2, String>, blockers: List<&2, String>, now: Time.Instant, reason: String, force: Bool) -> Verdict:
   close_pick(i, now, reason, Blocked.terminal(Model.status_of(i)), force, children_open(c), c, dotted, blockers)
 
+# S4.292 (spec twin) the blockers that are not themselves named in the same `close`: a blocker the batch also closes
+# holds nothing back (`close_mixed`: `close proj-170 proj-mta` closes both), while open children still do
+def outside_batch(blockers: List<&2, String>, +batch: List<&2, String>) -> List<&2, String>:
+  match blockers:
+    case Nil{}:
+      Nil{}
+    case Con{+b, rest}:
+      blocker_put(b, Blocked.among(batch, b), outside_batch(rest, batch))
+
 # S4.290–S4.296 (spec twin) one id of `close`, judged against the store as it was before the batch
-def close_one(+i: Model.Issue, +all: List<&2, Model.Issue>, relation: List<&2, Blocked.Entry>, now: Time.Instant, reason: String, force: Bool) -> Verdict:
-  close_counted(i, Work.children(all, Model.id_of(i), Work.Children{0, 0}), List.sort(~String, ~String.is_le, dotted_open(all, Model.id_of(i))), close_blockers(Blocked.refs_of(relation, Model.id_of(i))), now, reason, force)
+def close_one(+i: Model.Issue, +all: List<&2, Model.Issue>, relation: List<&2, Blocked.Entry>, now: Time.Instant, reason: String, force: Bool, +batch: List<&2, String>) -> Verdict:
+  close_counted(i, Work.children(all, Model.id_of(i), Work.Children{0, 0}), List.sort(~String, ~String.is_le, dotted_open(all, Model.id_of(i))), outside_batch(close_blockers(Blocked.refs_of(relation, Model.id_of(i))), batch), now, reason, force)
 
 # ---------------------------------------------------------------- reopen (S4.310–S4.315)
 
@@ -287,20 +296,21 @@ def noted(v: Verdict, n: Note, now: Time.Instant, comment_id: String) -> Verdict
       commented(sessioned(v, session), text, actor, now, comment_id)
 
 # S4.292 (spec twin) one id of `close` folded in; a record that is missing is the skip `issue not found`
-def close_step(+b: Batch, +id: String, found: Maybe<&2, Model.Issue>, all: List<&2, Model.Issue>, relation: List<&2, Blocked.Entry>, +now: Time.Instant, reason: String, force: Bool, note: Note) -> Batch:
+def close_step(+b: Batch, +id: String, found: Maybe<&2, Model.Issue>, all: List<&2, Model.Issue>, relation: List<&2, Blocked.Entry>, +now: Time.Instant, reason: String, force: Bool, note: Note, batch: List<&2, String>) -> Batch:
   match found:
     case None{}:
       settle(b, id, Skipped{"issue not found"})
     case Some{i}:
-      settle(b, id, noted(close_one(i, all, relation, now, reason, force), note, now, next_comment_id(model_of(b))))
+      settle(b, id, noted(close_one(i, all, relation, now, reason, force, batch), note, now, next_comment_id(model_of(b))))
 
-# S4.299 (spec twin) `close` over resolved ids, in command-line order; `all` and `relation` are the store before the batch
-def close_go(ids: List<&2, String>, b: Batch, +all: List<&2, Model.Issue>, +relation: List<&2, Blocked.Entry>, +now: Time.Instant, +reason: String, +force: Bool, +note: Note) -> Batch:
+# S4.299 (spec twin) `close` over resolved ids, in command-line order; `all` and `relation` are the store before the
+# batch, `batch` every id the command names
+def close_go(ids: List<&2, String>, b: Batch, +all: List<&2, Model.Issue>, +relation: List<&2, Blocked.Entry>, +now: Time.Instant, +reason: String, +force: Bool, +note: Note, +batch: List<&2, String>) -> Batch:
   match ids:
     case Nil{}:
       b
     case Con{+id, rest}:
-      close_go(rest, close_step(b, id, Blocked.lookup(all, id), all, relation, now, reason, force, note), all, relation, now, reason, force, note)
+      close_go(rest, close_step(b, id, Blocked.lookup(all, id), all, relation, now, reason, force, note, batch), all, relation, now, reason, force, note, batch)
 
 # S4.313 (spec twin) one id of `reopen` folded in; the comment id comes from the batch's model as it stands
 def reopen_step(+b: Batch, +id: String, found: Maybe<&2, Model.Issue>, now: Time.Instant, reason: Maybe<&2, String>, actor: String) -> Batch:

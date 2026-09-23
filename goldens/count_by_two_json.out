@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: by: only one count grouping selector can be specified; got --by-status, --by-type",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "by",
+      "reason": "only one count grouping selector can be specified; got --by-status, --by-type"
+    }
+  }
+}

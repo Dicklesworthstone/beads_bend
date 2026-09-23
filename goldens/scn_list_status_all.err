@@ -1,0 +1,3 @@
+$ ["delete", "proj-b75"]
+$ ["list", "--status", "all", "--json", "--fields", "id,status"]
+$ ["list", "--status", "all"]

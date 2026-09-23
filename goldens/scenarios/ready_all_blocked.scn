@@ -1,0 +1,7 @@
+# ready_all_blocked: `ready` when the only open issue is blocked (its blocker deferred) (OQ-046, OQ-075)
+["create","Blocker","--silent"]
+["create","Blocked","--silent"]
+["dep","add","proj-sh8","proj-6sm"]
+["defer","proj-6sm"]
+["ready"]
+["ready","--json"]

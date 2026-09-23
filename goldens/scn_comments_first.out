@@ -1,0 +1,17 @@
+$ ["create", "First", "--silent"]
+proj-933
+--- .beads/issues.jsonl ---
+{"id":"proj-933","title":"First","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-933
+[exit 0]
+$ ["comments", "add", "proj-933", "one", "--json"]
+{"id":1,"issue_id":"proj-933","author":"tester","text":"one","created_at":"2026-01-02T03:04:05Z"}
+--- .beads/issues.jsonl ---
+{"id":"proj-933","title":"First","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"comments":[{"id":1,"issue_id":"proj-933","author":"tester","text":"one","created_at":"2026-01-02T03:04:05Z"}]}
+[exit 0]
+$ ["comments", "add", "proj-933", "two", "--json"]
+{"id":2,"issue_id":"proj-933","author":"tester","text":"two","created_at":"2026-01-02T03:04:05Z"}
+--- .beads/issues.jsonl ---
+{"id":"proj-933","title":"First","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"comments":[{"id":1,"issue_id":"proj-933","author":"tester","text":"one","created_at":"2026-01-02T03:04:05Z"},{"id":2,"issue_id":"proj-933","author":"tester","text":"two","created_at":"2026-01-02T03:04:05Z"}]}
+[exit 0]

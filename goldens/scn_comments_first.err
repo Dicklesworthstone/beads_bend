@@ -1,0 +1,3 @@
+$ ["create", "First", "--silent"]
+$ ["comments", "add", "proj-933", "one", "--json"]
+$ ["comments", "add", "proj-933", "two", "--json"]

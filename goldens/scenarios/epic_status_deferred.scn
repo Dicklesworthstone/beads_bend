@@ -1,0 +1,8 @@
+# epic_status_deferred: a deferred epic and a closed epic in `epic status` (OQ-050)
+@fx=basic
+["create","Deferred epic","-t","epic","--silent"]
+["create","Closed epic","-t","epic","--silent"]
+["defer","proj-wax"]
+["close","proj-dtf","--force"]
+["epic","status"]
+["epic","status","--json"]

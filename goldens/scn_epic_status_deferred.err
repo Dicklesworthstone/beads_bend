@@ -1,0 +1,6 @@
+$ ["create", "Deferred epic", "-t", "epic", "--silent"]
+$ ["create", "Closed epic", "-t", "epic", "--silent"]
+$ ["defer", "proj-wax"]
+$ ["close", "proj-dtf", "--force"]
+$ ["epic", "status"]
+$ ["epic", "status", "--json"]

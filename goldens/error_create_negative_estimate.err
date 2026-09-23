@@ -1,0 +1,7 @@
+error: unexpected argument '-1' found
+
+  tip: to pass '-1' as a value, use '-- -1'
+
+Usage: br create [OPTIONS] [TITLE]
+
+For more information, try '--help'.

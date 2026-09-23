@@ -1,0 +1,4 @@
+# comments_first: the first comment of a store that has none, then a second (OQ-061)
+["create","First","--silent"]
+["comments","add","proj-933","one","--json"]
+["comments","add","proj-933","two","--json"]

@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: ids: no issue IDs provided and no last-touched issue",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "ids",
+      "reason": "no issue IDs provided and no last-touched issue"
+    }
+  }
+}

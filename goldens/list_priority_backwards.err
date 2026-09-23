@@ -1,0 +1,2 @@
+Error: Priority must be 0-4, got: 3-1
+Hint: Ranges run low to high: use 1-3.

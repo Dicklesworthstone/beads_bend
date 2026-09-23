@@ -24,9 +24,110 @@ type Done is Data:
 def canonical(+word: String) -> String:
   Bool.pick(String, Model.listed_word(Model.known_dep_types(), Model.lowered(word)), Model.lowered(word), "")
 
+# S4.352 (spec twin) `_` and a space read as `-` when a near match is sought
+def dash_char(+c: U32) -> U32:
+  Bool.pick(U32, (U32.is_eq(c, 95) || U32.is_eq(c, 32)), 45, c)
+
+# S4.352 (spec twin) a word with `_` and spaces turned into `-`
+def dashed(s: String) -> String:
+  match s:
+    case SNil{}:
+      ""
+    case SCon{Chr{+c}, rest}:
+      SCon{Chr{dash_char(c)}, dashed(rest)}
+
+# S4.352 (spec twin) the least of three counts
+def least3(+a: Nat, +b: Nat, +c: Nat) -> Nat:
+  Bool.pick(Nat, Nat.is_lt(a, b), Bool.pick(Nat, Nat.is_lt(a, c), a, c), Bool.pick(Nat, Nat.is_lt(b, c), b, c))
+
+# S4.352 (spec twin) one row of the edit-distance table for the code point `ca` of the word: `up` is the row above
+# from this column on, `diag` the cell above-left, `left` the cell just computed
+def lev_next(+ca: U32, b: List<&2, U32>, +diag: Nat, up: List<&2, Nat>, +left: Nat) -> List<&2, Nat>:
+  match b up:
+    case Nil{} _:
+      Nil{}
+    case Con{+cb, brest} Nil{}:
+      Nil{}
+    case Con{+cb, brest} Con{+u, urest}:
+      least3(Nat.add(u, 1n), Nat.add(left, 1n), Nat.add(diag, Bool.pick(Nat, U32.is_eq(ca, cb), 0n, 1n))) <> lev_next(ca, brest, u, urest, least3(Nat.add(u, 1n), Nat.add(left, 1n), Nat.add(diag, Bool.pick(Nat, U32.is_eq(ca, cb), 0n, 1n))))
+
+# S4.352 (spec twin) the next row, from the one above
+def lev_row(+ca: U32, +b: List<&2, U32>, prev: List<&2, Nat>, +i: Nat) -> List<&2, Nat>:
+  match prev:
+    case Nil{}:
+      i <> Nil{}
+    case Con{p0, rest}:
+      i <> lev_next(ca, b, p0, rest, i)
+
+# S4.352 (spec twin) every row, one per code point of the word; the last row's last cell is the distance
+def lev_rows(a: List<&2, U32>, +b: List<&2, U32>, prev: List<&2, Nat>, +i: Nat) -> List<&2, Nat>:
+  match a:
+    case Nil{}:
+      prev
+    case Con{ca, rest}:
+      lev_rows(rest, b, lev_row(ca, b, prev, Nat.add(i, 1n)), Nat.add(i, 1n))
+
+# S4.352 (spec twin) the first row: 0, 1, …, the length of the type
+def lev_first(b: List<&2, U32>, +i: Nat) -> List<&2, Nat>:
+  match b:
+    case Nil{}:
+      i <> Nil{}
+    case Con{c, rest}:
+      i <> lev_first(rest, Nat.add(i, 1n))
+
+# S4.352 (spec twin) the edit distance (insertions, deletions, substitutions of code points) between two words
+def distance(+a: String, +b: String) -> Nat:
+  Maybe.default(&2, Nat, List.last(&2, Nat, lev_rows(Time.codes(a), Time.codes(b), lev_first(Time.codes(b), 0n), 0n)), 0n)
+
+# S4.352 (spec twin) keep a type in front of the rest
+def type_keep(t: String, keep: Bool, rest: List<&2, String>) -> List<&2, String>:
+  match keep:
+    case True{}:
+      t <> rest
+    case False{}:
+      rest
+
+# S4.352 (spec twin) the types a word is a prefix of
+def prefixed_types(ts: List<&2, String>, +word: String) -> List<&2, String>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{+t, rest}:
+      type_keep(t, String.starts_with(t, word), prefixed_types(rest, word))
+
+# S4.352 (spec twin) the nearest type within an edit distance of 2, the first of the list on a tie; `best` so far
+# with its distance `d` (3 means none yet)
+def nearest_edit(ts: List<&2, String>, +word: String, best: String, +d: Nat) -> String:
+  match ts:
+    case Nil{}:
+      Bool.pick(String, Nat.is_lt(d, 3n), best, "")
+    case Con{+t, rest}:
+      nearest_edit(rest, word, Bool.pick(String, Nat.is_lt(distance(word, t), d), t, best), Bool.pick(Nat, Nat.is_lt(distance(word, t), d), distance(word, t), d))
+
+# S4.352 (spec twin) the one prefix match, else the nearest by edit distance
+def nearest_pick(+prefixed: List<&2, String>, +norm: String) -> String:
+  match prefixed:
+    case Con{t, Nil{}}:
+      t
+    case other:
+      nearest_edit(Model.known_dep_types(), norm, "", 3n)
+
+# S4.352 (spec twin) the near match of an unknown `--type`, "" when none: the word lower-cased with `_` and spaces as
+# `-`, then an exact match, a unique prefix, or the nearest type within an edit distance of 2
+def nearest_type(+norm: String) -> String:
+  Bool.pick(String, Model.listed_word(Model.known_dep_types(), norm), norm, nearest_pick(prefixed_types(Model.known_dep_types(), norm), norm))
+
+# S4.352 (spec twin) the hint of an unknown `--type`: the near match, else the list
+def type_hint(+near: String) -> String:
+  Bool.pick(String, String.is_empty(near), "Use --type with one of: " ++ String.join(Model.known_dep_types(), ", ") ++ ".", "Did you mean --type " ++ near ++ "?")
+
+# S4.352 (spec twin) the refusal with its hint chosen
+def bad_type_hinted(+word: String, +hint: String) -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: type: Unknown dependency type: '" ++ word ++ "'. Allowed types: " ++ String.join(Model.known_dep_types(), ", "), Some{hint}, True{}, [Failure.CtxMember{"field", Failure.CStr{"type"}}, Failure.CtxMember{"reason", Failure.CStr{"Unknown dependency type: '" ++ word ++ "'. Allowed types: " ++ String.join(Model.known_dep_types(), ", ")}}, Failure.CtxMember{"hint", Failure.CStr{hint}}], 4}
+
 # S4.352 (spec twin) the refusal of a type outside the eleven; this list does NOT name `blocked-by` (unlike `--deps`)
 def bad_type(+word: String) -> Failure.Failure:
-  Failure.Failure{"VALIDATION_FAILED", "Validation failed: type: Unknown dependency type: '" ++ word ++ "'. Allowed types: " ++ String.join(Model.known_dep_types(), ", "), Some{"Use --type with one of: " ++ String.join(Model.known_dep_types(), ", ") ++ "."}, True{}, [Failure.CtxMember{"field", Failure.CStr{"type"}}, Failure.CtxMember{"reason", Failure.CStr{"Unknown dependency type: '" ++ word ++ "'. Allowed types: " ++ String.join(Model.known_dep_types(), ", ")}}, Failure.CtxMember{"hint", Failure.CStr{"Use --type with one of: " ++ String.join(Model.known_dep_types(), ", ") ++ "."}}], 4}
+  bad_type_hinted(word, type_hint(nearest_type(Model.lowered(dashed(word)))))
 
 # S4.356 S9.22 (spec twin) an issue cannot depend on itself; the context key is `id` (golden error_dep_add_self_json), not `issue_id`
 def self_edge(+id: String) -> Failure.Failure:

@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: sort: invalid sort field 'nonsense'",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "sort",
+      "reason": "invalid sort field 'nonsense'"
+    }
+  }
+}

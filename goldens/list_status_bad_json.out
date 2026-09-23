@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: status: unknown status 'bogus'. Built-in statuses: open, in_progress, blocked, deferred, draft, closed, tombstone, pinned. Custom statuses must be declared in .beads/policy.yaml (workflow.statuses) or exist on at least one issue. Use --status all to include every status",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "status",
+      "reason": "unknown status 'bogus'. Built-in statuses: open, in_progress, blocked, deferred, draft, closed, tombstone, pinned. Custom statuses must be declared in .beads/policy.yaml (workflow.statuses) or exist on at least one issue. Use --status all to include every status"
+    }
+  }
+}

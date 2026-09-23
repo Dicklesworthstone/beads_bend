@@ -1,10 +1,10 @@
-captured: 2026-09-23T17:55:08.825426+00:00
+captured: 2026-09-23T18:03:19.343857+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (747 cases)
-provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"5986a14a0e89f67b7501645ce72b531176ae7663fea0f7ad4a612b1d768c833f"},"case_files":[],"stdin_files":[]}
-recapture: repin: find-fix round 10 (non-author): queries over the larger fixtures, dep tree directions
+cases: goldens/cases.tsv (752 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"1941df36eda6863be2240408c938b0846090c2779fa8e5d6609f604996d8abf1"},"case_files":[],"stdin_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/two_lines.txt","sha256":"793d49044e660c5c0fc164516e0121a17241eec91a81fcc504ccd1084e4e0da9"}]}
+recapture: repin: new cases: standard input for comments add -f - and --description-file - (5 cases, S4.381 S4.397)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1794,7 +1794,7 @@ sha256:
   5b901780df63af03b7785c360be7936f5b9e54b4e84afede380febb7e149155c  delete_hard_force_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_force_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_force_json.exit
-  6cbbead5838b80c907a5880d476bff0f79ca8bfdfa7cb82eb7c21a3d46291299  delete_hard_cascade_json.out
+  17ebd38a3919c99d296ab73fbde849a050d589affe31e5347c64ea7826dce8fe  delete_hard_cascade_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_cascade_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_cascade_json.exit
   77c8c846694dd370c92a17b3e29a6201601c3f3a42fd0fee94b1980f08e27233  delete_hard_preview.out
@@ -2247,3 +2247,18 @@ sha256:
   286fe65e86204a22c710a739d226b9b4dfefec16ff2aa8898bc7f837e98af6d6  r10_tree_dep_tree_grand_down.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r10_tree_dep_tree_grand_down.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r10_tree_dep_tree_grand_down.exit
+  a9cfd8b5a08a774f3ac36786d8d24556d29193d8f2c6a6d2b6825a0315ae18fb  stdin_comments_add.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  stdin_comments_add.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  stdin_comments_add.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  stdin_comments_add_empty.out
+  f018bcea64434f8202f93c623ee24c23b8d174d256adb2063d88c184a5a1da60  stdin_comments_add_empty.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  stdin_comments_add_empty.exit
+  3c5e13b68f291c697423d3e640ec55389b9416164a236b010c953ed9d249a8af  stdin_update_description.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  stdin_update_description.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  stdin_update_description.exit
+  e0833ce10c429429329776fc808103b38a2d8bd54885bb02981d1e1d89bfb1e7  stdin_create_description.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  stdin_create_description.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  stdin_create_description.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  stdin_delete_from_file_dash.out
+  b85189e5401167cc4961ea88209a990011d605365ca4b9ca22dcb1793378c6ea  stdin_delete_from_file_dash.err
+  aa67a169b0bba217aa0aa88a65346920c84c42447c36ba5f7ea65f422c1fe5d8  stdin_delete_from_file_dash.exit

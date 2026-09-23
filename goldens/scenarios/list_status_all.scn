@@ -1,0 +1,5 @@
+# list_status_all: does `--status all` list tombstones, and where do they sort? (OQ-039)
+@fx=basic
+["delete","proj-b75"]
+["list","--status","all","--json","--fields","id,status"]
+["list","--status","all"]

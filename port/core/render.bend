@@ -386,9 +386,10 @@ def hidden_note(+hidden: Nat) -> String:
   Bool.pick(String, Nat.is_eq(hidden, 0n), "", "note: " ++ Nat.show(hidden) ++ " closed match(es) hidden; rerun with --all to include them\n")
 
 # S5.156–S5.159 (spec twin) plain `search`: the header (`Showing` when the page was cut, `Found` otherwise) with the
-# number of rows shown and the query between single quotes, the rows, then the notes
+# number of rows shown and the query between single quotes, the rows, then the notes: the hidden-closed note first,
+# then the more-matches note (`search_limit`)
 def search_plain(+page: List<&2, Model.Issue>, query: String, +more: Bool, offset: Nat, limit: Nat, hidden: Nat) -> String:
-  String.concat([Bool.pick(String, more, "Showing ", "Found "), Nat.show(List.length(&2, Model.Issue, page)), " issue(s) matching '", inline(query), "'\n", String.concat(lines(page)), more_note(more, List.length(&2, Model.Issue, page), offset, limit), hidden_note(hidden)])
+  String.concat([Bool.pick(String, more, "Showing ", "Found "), Nat.show(List.length(&2, Model.Issue, page)), " issue(s) matching '", inline(query), "'\n", String.concat(lines(page)), hidden_note(hidden), more_note(more, List.length(&2, Model.Issue, page), offset, limit)])
 
 # S5.34 (spec twin) the envelope of `search --json`: no `total`, and `hidden_closed_count` in its place
 def search_json(page: List<&2, Model.Issue>, all: List<&2, Model.Issue>, hidden: Nat, limit: Nat, offset: Nat, more: Bool) -> String:

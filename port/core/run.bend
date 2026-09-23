@@ -143,9 +143,10 @@ def list_built(b: Query.Built, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.
 def selectors(+opts: List<&2, Cli.Occ>) -> List<&2, String>:
   List.concat(&2, String, [Bool.pick(List<&2, String>, Cli.given(opts, "by"), ["--by"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-status"), ["--by-status"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-priority"), ["--by-priority"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-type"), ["--by-type"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-assignee"), ["--by-assignee"], []), Bool.pick(List<&2, String>, Cli.given(opts, "by-label"), ["--by-label"], [])])
 
-# S4.147 (spec twin) the refusal of more than one grouping selector
+# S4.147 (spec twin) the refusal of more than one grouping selector; its JSON context is `field` and `reason`
+# (`count_by_two_json`)
 def many_selectors(given: List<&2, String>) -> Failure.Failure:
-  Failure.Failure{"VALIDATION_FAILED", "Validation failed: by: only one count grouping selector can be specified; got " ++ String.join(given, ", "), None{}, True{}, Nil{}, 4}
+  Create.invalid("by", "only one count grouping selector can be specified; got " ++ String.join(given, ", "))
 
 # S4.147 S4.148 (spec twin) the field from `--by <field>` or from the alias flag; label when nothing else says
 def group_field_pick(+by: String, status: Bool, priority: Bool, kind: Bool, assignee: Bool) -> U32:
@@ -610,9 +611,9 @@ def created(m: Create.Made, +opts: List<&2, Cli.Occ>, model: List<&2, Model.Issu
     case Create.MadeOk{issue, +built} True{} _:
       printed(Bool.pick(String, json, "{" ++ Model.members_raw(built) ++ "}\n", preview(built, opts)), "", quiet)
     case Create.MadeOk{+issue, built} False{} True{}:
-      wrote(created_text(issue, Cli.given(opts, "silent"), json), changes(None{}, Model.id_of(issue)), quiet)
+      wrote(created_text(issue, Cli.given(opts, "silent"), json), changes(None{}, Model.id_of(issue)), (quiet && Bool.not(Cli.given(opts, "silent"))))
     case Create.MadeOk{+issue, built} False{} False{}:
-      wrote(created_text(issue, Cli.given(opts, "silent"), json), changes(Some{Store.text(List.append(&2, Model.Issue, model, issue <> Nil{}))}, Model.id_of(issue)), quiet)
+      wrote(created_text(issue, Cli.given(opts, "silent"), json), changes(Some{Store.text(List.append(&2, Model.Issue, model, issue <> Nil{}))}, Model.id_of(issue)), (quiet && Bool.not(Cli.given(opts, "silent"))))
 
 # S4.222 (spec twin) the title of `create`: the positional, else `--title`, else nothing (which validation refuses)
 def create_title(words: List<&2, String>, flag: Maybe<&2, String>) -> String:
@@ -819,7 +820,7 @@ def unblocked_text(items: List<&2, Model.Issue>, json: Bool, first: Bool) -> Lis
 def close_text(+elements: List<&2, String>, lines: List<&2, String>, +skips: List<&2, Status.Skip>, +freed: List<&2, Model.Issue>, +suggest: Bool, json: Bool) -> String:
   match json:
     case False{}:
-      String.concat(lines) ++ Bool.pick(String, (suggest && Bool.not(List.is_empty(&2, Model.Issue, freed))), "Unblocked " ++ Nat.show(List.length(&2, Model.Issue, freed)) ++ " issue(s):\n" ++ String.concat(unblocked_text(freed, False{}, True{})), "")
+      String.concat(lines) ++ Bool.pick(String, (suggest && Bool.not(List.is_empty(&2, Model.Issue, freed))), "\nUnblocked " ++ Nat.show(List.length(&2, Model.Issue, freed)) ++ " issue(s):\n" ++ String.concat(unblocked_text(freed, False{}, True{})), "")
     case True{}:
       Bool.pick(String, (List.is_empty(&2, Status.Skip, skips) && Bool.not(suggest)), "[" ++ String.join(elements, ",") ++ "]\n", String.concat(["{\"closed\":[", String.join(elements, ","), "]", Bool.pick(String, List.is_empty(&2, Status.Skip, skips), "", ",\"skipped\":[" ++ String.concat(Status.skip_objects(skips, True{})) ++ "]"), Bool.pick(String, suggest, ",\"unblocked\":[" ++ String.concat(unblocked_text(freed, True{}, True{})) ++ "]", ""), "}\n"]))
 
@@ -854,7 +855,7 @@ def close_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{+ids}:
-      Bool.pick(Outcome, (Cli.given(opts, "suggest-next") && Nat.is_gt(List.length(&2, String, ids), 1n)), failed(Create.invalid("suggest-next", "--suggest-next only works with a single issue ID"), json), closed_batch(Status.close_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, Blocked.relation(model), now, Maybe.default(&2, String, Cli.value(opts, "reason"), "done"), Cli.given(opts, "force"), Status.Note{Cli.value(opts, "transition-comment"), actor, Cli.value(opts, "session")}), Blocked.keys(Blocked.relation(model)), Cli.given(opts, "suggest-next"), json, quiet))
+      Bool.pick(Outcome, (Cli.given(opts, "suggest-next") && Nat.is_gt(List.length(&2, String, ids), 1n)), failed(Create.invalid("suggest-next", "--suggest-next only works with a single issue ID"), json), closed_batch(Status.close_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, Blocked.relation(model), now, Maybe.default(&2, String, Cli.value(opts, "reason"), "done"), Cli.given(opts, "force"), Status.Note{Cli.value(opts, "transition-comment"), actor, Cli.value(opts, "session")}, ids), Blocked.keys(Blocked.relation(model)), Cli.given(opts, "suggest-next"), json, quiet))
 
 # S4.314 S4.326 S5.42 S5.43 S5.107 (spec twin) what `reopen`, `defer` or `undefer` answered: the successes before
 # the skips; `hush` is `--quiet` for `defer` and `undefer`, which S5.107 short-circuits, and False for `reopen`,

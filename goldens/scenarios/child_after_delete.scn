@@ -1,0 +1,6 @@
+# child_after_delete: is a deleted child's number reused by the next child? (OQ-030)
+@fx=basic
+["create","Kid one","--parent","proj-uly","--silent"]
+["create","Kid two","--parent","proj-uly","--silent"]
+["delete","proj-uly.2","--force"]
+["create","Kid three","--parent","proj-uly","--json"]
