@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: bypass-reason: --bypass-policy requires --bypass-reason \"<text>\"",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "bypass-reason",
+      "reason": "--bypass-policy requires --bypass-reason \"<text>\""
+    }
+  }
+}

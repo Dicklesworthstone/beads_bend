@@ -1,10 +1,10 @@
-captured: 2026-09-23T00:33:19.185835+00:00
+captured: 2026-09-23T01:49:03.734352+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (658 cases)
-provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"dfb6cc7255d00c802a230375da3dcff748aa8a8803c7d61de2a4f946b061f56b"},"case_files":[],"stdin_files":[]}
-recapture: repin: new cases: values that begin with - (7 cases, S1.87)
+cases: goldens/cases.tsv (664 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"7c87f96b53032f9761053785c387f729b54b77df4d6b4fae00930b8238f7bd5f"},"case_files":[],"stdin_files":[]}
+recapture: repin: new cases: close --bypass-policy/--bypass-reason (6 cases, S4.399)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1401,7 +1401,7 @@ sha256:
   33c2af4b405ea7f0c89d67f5d5db98e99a8eeb1c845bbb257d1d8401182e8f50  prefix_config_nested.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_nested.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_nested.exit
-  07bbf8f5f45acb259c7962eb3c9bba01344626c54b2e82d944953692a5fac699  prefix_config_both.out
+  2815415d064df2b6e8198c34c55589f026df346189972d37e7c53fd37e34d3f6  prefix_config_both.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_both.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_both.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_prefix_config_bad.out
@@ -1794,7 +1794,7 @@ sha256:
   5b901780df63af03b7785c360be7936f5b9e54b4e84afede380febb7e149155c  delete_hard_force_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_force_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_force_json.exit
-  422056cffdfd2d4bbccb504c841fe05084ba7a972dcb6def8bffbeb38e9094b7  delete_hard_cascade_json.out
+  6cbbead5838b80c907a5880d476bff0f79ca8bfdfa7cb82eb7c21a3d46291299  delete_hard_cascade_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_cascade_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_cascade_json.exit
   77c8c846694dd370c92a17b3e29a6201601c3f3a42fd0fee94b1980f08e27233  delete_hard_preview.out
@@ -1980,3 +1980,21 @@ sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_hyphen_value_create_assignee.out
   60701eb1c14d54ab0d9963a3f6a48b7edf5f0645e8587f1a84f283ed380ee078  usage_hyphen_value_create_assignee.err
   53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  usage_hyphen_value_create_assignee.exit
+  4733d51103a0ec5ef35cf75dec9bab0caa1564727b469421c82dfc9c45087119  close_bypass.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  close_bypass.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  close_bypass.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_close_bypass_no_reason.out
+  67fb67cfb2424bd3da592d72f5726bed7ad12fb9c2cad05e51576b7619cfbd11  error_close_bypass_no_reason.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_close_bypass_no_reason.exit
+  7032d22204569bafb78c33393533b18273816ae532379003344ca240d8cc19e0  error_close_bypass_no_reason_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_close_bypass_no_reason_json.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_close_bypass_no_reason_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_close_bypass_blank.out
+  67fb67cfb2424bd3da592d72f5726bed7ad12fb9c2cad05e51576b7619cfbd11  error_close_bypass_blank.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_close_bypass_blank.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_close_bypass_reason_alone.out
+  84ddc22763bc4bc756c87c5bc5148d618993f1a855a0a24cab5dd4e1ca2153d7  error_close_bypass_reason_alone.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_close_bypass_reason_alone.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_close_bypass_no_ids.out
+  67fb67cfb2424bd3da592d72f5726bed7ad12fb9c2cad05e51576b7619cfbd11  error_close_bypass_no_ids.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_close_bypass_no_ids.exit
