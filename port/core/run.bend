@@ -397,10 +397,22 @@ def path_put(given: Maybe<&2, String>, rest: List<&2, String>) -> List<&2, Strin
     case Some{p}:
       p <> rest
 
-# S4.340 S4.381 S4.397 (spec twin) the files one command names: `delete --from-file`, `comments add -f/--file`
-# except `-` (standard input, not ported), `update` and `create --description-file`
+# S4.397 (spec twin) does an option name standard input: its value is `-`
+def is_dash(given: Maybe<&2, String>) -> Bool:
+  String.eq(Maybe.default(&2, String, given, ""), "-")
+
+# S4.397 (spec twin) does an option name a file to open: given, and not `-`
+def names_file(+given: Maybe<&2, String>) -> Bool:
+  (Maybe.is_some(&2, String, given) && Bool.not(is_dash(given)))
+
+# S4.340 S4.381 S4.397 (spec twin) the files one command names: `delete --from-file` (where `-` is a file named
+# `-`), `comments add -f/--file` and `update`/`create --description-file` (where `-` is standard input instead)
 def command_files(+path: String, +opts: List<&2, Cli.Occ>) -> List<&2, String>:
-  path_put(Bool.pick(Maybe<&2, String>, String.eq(path, "delete"), Cli.value(opts, "from-file"), None{}), path_put(Bool.pick(Maybe<&2, String>, (String.eq(path, "comments add") && Bool.not(String.eq(Maybe.default(&2, String, Cli.value(opts, "file"), "-"), "-"))), Cli.value(opts, "file"), None{}), path_put(Bool.pick(Maybe<&2, String>, (String.eq(path, "update") || String.eq(path, "create")), Cli.value(opts, "description-file"), None{}), Nil{})))
+  path_put(Bool.pick(Maybe<&2, String>, String.eq(path, "delete"), Cli.value(opts, "from-file"), None{}), path_put(Bool.pick(Maybe<&2, String>, (String.eq(path, "comments add") && names_file(Cli.value(opts, "file"))), Cli.value(opts, "file"), None{}), path_put(Bool.pick(Maybe<&2, String>, ((String.eq(path, "update") || String.eq(path, "create")) && names_file(Cli.value(opts, "description-file"))), Cli.value(opts, "description-file"), None{}), Nil{})))
+
+# S4.381 S4.397 (spec twin) does one command read standard input: `comments add -f -`, `--description-file -`
+def command_stdin(+path: String, +opts: List<&2, Cli.Occ>) -> Bool:
+  ((String.eq(path, "comments add") && is_dash(Cli.value(opts, "file"))) || ((String.eq(path, "update") || String.eq(path, "create")) && is_dash(Cli.value(opts, "description-file"))))
 
 # S4.397 (spec twin) the files of a parse: none unless the argument parser accepted a command
 def parsed_files(p: Cli.Parsed) -> List<&2, String>:
@@ -421,6 +433,31 @@ def parsed_files(p: Cli.Parsed) -> List<&2, String>:
 # S4.397 (spec twin, entry) the files the shell reads before the run, in the order the shell passes them back
 def side_files(argv: List<&2, String>) -> List<&2, String>:
   parsed_files(Cli.parse(argv))
+
+# S4.397 (spec twin) whether a parse reads standard input: only a command can
+def parsed_stdin(p: Cli.Parsed) -> Bool:
+  match p:
+    case Cli.Refused{err}:
+      False{}
+    case Cli.Helped{path, long}:
+      False{}
+    case Cli.GroupHelp{path}:
+      False{}
+    case Cli.Versioned{}:
+      False{}
+    case Cli.Outside{word}:
+      False{}
+    case Cli.Command{path, opts, words}:
+      command_stdin(path, opts)
+
+# S4.397 (spec twin, entry) does the shell read standard input before the run; its text reaches the core as the file
+# `-` (`@file -`), which `read_of` then finds like any other named file
+def wants_stdin(argv: List<&2, String>) -> Bool:
+  parsed_stdin(Cli.parse(argv))
+
+# S4.397 (spec twin, entry) standard input's text as the variable of S4.397
+def stdin_var(+text: String) -> Var:
+  Var{"@file -", text}
 
 # S4.397 (spec twin) a text that is not UTF-8, as the variable of S4.397 carries it
 def side_text(+path: String, d: Bytes.Decoded) -> Var:
@@ -1292,7 +1329,8 @@ def comment_resolved(f: Resolve.Found, +model: List<&2, Model.Issue>, author: St
     case Resolve.FoundOk{+id} False{}:
       comment_found(Blocked.lookup(model, id), model, id, author, text, at, json, quiet)
 
-# S4.380–S4.385 (spec twin) `comments add <id> [text…]`; `-f -` (standard input) is not ported
+# S4.380–S4.385 S4.397 (spec twin) `comments add <id> [text…]`; `-f <path>` and `-f -` (standard input) arrive as
+# `file`, read by the shell
 def comment_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool, later: Bool, file: Maybe<&2, Read>) -> Outcome:
   match now words later:
     case _ _ True{}:
@@ -1491,7 +1529,7 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) 
     case 27 Call{path, opts, words, json, quiet, touched, +env, cwd}:
       rename_cmd(Show.pinned(now_of(env)), words, issues, json, quiet)
     case 28 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      comment_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, String.eq(Maybe.default(&2, String, Cli.value(opts, "file"), ""), "-"), file_read(env, Cli.value(opts, "file")))
+      comment_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, False{}, file_read(env, Cli.value(opts, "file")))
     case 30 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       epic_close_cmd(Show.pinned(now_of(env)), opts, Store.model(issues), json, quiet, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")))
     case 29 Call{path, +opts, words, json, quiet, +touched, +env, cwd}:

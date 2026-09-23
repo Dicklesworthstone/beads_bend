@@ -26,6 +26,11 @@ def Clock.wall() -> IO(String):
   import "./effs/clock_wall.c"
   import "./effs/clock_wall.js"
 
+# S4.381 S4.397 (shell) standard input read to its end; Base has no effect for it
+def Sys.stdin() -> IO(String):
+  import "./effs/sys_stdin.c"
+  import "./effs/sys_stdin.js"
+
 # S8.12 (shell) the current directory; Base has no effect for it
 def Sys.cwd() -> IO(String):
   import "./effs/sys_cwd.c"
@@ -265,6 +270,16 @@ def side_all(paths: List<&2, String>) -> IO(List<&2, Run.Var>):
         more : List<&2, Run.Var> <- side_all(rest)
         return v <> more
 
+# S4.381 S4.397 (shell) standard input, read only when the core says the argv names it (Run.wants_stdin)
+def stdin_all(wanted: Bool) -> IO(List<&2, Run.Var>):
+  match wanted:
+    case False{}:
+      IO.pure(List<&2, Run.Var>, Nil{})
+    case True{}:
+      do IO<List<&2, Run.Var>>:
+        text : String <- Sys.stdin()
+        return Run.stdin_var(text) <> Nil{}
+
 # S8.1 S8.12 S8.13 S4.397 (shell) read the workspace's files and the files the argv names, call the core once, perform
 def run_argv(+argv: List<&2, String>, +cwd: String, env: List<&2, Run.Var>, +dir: String) -> IO(Unit):
   do IO<Unit>:
@@ -272,8 +287,9 @@ def run_argv(+argv: List<&2, String>, +cwd: String, env: List<&2, Run.Var>, +dir
     touched : List<&2, U32> <- read_all(Run.inside(dir, "last-touched"))
     config : List<&2, U32> <- read_all(Run.inside(dir, "config.yaml"))
     sides : List<&2, Run.Var> <- side_all(Run.side_files(argv))
+    input : List<&2, Run.Var> <- stdin_all(Run.wants_stdin(argv))
     wall : String <- Clock.wall()
-    perform(dir, Run.outcome(Run.Inputs{argv, Bool.not(String.is_empty(dir)), Run.root_of(dir, cwd), store, touched, Run.Var{"BEADS_BEND_WALL", wall} <> Run.Var{"BEADS_BEND_DIR", dir} <> Run.file_var(".beads/config.yaml", config) <> List.append(&2, Run.Var, sides, env)}))
+    perform(dir, Run.outcome(Run.Inputs{argv, Bool.not(String.is_empty(dir)), Run.root_of(dir, cwd), store, touched, Run.Var{"BEADS_BEND_WALL", wall} <> Run.Var{"BEADS_BEND_DIR", dir} <> Run.file_var(".beads/config.yaml", config) <> List.append(&2, Run.Var, input, List.append(&2, Run.Var, sides, env))}))
 
 # S8.1 (shell) the argv as the core takes it
 def run_in(args: List<String>, +cwd: String, env: List<&2, Run.Var>, +dir: String) -> IO(Unit):

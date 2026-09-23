@@ -1,0 +1,12 @@
+Dependents of proj-abk (11):
+  <- proj-abk.1 (parent-child): Child 1 [P1] [open]
+  <- proj-abk.10 (parent-child): Child 10 [P1] [open]
+  <- proj-abk.4 (parent-child): Child 4 [P1] [open]
+  <- proj-abk.7 (parent-child): Child 7 [P1] [open]
+  <- proj-abk.11 (parent-child): Child 11 [P2] [open]
+  <- proj-abk.2 (parent-child): Child 2 [P2] [open]
+  <- proj-abk.5 (parent-child): Child 5 [P2] [open]
+  <- proj-abk.8 (parent-child): Child 8 [P2] [open]
+  <- proj-abk.3 (parent-child): Child 3 [P3] [open]
+  <- proj-abk.6 (parent-child): Child 6 [P3] [open]
+  <- proj-abk.9 (parent-child): Child 9 [P3] [open]

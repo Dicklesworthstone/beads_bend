@@ -1,0 +1,3 @@
+proj-abk.10.1: Grand of 10 [P0] [open]
+  ├── proj-abk.10: Child 10 [P1] [open]
+    ├── proj-abk: Tree root [P2] [open]
