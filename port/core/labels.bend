@@ -3,11 +3,10 @@
 # The label commands iterate LABELS in the outer loop and ISSUES in the inner
 # one (S4.371), so the rows are label-major. Every named label is validated
 # before any issue is touched, so an invalid one leaves no write and no output.
-# Not here yet, refused with the port's own failure by the dispatcher:
-# `comments add -f` (a file or stdin), the walk of S4.370 that splits more than
-# two positionals, and an issue positional that resolves to nothing (S4.370
-# names a message no case captures). The 64-label ceiling of S4.372 is not
-# checked either (OQ-125). Nothing here consults the original.
+# An add that would leave an issue with more than 64 distinct labels refuses
+# the whole command (S4.372). The positional walk of S4.370 and its refusals
+# live in the dispatcher. Not here yet, refused with the port's own failure:
+# `comments add -f -` (standard input). Nothing here consults the original.
 import Base
 import ./time.bend as Time
 import ./model.bend as Model
@@ -38,6 +37,11 @@ def first_bad(labels: List<&2, String>) -> String:
       ""
     case Con{+l, rest}:
       Bool.pick(String, label_ok(l), first_bad(rest), l)
+
+# S4.372 (spec twin) the refusal of a label set past the ceiling
+def ceiling_refusal() -> Failure.Failure:
+  Create.invalid("labels", "exceeds 64 labels")
+
 
 # S4.373 S4.375 (spec twin) the issue with this label set and `updated_at` bumped
 def with_labels(i: Model.Issue, labels: List<&2, String>, now: Time.Instant) -> Model.Issue:
@@ -97,10 +101,12 @@ def tombstone_refusal(+id: String) -> Failure.Failure:
 
 # ---------------------------------------------------------------- the batch (S4.371, S4.376)
 
-# S4.371 (data) the pairs processed so far: the refusal, or the model, the lines and rows (both REVERSED), the last
-# issue acted on and whether a record changed
+# S4.371 S4.372 (data) the pairs processed so far: the refusal, the ceiling refusal that cut the batch short (the
+# labels already added stay written, S4.372), or the model, the lines and rows (both REVERSED), the last issue acted on
+# and whether a record changed
 type Batch is Data:
   BatchBad{failure: Failure.Failure}
+  BatchCut{failure: Failure.Failure, model: List<&2, Model.Issue>, changed: Bool}
   BatchOk{model: List<&2, Model.Issue>, plain: List<&2, String>, json: List<&2, String>, last: String, changed: Bool}
 
 # S4.371 (spec twin) the model a batch holds; nothing once it was refused
@@ -108,18 +114,49 @@ def batch_model(b: Batch) -> List<&2, Model.Issue>:
   match b:
     case BatchBad{f}:
       Nil{}
+    case BatchCut{f, model, changed}:
+      model
     case BatchOk{model, plain, json, last, changed}:
       model
 
-# S4.371 (spec twin) one pair's verdict folded into the batch
+# S4.371 (spec twin) one pair's verdict folded into the batch; a refused or cut batch takes nothing more
 def batch_put(b: Batch, d: Done) -> Batch:
   match b d:
     case BatchBad{f} _:
       BatchBad{f}
+    case BatchCut{f, model, changed} _:
+      BatchCut{f, model, changed}
     case BatchOk{model, plain, json, last, changed} LabelBad{f}:
       BatchBad{f}
     case BatchOk{model, plain, json, last, changed} LabelOk{m, line, entry, id, touched}:
       BatchOk{m, line <> plain, entry <> json, id, (changed || touched)}
+
+# S4.372 (spec twin) would adding this label take the issue past 64: it lacks the label and already holds 64
+def label_full(found: Maybe<&2, Model.Issue>, +label: String) -> Bool:
+  match found:
+    case None{}:
+      False{}
+    case Some{+i}:
+      (Bool.not(Blocked.among(Model.labels_of(i), label)) && Nat.is_gt(List.length(&2, String, Model.labels_of(i)), 63n))
+
+# S4.372 (spec twin) would adding this label take any of the issues past 64
+def label_blocked(+model: List<&2, Model.Issue>, ids: List<&2, String>, +label: String) -> Bool:
+  match ids:
+    case Nil{}:
+      False{}
+    case Con{+id, rest}:
+      (label_full(Blocked.lookup(model, id), label) || label_blocked(model, rest, label))
+
+# S4.372 (spec twin) before a label goes onto any issue, every issue is checked against the ceiling; one past it cuts
+# the batch there, keeping what the earlier labels wrote
+def cut_at(b: Batch, +ids: List<&2, String>, +label: String, adding: Bool) -> Batch:
+  match b:
+    case BatchBad{f}:
+      BatchBad{f}
+    case BatchCut{f, model, changed}:
+      BatchCut{f, model, changed}
+    case BatchOk{+model, plain, json, last, +changed}:
+      Bool.pick(Batch, (adding && label_blocked(model, ids, label)), BatchCut{ceiling_refusal(), model, changed}, BatchOk{model, plain, json, last, changed})
 
 # S4.373 (spec twin) one (issue, label) pair: a missing record is "not found", a tombstone refuses an add
 def pair(+b: Batch, found: Maybe<&2, Model.Issue>, +id: String, +label: String, now: Time.Instant, adding: Bool) -> Batch:
@@ -144,8 +181,8 @@ def outer(labels: List<&2, String>, b: Batch, +ids: List<&2, String>, +now: Time
   match labels:
     case Nil{}:
       b
-    case Con{label, rest}:
-      outer(rest, inner(ids, b, label, now, adding), ids, now, adding)
+    case Con{+label, rest}:
+      outer(rest, inner(ids, cut_at(b, ids, label, adding), label, now, adding), ids, now, adding)
 
 # S4.372 (spec twin) `label add` or `label remove`: every label is validated before any issue is touched
 def run(model: List<&2, Model.Issue>, +ids: List<&2, String>, +labels: List<&2, String>, now: Time.Instant, adding: Bool, +bad: String) -> Batch:

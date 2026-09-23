@@ -187,7 +187,7 @@ def count_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bo
       count_built(Query.build(opts, issues, False{}, True{}), opts, issues, json, quiet)
 
 # S4.132 S5.127 S5.128 (spec twin) `list`; `--overdue` also hides deferred records unless a status, `--deferred` or
-# `--all` asks for them (S4.132); `--tree` and `--pretty` are not ported yet
+# `--all` asks for them (S4.132); `later` refuses a form the port does not carry (the dispatcher passes none today)
 def list_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, later: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
   match later:
     case True{}:
@@ -855,6 +855,20 @@ def gate_until(n: When.Named, m: Resolve.Many, model: List<&2, Model.Issue>, now
     case When.AtTime{at}:
       gate_many(m, model, now, Some{at}, True{}, note, json, quiet)
 
+# S4.399 (spec twin) `close --bypass-policy` and `--bypass-reason` come as a pair, judged before anything else (the ids,
+# the last-touched fallback): the flag without a non-blank reason, and a reason without the flag, are refused. The port
+# configures no close policy (PLAN §3), so a valid pair changes nothing else
+def bypass_refusal(+opts: List<&2, Cli.Occ>) -> Maybe<&2, Failure.Failure>:
+  Bool.pick(Maybe<&2, Failure.Failure>, (Cli.given(opts, "bypass-policy") && String.is_empty(String.trim(Maybe.default(&2, String, Cli.value(opts, "bypass-reason"), "")))), Some{Create.invalid("bypass-reason", "--bypass-policy requires --bypass-reason \"<text>\"")}, Bool.pick(Maybe<&2, Failure.Failure>, (Bool.not(Cli.given(opts, "bypass-policy")) && Cli.given(opts, "bypass-reason")), Some{Create.invalid("bypass-policy", "--bypass-reason was set without --bypass-policy")}, None{}))
+
+# S4.399 (spec twin) the refusal of the pair, or the run
+def bypassed(r: Maybe<&2, Failure.Failure>, json: Bool, o: Outcome) -> Outcome:
+  match r:
+    case None{}:
+      o
+    case Some{f}:
+      failed(f, json)
+
 # S4.290 S4.310 S4.320 (spec twin) the four status transitions: `which` is 0 close, 1 reopen, 2 defer, 3 undefer. Forms that
 # are not ported and a missing clock are answered first; `close` and `reopen` fall back to `.beads/last-touched`,
 # `defer` and `undefer` demand an id
@@ -947,13 +961,26 @@ def edged(d: Edges.Done, +dependent: String, +target: String, json: Bool, quiet:
     case Edges.EdgeOk{model, +plain, entry, last, changed} False{}:
       warned(plain, Bool.pick(String, String.is_empty(plain), Edges.not_found_warning(dependent, target), ""), batch_changes(model, changed, last), quiet)
 
-# S4.353 (spec twin) is this endpoint a tombstone: the original refuses such an edge with words no case captures
+# S4.353 (spec twin) is this endpoint a tombstone
 def is_tombstone(found: Maybe<&2, Model.Issue>) -> Bool:
   match found:
     case None{}:
       False{}
     case Some{i}:
       String.eq(Model.status_of(i), "tombstone")
+
+# S4.353 S4.357 (spec twin) the refusals of `dep add` that come before the edge is judged: a tombstoned dependent, a
+# tombstoned target, a `parent-child` edge to an `external:` target
+def edge_refusal(+dependent: String, +target: String, dead_from: Bool, dead_to: Bool, parent_out: Bool) -> Maybe<&2, Failure.Failure>:
+  match dead_from dead_to parent_out:
+    case True{} _ _:
+      Some{Create.invalid("issue_id", "cannot add dependency from tombstone issue: " ++ dependent)}
+    case False{} True{} _:
+      Some{Create.invalid("depends_on_id", "cannot depend on tombstone issue: " ++ target)}
+    case False{} False{} True{}:
+      Some{Create.invalid("depends_on_id", "parent-child dependencies must link local issues: " ++ target)}
+    case False{} False{} False{}:
+      None{}
 
 # S4.350 S4.353 (spec twin) `dep add` once the dependent's record is in hand
 def dep_add_found(found: Maybe<&2, Model.Issue>, +model: List<&2, Model.Issue>, +dependent: String, +target: String, +kind: String, now: Time.Instant, actor: String, json: Bool, quiet: Bool) -> Outcome:
@@ -963,13 +990,15 @@ def dep_add_found(found: Maybe<&2, Model.Issue>, +model: List<&2, Model.Issue>, 
     case Some{i}:
       edged(Edges.add_checked(model, i, dependent, target, kind, now, actor, String.eq(dependent, target), Edges.closes_cycle(model, dependent, target, kind)), dependent, target, json, quiet)
 
-# S4.352 S4.357 (spec twin) `dep add` once its `--type` is known: a type outside the eleven is refused; a
-# `parent-child` edge to an external target, and an endpoint that is a tombstone, are not ported
-def dep_add_typed(+model: List<&2, Model.Issue>, +dependent: String, +target: String, +word: String, now: Time.Instant, actor: String, +json: Bool, quiet: Bool, later: Bool) -> Outcome:
-  match later:
-    case True{}:
+# S4.352 S4.353 S4.357 (spec twin) `dep add` once its `--type` is known: a type outside the eleven is refused, then the
+# refusals of `edge_refusal`; `--metadata` is not ported
+def dep_add_typed(+model: List<&2, Model.Issue>, +dependent: String, +target: String, +word: String, now: Time.Instant, actor: String, +json: Bool, quiet: Bool, later: Bool, pre: Maybe<&2, Failure.Failure>) -> Outcome:
+  match later pre:
+    case True{} _:
       failed(unported(), json)
-    case False{}:
+    case False{} Some{f}:
+      Bool.pick(Outcome, String.is_empty(Edges.canonical(word)), failed(Edges.bad_type(word), json), failed(f, json))
+    case False{} None{}:
       Bool.pick(Outcome, String.is_empty(Edges.canonical(word)), failed(Edges.bad_type(word), json), dep_add_found(Blocked.lookup(model, dependent), model, dependent, target, Edges.canonical(word), now, actor, json, quiet))
 
 # S4.359 (spec twin) `dep remove` once the dependent's record is in hand: the types between the pair decide
@@ -984,7 +1013,7 @@ def dep_remove_found(found: Maybe<&2, Model.Issue>, +model: List<&2, Model.Issue
 def edge_at(+model: List<&2, Model.Issue>, +dependent: String, +target: String, +opts: List<&2, Cli.Occ>, now: Time.Instant, actor: String, +json: Bool, quiet: Bool, adding: Bool) -> Outcome:
   match adding:
     case True{}:
-      dep_add_typed(model, dependent, target, Maybe.default(&2, String, Cli.value(opts, "type"), "blocks"), now, actor, json, quiet, (Cli.given(opts, "metadata") || (String.eq(Model.dep_type_repaired(Maybe.default(&2, String, Cli.value(opts, "type"), "blocks")), "parent-child") && Blocked.external(target)) || is_tombstone(Blocked.lookup(model, dependent)) || is_tombstone(Blocked.lookup(model, target))))
+      dep_add_typed(model, dependent, target, Maybe.default(&2, String, Cli.value(opts, "type"), "blocks"), now, actor, json, quiet, Cli.given(opts, "metadata"), edge_refusal(dependent, target, is_tombstone(Blocked.lookup(model, dependent)), is_tombstone(Blocked.lookup(model, target)), (String.eq(Model.dep_type_repaired(Maybe.default(&2, String, Cli.value(opts, "type"), "blocks")), "parent-child") && Blocked.external(target))))
     case False{}:
       dep_remove_found(Blocked.lookup(model, dependent), model, dependent, target, Cli.value(opts, "type"), now, json, quiet)
 
@@ -1020,62 +1049,143 @@ def edge_cmd(adding: Bool, now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ
 def label_usage(+sub: String) -> Failure.Failure:
   Create.invalid("arguments", "usage: label " ++ sub ++ " <issue...> <label...> or label " ++ sub ++ " <issue...> -l <label>[,<label>]")
 
-# S4.371 S4.376 (spec twin) what a label batch answered: its rows in label-major order, as one JSON array or as
-# the plain lines, and the file changes (the store only when a record changed)
+# S4.372 (spec twin) a refusal that still writes the store: the labels added before the ceiling cut the batch
+# (no success line, no `.beads/last-touched`)
+def failed_writing(o: Outcome, +model: List<&2, Model.Issue>, changed: Bool) -> Outcome:
+  match o:
+    case Outcome{out, err, code, writes}:
+      Outcome{out, err, code, Bool.pick(List<&2, Write>, changed, Write{".beads/issues.jsonl", Some{Store.text(model)}} <> Nil{}, Nil{})}
+
+# S4.371 S4.372 S4.376 (spec twin) what a label batch answered: its rows in label-major order, as one JSON array or
+# as the plain lines, and the file changes (the store only when a record changed)
 def labelled(b: Labels.Batch, json: Bool, quiet: Bool) -> Outcome:
   match b json:
     case Labels.BatchBad{f} mode:
       failed(f, mode)
+    case Labels.BatchCut{f, model, changed} mode:
+      failed_writing(failed(f, mode), model, changed)
     case Labels.BatchOk{model, plain, rows, last, changed} True{}:
       wrote("[" ++ String.join(List.reverse(&2, String, rows), ",") ++ "]\n", batch_changes(model, changed, last), quiet)
     case Labels.BatchOk{model, plain, rows, last, changed} False{}:
       wrote(String.concat(List.reverse(&2, String, plain)), batch_changes(model, changed, last), quiet)
 
-# S4.370 (spec twin) the first positional alone
-def first_only(words: List<&2, String>) -> List<&2, String>:
-  match words:
-    case Nil{}:
-      Nil{}
-    case Con{w, rest}:
-      w <> Nil{}
+# S4.370 (spec twin) a code point allowed before the last `-` of an id-shaped word: `a`–`z`, `0`–`9`, `_`, `.`, `-`
+def id_head_char(+c: U32) -> Bool:
+  (((c >= 97 : U32) && (c <= 122 : U32)) || ((c >= 48 : U32) && (c <= 57 : U32)) || U32.is_eq(c, 95) || U32.is_eq(c, 46) || U32.is_eq(c, 45))
 
-# S4.370 (spec twin) the issues of a label command: with `-l` every positional is one, otherwise the first
+# S4.370 (spec twin) a code point allowed after the last `-` of an id-shaped word: `a`–`z`, `0`–`9`, `.`
+def id_tail_char(+c: U32) -> Bool:
+  (((c >= 97 : U32) && (c <= 122 : U32)) || ((c >= 48 : U32) && (c <= 57 : U32)) || U32.is_eq(c, 46))
+
+# S4.370 (spec twin) every code point of one side of an id-shaped word allowed there (`tail` picks the side)
+def id_chars(s: String, +tail: Bool) -> Bool:
+  match s:
+    case SNil{}:
+      True{}
+    case SCon{Chr{+c}, rest}:
+      (Bool.pick(Bool, tail, id_tail_char(c), id_head_char(c)) && id_chars(rest, tail))
+
+# S4.370 (spec twin) a cut at the last `-`, both sides non-empty and made of their allowed code points
+def shaped_cut(c: Resolve.Cut) -> Bool:
+  match c:
+    case Resolve.Cut{+left, +right, True{}}:
+      (Bool.not(String.is_empty(left)) && Bool.not(String.is_empty(right)) && id_chars(left, False{}) && id_chars(right, True{}))
+    case Resolve.Cut{left, right, False{}}:
+      False{}
+
+# S4.370 (spec twin) does a positional look like an issue id: `proj-mta`, `a-b-c`, `my_proj-abc`, `proj-mta.1` do;
+# `Proj-mta`, `proj-MTA`, `ab-c_d`, `proj-`, `5u2` and `alpha` do not
+def id_shaped(+w: String) -> Bool:
+  shaped_cut(Resolve.cut_last(w, 45))
+
+# S4.370 (spec twin) how many of the positionals before the last (REVERSED) are labels: each one that is not id-shaped,
+# up to the first that is, and never the first positional (`left` counts the ones that may still be)
+def label_count(rev: List<&2, String>, left: Nat) -> Nat:
+  match rev left:
+    case Nil{} _:
+      0n
+    case Con{w, rest} 0n:
+      0n
+    case Con{+w, rest} 1n+k:
+      Bool.pick(Nat, id_shaped(w), 0n, Nat.add(1n, label_count(rest, k)))
+
+# S4.370 (spec twin) how many positionals are issues: all but the last and the labels walked before it
+def issue_count(+words: List<&2, String>) -> Nat:
+  Nat.sub(List.length(&2, String, words), Nat.add(1n, label_count(List.drop(&2, String, List.reverse(&2, String, words), 1n), Nat.sub(List.length(&2, String, words), 2n))))
+
+# S4.370 (spec twin) the issues of a label command: with `-l` every positional is one, otherwise the ones left of
+# the labels
 def label_issues(+words: List<&2, String>, flagged: Bool) -> List<&2, String>:
-  Bool.pick(List<&2, String>, flagged, words, first_only(words))
+  Bool.pick(List<&2, String>, flagged, words, List.take(&2, String, words, issue_count(words)))
 
-# S4.370 (spec twin) the labels of a label command: the `-l` values (comma split), otherwise the last positional
+# S4.370 (spec twin) the labels of a label command: the `-l` values (comma split), otherwise the positionals from
+# the first label to the end
 def label_words(+words: List<&2, String>, flagged: Bool, given: List<&2, String>) -> List<&2, String>:
-  Bool.pick(List<&2, String>, flagged, given, Maybe.default(&2, String, List.last(&2, String, words), "") <> Nil{})
+  Bool.pick(List<&2, String>, flagged, given, List.drop(&2, String, words, issue_count(words)))
 
 # S4.370 (spec twin) the shape of a label command's positionals: 0 usable, 1 the usage refusal (no `-l` and fewer
-# than two), 2 the walk over more than two positionals, which is not ported
+# than two)
 def label_shape(flagged: Bool, +n: Nat) -> U32:
-  Bool.pick(U32, flagged, 0, Bool.pick(U32, Bool.not(Nat.is_gt(n, 1n)), 1, Bool.pick(U32, Nat.is_gt(n, 2n), 2, 0)))
+  Bool.pick(U32, flagged, 0, Bool.pick(U32, Bool.not(Nat.is_gt(n, 1n)), 1, 0))
 
-# S4.373 S4.375 (spec twin) a label batch once its issues are resolved. S4.370's own message for a positional that
-# resolves to nothing is not captured by any case, so that refusal is not ported
+# S4.370 (spec twin) a word on the issue side that resolves to nothing and is not id-shaped: most likely a label
+# placed before an issue id
+def not_an_issue(+word: String, +verb: String) -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: issues: '" ++ word ++ "' is not an issue ID and does not match any issue", Some{"Labels go after all issue IDs: br label " ++ verb ++ " <issue...> " ++ word ++ "; or pass -l " ++ word ++ " to name the label explicitly."}, True{}, [Failure.CtxMember{"field", Failure.CStr{"issues"}}, Failure.CtxMember{"reason", Failure.CStr{"'" ++ word ++ "' is not an issue ID and does not match any issue"}}, Failure.CtxMember{"hint", Failure.CStr{"Labels go after all issue IDs: br label " ++ verb ++ " <issue...> " ++ word ++ "; or pass -l " ++ word ++ " to name the label explicitly."}}], 4}
+
+# S4.370 S4.212 (spec twin) one issue word that did not resolve: an id-shaped one keeps the resolution's own failure
+def word_refusal(f: Resolve.Found, +word: String, +verb: String) -> Maybe<&2, Failure.Failure>:
+  match f:
+    case Resolve.FoundOk{id}:
+      None{}
+    case Resolve.FoundBad{bad}:
+      Some{Bool.pick(Failure.Failure, id_shaped(word), bad, not_an_issue(word, verb))}
+
+# S4.370 (spec twin) the first of two refusals that exists
+def first_refusal(a: Maybe<&2, Failure.Failure>, b: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:
+  match a:
+    case Some{f}:
+      Some{f}
+    case None{}:
+      b
+
+# S4.370 S4.212 (spec twin) the first issue word, left to right, that resolves to nothing
+def issue_refusal(words: List<&2, String>, +ids: List<&2, String>, +prefix: String, +verb: String) -> Maybe<&2, Failure.Failure>:
+  match words:
+    case Nil{}:
+      None{}
+    case Con{+w, rest}:
+      first_refusal(word_refusal(Resolve.resolve(ids, w, prefix), w, verb), issue_refusal(rest, ids, prefix, verb))
+
+# S4.373 S4.375 (spec twin) a label batch once its issues are resolved
 def label_pairs(m: Resolve.Many, model: List<&2, Model.Issue>, labels: List<&2, String>, now: Time.Instant, adding: Bool, +json: Bool, quiet: Bool) -> Outcome:
   match m:
     case Resolve.ManyBad{f}:
-      failed(unported(), json)
+      failed(f, json)
     case Resolve.ManyOk{ids}:
       labelled(Labels.run(model, ids, labels, now, adding, ""), json, quiet)
 
+# S4.370 (spec twin) a label batch: an issue word that resolves to nothing refuses the whole command first
+def label_resolved(r: Maybe<&2, Failure.Failure>, +issues: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, labels: List<&2, String>, now: Time.Instant, adding: Bool, +json: Bool, quiet: Bool) -> Outcome:
+  match r:
+    case Some{f}:
+      failed(f, json)
+    case None{}:
+      label_pairs(Resolve.many(issues, Show.ids_of(raw), prefix), Store.model(raw), labels, now, adding, json, quiet)
+
 # S4.372 (spec twin) every named label is validated before any issue is touched
-def label_checked(adding: Bool, at: Time.Instant, +opts: List<&2, Cli.Occ>, +words: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, +json: Bool, quiet: Bool, +bad: String) -> Outcome:
+def label_checked(+adding: Bool, at: Time.Instant, +opts: List<&2, Cli.Occ>, +words: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, +json: Bool, quiet: Bool, +bad: String) -> Outcome:
   match bad:
     case SCon{h, t}:
       failed(Labels.label_refusal(SCon{h, t}), json)
     case SNil{}:
-      label_pairs(Resolve.many(label_issues(words, Cli.given(opts, "label")), Show.ids_of(raw), prefix), Store.model(raw), label_words(words, Cli.given(opts, "label"), Query.comma_split(Cli.values(opts, "label"))), at, adding, json, quiet)
+      label_resolved(issue_refusal(label_issues(words, Cli.given(opts, "label")), Show.ids_of(raw), prefix, Bool.pick(String, adding, "add", "remove")), label_issues(words, Cli.given(opts, "label")), raw, prefix, label_words(words, Cli.given(opts, "label"), Query.comma_split(Cli.values(opts, "label"))), at, adding, json, quiet)
 
 # S4.370 (spec twin) a label command once its positionals were counted
 def label_shaped(+adding: Bool, at: Time.Instant, +opts: List<&2, Cli.Occ>, +words: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, +json: Bool, quiet: Bool, shape: U32) -> Outcome:
   match shape:
     case 1:
       failed(label_usage(Bool.pick(String, adding, "add", "remove")), json)
-    case 2:
-      failed(unported(), json)
     case _:
       label_checked(adding, at, opts, words, raw, prefix, json, quiet, Labels.first_bad(label_words(words, Cli.given(opts, "label"), Query.comma_split(Cli.values(opts, "label")))))
 
@@ -1360,8 +1470,8 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) 
       create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, (Cli.given(opts, "file") || Cli.given(opts, "agent-context")), False{})
     case 17 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, False{}, True{})
-    case 19 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(0, Show.pinned(now_of(env)), (Cli.given(opts, "bypass-policy") || Cli.given(opts, "bypass-reason")), Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
+    case 19 Call{path, +opts, words, +json, quiet, touched, +env, cwd}:
+      bypassed(bypass_refusal(opts), json, transition(0, Show.pinned(now_of(env)), False{}, Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet))
     case 20 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       transition(1, Show.pinned(now_of(env)), False{}, Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 21 Call{path, +opts, words, json, quiet, touched, +env, cwd}:

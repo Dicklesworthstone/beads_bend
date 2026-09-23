@@ -22,6 +22,7 @@ import ./render.bend as Render
 import ./edges.bend as Edges
 import ./status.bend as Status
 import ./acceptance.bend as Acceptance
+import ./labels.bend as Labels
 
 # S4.262–S4.268 (data) an issue under edit: the refusal (sticky), or the issue so far and whether a stored column changed
 type Edit is Data:
@@ -345,17 +346,27 @@ def same_labels(xs: List<&2, String>, ys: List<&2, String>) -> Bool:
 
 # S4.268 (spec twin) the label flags folded in: a no-op when the set does not change
 def labels_written(+i: Model.Issue, +after: List<&2, String>, changed: Bool) -> Edit:
-  EditOk{set_labels(i, after), (changed || Bool.not(same_labels(Model.labels_of(i), after)))}
+  Bool.pick(Edit, Nat.is_gt(List.length(&2, String, after), 64n), EditBad{Create.invalid("labels", "exceeds 64 labels")}, EditOk{set_labels(i, after), (changed || Bool.not(same_labels(Model.labels_of(i), after)))})
+
+# S4.268 S4.372 (spec twin) the label flags once every named label passed the rules of S4.372: the first that fails
+# (a `--set-labels` item, an `--add-label`, a `--remove-label`, in that order; `--add-label` is never split at commas)
+# refuses the update
+def labels_valid(+i: Model.Issue, +set: List<&2, String>, +add: List<&2, String>, +remove: List<&2, String>, replacing: Bool, changed: Bool, +bad: String) -> Edit:
+  match bad:
+    case SCon{h, t}:
+      EditBad{Labels.label_refusal(SCon{h, t})}
+    case SNil{}:
+      labels_written(i, labels_after(Model.labels_of(i), set, add, remove, replacing), changed)
 
 # S4.268 (spec twin) the label flags, when any is given
-def with_labels(e: Edit, +set: List<&2, String>, add: List<&2, String>, remove: List<&2, String>, any: Bool, replacing: Bool) -> Edit:
+def with_labels(e: Edit, +set: List<&2, String>, +add: List<&2, String>, +remove: List<&2, String>, any: Bool, +replacing: Bool) -> Edit:
   match e any:
     case EditBad{f} _:
       EditBad{f}
     case EditOk{i, changed} False{}:
       EditOk{i, changed}
     case EditOk{+i, changed} True{}:
-      labels_written(i, labels_after(Model.labels_of(i), set, add, remove, replacing), changed)
+      labels_valid(i, set, add, remove, replacing, changed, Labels.first_bad(List.concat(&2, String, [Bool.pick(List<&2, String>, replacing, Query.comma_split(set), Nil{}), add, remove])))
 
 # S4.204 (spec twin) an edit that changed a stored column stamps `updated_at`
 def finished(e: Edit, now: Time.Instant) -> Edit:

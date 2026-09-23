@@ -412,9 +412,9 @@ def with_id(+id: String, p: Parent, +r: Request, +w: World, priority: String, du
     case SCon{h, t}:
       made(edges_go(Query.comma_split(deps), parent_edges(p, id, w), id, w), r, w, id, priority, due, defer)
 
-# S4.238 S4.239 (spec twin) the checks in the original's order: the priority, the dates, the parent, then the
-# title (empty, then too long) and the labels; the first refusal wins
-def checked(rank: Rank, due: Date, defer: Date, p: Parent, title_empty: Bool, title_long: Bool, labels_bad: Bool, +r: Request, +w: World, +title: String, slug: String, seed_description: String, seed_creator: String, deps: List<&2, String>) -> Made:
+# S4.238 S4.239 S4.372 (spec twin) the checks in the original's order: the priority, the dates, the parent, then the
+# title (empty, then too long) and the labels (their characters, then more than 64 of them); the first refusal wins
+def checked(rank: Rank, due: Date, defer: Date, p: Parent, title_empty: Bool, title_long: Bool, labels_bad: Bool, labels_many: Bool, +r: Request, +w: World, +title: String, slug: String, seed_description: String, seed_creator: String, deps: List<&2, String>) -> Made:
   match rank due defer p title_empty title_long labels_bad:
     case RankBad{f} _ _ _ _ _ _:
       MadeBad{f}
@@ -431,10 +431,10 @@ def checked(rank: Rank, due: Date, defer: Date, p: Parent, title_empty: Bool, ti
     case RankOk{digits} DateOk{a} DateOk{b} parent False{} False{} True{}:
       MadeBad{invalid("label", "invalid characters (only alphanumeric, hyphen, underscore, colon allowed)")}
     case RankOk{digits} DateOk{a} DateOk{b} +parent False{} False{} False{}:
-      with_id(new_id(parent, w, slug, title, seed_description, seed_creator), parent, r, w, digits, a, b, deps)
+      Bool.pick(Made, labels_many, MadeBad{invalid("labels", "exceeds 64 labels")}, with_id(new_id(parent, w, slug, title, seed_description, seed_creator), parent, r, w, digits, a, b, deps))
 
 # S4.220–S4.239 (spec twin) a new issue from a request, or the first refusal
 def make(+r: Request, +w: World) -> Made:
   match r w:
     case Request{+title, seed_description, seed_creator, description, kind, rank, status, assignee, owner, +labels, parent, deps, estimate, due_text, defer_text, external_ref, acceptance, prerequisites, slug, ephemeral, quick} World{ids, actor, +now, nanos, prefix, repo_path}:
-      checked(rank_of(rank), date_of(due_text, now, "due_at"), date_of(defer_text, now, "defer_until"), parent_of(parent, w), String.is_empty(String.trim(title)), Nat.is_gt(String.length(title), 500n), Bool.not(labels_ok(Query.comma_split(labels))), r, w, title, slug_of(slug), seed_description, seed_creator, deps)
+      checked(rank_of(rank), date_of(due_text, now, "due_at"), date_of(defer_text, now, "defer_until"), parent_of(parent, w), String.is_empty(String.trim(title)), Nat.is_gt(String.length(title), 500n), Bool.not(labels_ok(Query.comma_split(labels))), Nat.is_gt(List.length(&2, String, Model.dedup(List.sort(~String, ~String.is_le, Query.comma_split(labels)))), 64n), r, w, title, slug_of(slug), seed_description, seed_creator, deps)

@@ -4,8 +4,7 @@
 # precondition pass comes first), a precondition that fails is a per-id SKIP
 # and the batch goes on (S4.213), and the survivors are written back once.
 # `--transition-comment` and `close --session` ride along as a Note (S4.396).
-# Not here yet, each refused with the port's own failure by the dispatcher:
-# `--bypass-policy`, the dot-notation child check of `close` (S4.292).
+# `--bypass-policy` is judged by the dispatcher (S4.399).
 # Nothing here consults the original.
 import Base
 import ./time.bend as Time
@@ -81,9 +80,31 @@ def children_open(c: Work.Children) -> Bool:
     case Work.Children{total, done}:
       (total > done : U32)
 
+# S4.292 (spec twin) is `id` a direct dot-notation child of `parent`: `<parent>.<part>`, the part non-empty and
+# without a `.` (a grandchild `<parent>.2.1` is not one)
+def dotted_child(+parent: String, +id: String) -> Bool:
+  (String.starts_with(id, parent ++ ".") && Nat.is_gt(String.length(id), Nat.add(String.length(parent), 1n)) && Bool.not(String.contains(String.drop(id, Nat.add(String.length(parent), 1n)), ".")))
+
+# S4.292 (spec twin) the direct dot-notation children of an issue that are not closed or tombstoned
+def dotted_open(all: List<&2, Model.Issue>, +parent: String) -> List<&2, String>:
+  match all:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      blocker_put(Model.id_of(i), Bool.not((dotted_child(parent, Model.id_of(i)) && Bool.not(Blocked.terminal(Model.status_of(i))))), dotted_open(rest, parent))
+
+# S4.292 (spec twin) the dot-notation reason: the count, the first five ids in byte order, `+<n> more` past five
+def dotted_words(epic: Bool, +ids: List<&2, String>) -> String:
+  String.concat([Bool.pick(String, epic, "epic", "parent issue"), " has ", Nat.show(List.length(&2, String, ids)), " open dot-notation child issue(s): ", String.join(List.take(&2, String, ids, 5n), ", "), Bool.pick(String, Nat.is_gt(List.length(&2, String, ids), 5n), ", +" ++ Nat.show(Nat.sub(List.length(&2, String, ids), 5n)) ++ " more", ""), " (use --force to close anyway)"])
+
+# S4.292 (spec twin) the last two preconditions once the edge-linked children are all closed: open dot-notation
+# children, then open blockers
+def close_rest(+i: Model.Issue, now: Time.Instant, reason: String, +dotted: List<&2, String>, +blockers: List<&2, String>) -> Verdict:
+  Bool.pick(Verdict, Bool.not(List.is_empty(&2, String, dotted)), Skipped{dotted_words(String.eq(Model.type_of(i), "epic"), dotted)}, Bool.pick(Verdict, List.is_empty(&2, String, blockers), closed_verdict(i, now, reason), Skipped{blocked_reason(blockers)}))
+
 # S4.292 S4.296 (spec twin) the preconditions of one close, in order: a terminal status; open children; open
-# blockers. `--force` waives the last two and nothing else
-def close_pick(+i: Model.Issue, now: Time.Instant, reason: String, terminal: Bool, force: Bool, kids: Bool, +c: Work.Children, +blockers: List<&2, String>) -> Verdict:
+# dot-notation children; open blockers. `--force` waives the last three and nothing else
+def close_pick(+i: Model.Issue, now: Time.Instant, reason: String, terminal: Bool, force: Bool, kids: Bool, +c: Work.Children, +dotted: List<&2, String>, +blockers: List<&2, String>) -> Verdict:
   match terminal force kids:
     case True{} _ _:
       Skipped{"already " ++ Model.status_of(i)}
@@ -92,15 +113,15 @@ def close_pick(+i: Model.Issue, now: Time.Instant, reason: String, terminal: Boo
     case False{} False{} True{}:
       Skipped{children_words(String.eq(Model.type_of(i), "epic"), c)}
     case False{} False{} False{}:
-      Bool.pick(Verdict, List.is_empty(&2, String, blockers), closed_verdict(i, now, reason), Skipped{blocked_reason(blockers)})
+      close_rest(i, now, reason, dotted, blockers)
 
-# S4.292 (spec twin) one close with its child counts and blockers known
-def close_counted(+i: Model.Issue, +c: Work.Children, blockers: List<&2, String>, now: Time.Instant, reason: String, force: Bool) -> Verdict:
-  close_pick(i, now, reason, Blocked.terminal(Model.status_of(i)), force, children_open(c), c, blockers)
+# S4.292 (spec twin) one close with its child counts, dot-notation children and blockers known
+def close_counted(+i: Model.Issue, +c: Work.Children, dotted: List<&2, String>, blockers: List<&2, String>, now: Time.Instant, reason: String, force: Bool) -> Verdict:
+  close_pick(i, now, reason, Blocked.terminal(Model.status_of(i)), force, children_open(c), c, dotted, blockers)
 
 # S4.290–S4.296 (spec twin) one id of `close`, judged against the store as it was before the batch
 def close_one(+i: Model.Issue, +all: List<&2, Model.Issue>, relation: List<&2, Blocked.Entry>, now: Time.Instant, reason: String, force: Bool) -> Verdict:
-  close_counted(i, Work.children(all, Model.id_of(i), Work.Children{0, 0}), close_blockers(Blocked.refs_of(relation, Model.id_of(i))), now, reason, force)
+  close_counted(i, Work.children(all, Model.id_of(i), Work.Children{0, 0}), List.sort(~String, ~String.is_le, dotted_open(all, Model.id_of(i))), close_blockers(Blocked.refs_of(relation, Model.id_of(i))), now, reason, force)
 
 # ---------------------------------------------------------------- reopen (S4.310–S4.315)
 
