@@ -245,3 +245,11 @@ def Laws.store_load_fast_precision():
 # S2.24 S2.27 both loaders reach the same refusal of line 2
 def Laws.store_load_fast_refusal():
   {==}
+
+# S4.190 the table and the scan agree on `proj-uly`'s children
+def Laws.work_child_index_epic():
+  {==}
+
+# S4.190 the table and the scan agree on a leaf
+def Laws.work_child_index_leaf():
+  {==}

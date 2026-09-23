@@ -31,9 +31,13 @@ Rules (E = error, W = warning, I = info; E/W fail the run, I only with --strict)
   PL-15 W checker-blowup-risk    U32.to_nat / Nat.read inside a law (LAWS.bend)  -> LAWS-FROM-SPEC "limit"
   PL-16 I key-order-render       Map.to_list / Map.keys / Set.to_list feeding output (key order, not
                                  insertion order)                            -> ORDER-AND-STATE
+  PL-17 E clause-tag-unknown     a `# S<n>.<m>` tag names a clause the spec does not define (a def
+                                 written for a behavior the spec never recorded)  -> SPEC-EXTRACTION
 
-usage: port-lint.py <main.bend> [more .bend files] [--laws LAWS.bend] [--strict] [--json-only]
+usage: port-lint.py <main.bend> [more .bend files] [--laws LAWS.bend] [--spec SPEC.md] [--strict] [--json-only]
   --laws     the LAWS.bend to check PL-11/PL-15 against (default: LAWS.bend beside the first file, if present)
+  --spec     the spec whose clause rows (`| S<n>.<m> |`) PL-17 checks tags against (default: the one
+             docs/EXISTING_*_STRUCTURE.md beside the first file's directory, if exactly one exists)
   --strict   info findings also fail the run
   --json-only  print only the JSON line
 exit: 0 clean (or only infos), 1 findings, 2 usage / unreadable file.
@@ -63,6 +67,7 @@ RULES = {
     "PL-14": ("I", "f32-show", "NUMERIC-FIDELITY (F32 as a budgeted class); DECISION-TABLES 'prints floats'"),
     "PL-15": ("W", "checker-blowup-risk", "LAWS-FROM-SPEC 'Closed goldens as laws (and their limit)'"),
     "PL-16": ("I", "key-order-render", "ORDER-AND-STATE (insertion order as a key list beside the Map)"),
+    "PL-17": ("E", "clause-tag-unknown", "SPEC-EXTRACTION (every def cites a clause the spec defines; a new behavior is a new clause first)"),
 }
 
 DEF_RE = re.compile(r"^(@unsafe\s+)?(def|type|law)\s+([A-Za-z_][\w.]*)")
@@ -224,7 +229,9 @@ def find_law_mentions(laws_path):
     # Comments and unrelated defs are not evidence that a law names a twin.
     _, blocks = parse(laws_path)
     law_text = '\n'.join(b.header + '\n' + b.text() for b in blocks if b.kind == 'law')
-    names = set(re.findall(r"\b(?:L\.)?([A-Za-z_][\w.]*)\(", law_text))
+    # A law names a def through its module's import alias (`L.f(`, `BN.div_pow10(`, `Run.outcome(`):
+    # one leading capitalized segment is the alias, whatever its name.
+    names = set(re.findall(r"\b(?:[A-Z][A-Za-z0-9]*\.)?([A-Za-z_][\w.]*)\(", law_text))
     law_lines = [(i, t) for i, t in enumerate(text.split("\n"), 1)]
     return names, law_lines
 
@@ -233,15 +240,18 @@ def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(__doc__.strip())
         return 0 if argv else 2
-    files, laws, strict, json_only = [], None, False, False
+    files, laws, spec, strict, json_only = [], None, None, False, False
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a == "--laws":
+        if a in ("--laws", "--spec"):
             if i + 1 == len(argv) or argv[i + 1].startswith('--'):
-                print('port-lint: --laws needs a path', file=sys.stderr)
+                print(f'port-lint: {a} needs a path', file=sys.stderr)
                 return 2
-            laws = argv[i + 1]
+            if a == "--laws":
+                laws = argv[i + 1]
+            else:
+                spec = argv[i + 1]
             i += 2
             continue
         if a == "--strict":
@@ -269,6 +279,23 @@ def main(argv):
         print(f'port-lint: cannot read laws file {laws}', file=sys.stderr)
         return 2
     law_names, law_lines = find_law_mentions(laws)
+    if spec is None:
+        docs = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(files[0]))), "docs")
+        cands = sorted(f for f in (os.listdir(docs) if os.path.isdir(docs) else [])
+                       if re.fullmatch(r"EXISTING_.+_STRUCTURE\.md", f))
+        if len(cands) == 1:
+            spec = os.path.join(docs, cands[0])
+    elif not os.path.isfile(spec):
+        print(f'port-lint: cannot read spec file {spec}', file=sys.stderr)
+        return 2
+    clauses = None
+    if spec:
+        clauses = set()
+        for row in regular_text(spec).split("\n"):
+            # a clause is a table row `| S<n>.<m> |` or a paragraph clause `**S<n>.<m> — …**`
+            m = re.match(r"\|\s*(S\d+\.\d+)\s*\||\*\*(S\d+\.\d+)\b", row)
+            if m:
+                clauses.add(m.group(1) or m.group(2))
 
     findings = []
 
@@ -411,6 +438,18 @@ def main(argv):
                 n_call = text[: m.start()].count("\n") + 1
                 add("PL-04", path, line, f"comparator {cmp_name} (used by List.sort at line {n_call}) is a strict order: equal keys come out REVERSED; make it a <= and encode the original's tie-break")
 
+        # ---- PL-17 a clause tag the spec does not define (once per tag per file)
+        if clauses is not None:
+            seen_tags = set()
+            for n, t in enumerate(lines, 1):
+                c = t.find("#")
+                if c < 0:
+                    continue
+                for tag in re.findall(r"(?<![\w.])(S\d+\.\d+)(?![\d])", t[c:]):
+                    if tag not in clauses and tag not in seen_tags:
+                        seen_tags.add(tag)
+                        add("PL-17", path, n, f"{tag} is not a clause of {os.path.basename(spec)}: write the clause (behavior, provenance, case) before the def that implements it, or fix the tag")
+
         # ---- PL-16 key-order render
         for n, t in enumerate(lines, 1):
             if re.search(r"\b(Map\.to_list|Map\.keys|Set\.to_list)\(", t) and not t.lstrip().startswith("#"):
@@ -431,11 +470,12 @@ def main(argv):
             print(f"    read: {f['read']}")
         print("--")
         print(f"port-lint: {len(files)} file(s), {len(findings)} finding(s): {errors} error(s), {warnings} warning(s), {infos} info(s)"
-              + (f"; laws: {laws}" if laws else "; laws: none"))
+              + (f"; laws: {laws}" if laws else "; laws: none")
+              + (f"; spec: {spec} ({len(clauses)} clauses)" if spec else "; spec: none (PL-17 off)"))
     fail = errors + warnings > 0 or (strict and infos > 0)
     verdict = "FINDINGS" if fail else "OK"
     print(json.dumps({"files": len(files), "findings": len(findings), "errors": errors, "warnings": warnings,
-                      "infos": infos, "by_rule": by_rule, "laws": laws, "verdict": verdict}))
+                      "infos": infos, "by_rule": by_rule, "laws": laws, "spec": spec, "verdict": verdict}))
     return 1 if fail else 0
 
 

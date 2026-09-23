@@ -263,6 +263,14 @@ def model(issues: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
     case Con{i, rest}:
       model_one(Model.repaired(i), model(rest))
 
+# S2.24 (spec twin) the model of a load, none for a refused one (the laws' way into a fixture's records)
+def issues_of(l: Loaded) -> List<&2, Model.Issue>:
+  match l:
+    case LoadBad{f}:
+      Nil{}
+    case LoadOk{issues}:
+      model(issues)
+
 # S5.3 (spec twin) the order of the written lines: ascending BYTE order of the id
 def id_le(x: Model.Issue, y: Model.Issue) -> Bool:
   String.is_le(Model.id_of(x), Model.id_of(y))

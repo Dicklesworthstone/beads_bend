@@ -57,7 +57,7 @@ def replaced(model: List<&2, Model.Issue>, +new: Model.Issue) -> List<&2, Model.
     case Con{+i, rest}:
       Bool.pick(Model.Issue, String.eq(Model.id_of(i), Model.id_of(new)), new, i) <> replaced(rest, new)
 
-# S5.376 (spec twin) one row of the JSON array
+# S4.376 (spec twin) one row of the JSON array
 def row(status: String, +id: String, +label: String) -> String:
   String.concat(["{\"status\":", Failure.quoted(status), ",\"issue_id\":", Failure.quoted(id), ",\"label\":", Failure.quoted(label), "}"])
 

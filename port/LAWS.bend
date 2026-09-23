@@ -291,3 +291,12 @@ law store_load_fast_precision:
 # the same failure, naming line 2
 law store_load_fast_refusal:
   {Store.load_fast(Time.codes("\n{\"id\":1\n"), "/mnt/proj/.beads/issues.jsonl") == Store.load(Time.codes("\n{\"id\":1\n"), "/mnt/proj/.beads/issues.jsonl") : Store.Loaded}
+
+# S4.190 fast == spec, closed: the child table (`Work.table_of`, the fast twin) counts an epic's children as the scan
+# (`Work.children`, the spec twin) does, over fixture `basic`: `proj-uly` has one open child
+law work_child_index_epic:
+  {Work.children_in(Work.child_index(False{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl"))), "proj-uly") == Work.children_in(Work.child_index(True{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl"))), "proj-uly") : Work.Children}
+
+# S4.190 fast == spec, closed: the same for an issue no `parent-child` edge names (`proj-170` is a child, not a parent)
+law work_child_index_leaf:
+  {Work.children_in(Work.child_index(False{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl"))), "proj-170") == Work.children_in(Work.child_index(True{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl"))), "proj-170") : Work.Children}
