@@ -4,9 +4,11 @@
 # then each issue is edited in command-line order, and the first refusal
 # discards everything. The store is rewritten only when some issue changed
 # (S4.203); `.beads/last-touched` names the last id either way (S4.209).
-# Not here yet, each refused with the port's own failure by the dispatcher:
-# the acceptance-list flags, `--transition-comment`,
-# `--description-file`, `--agent-context`, `--session`. Nothing here consults the original.
+# `--transition-comment` adds a comment to an issue whose status really moved
+# (S4.396); `--session` is refused by the dispatcher (only a close takes it);
+# the acceptance-list flags edit the checklist in place (S4.398, Acceptance).
+# Not here yet, refused with the port's own failure by the dispatcher:
+# `--agent-context`. Nothing here consults the original.
 import Base
 import ./time.bend as Time
 import ./model.bend as Model
@@ -18,6 +20,8 @@ import ./blocked.bend as Blocked
 import ./when.bend as When
 import ./render.bend as Render
 import ./edges.bend as Edges
+import ./status.bend as Status
+import ./acceptance.bend as Acceptance
 
 # S4.262–S4.268 (data) an issue under edit: the refusal (sticky), or the issue so far and whether a stored column changed
 type Edit is Data:
@@ -428,15 +432,53 @@ def append_json(appended: Maybe<&2, String>, +before: String, +after: String) ->
     case Some{text}:
       String.concat([",\"notes\":{\"appended\":", Failure.quoted(text), ",\"applied\":true,\"chars_before\":", Nat.show(String.length(before)), ",\"chars_after\":", Nat.show(String.length(after)), ",\"text\":", Failure.quoted(after), "}"])
 
-# S5.39 (spec twin) the JSON element of one updated issue: seven members in this order, and `notes` after them
-# under `--append-notes`
-def block_json(+old: Model.Issue, +i: Model.Issue, appended: Maybe<&2, String>) -> String:
-  String.concat(["{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"status\":", Failure.quoted(Model.status_of(i)), ",\"priority\":", Model.priority_of(i), ",\"assignee\":", person_json(Model.assignee_of(i)), ",\"owner\":", person_json(Model.owner_of(i)), ",\"updated_at\":", Failure.quoted(Time.print(Model.updated_of(i), "Z")), append_json(appended, Maybe.default(&2, String, Model.notes_of(old), ""), Maybe.default(&2, String, Model.notes_of(i), "")), "}"])
+# S5.39 S4.398 (spec twin) the JSON element of one updated issue: seven members in this order, `notes` after them
+# under `--append-notes`, then `acceptance_criteria` under the acceptance-list flags (`extra`)
+def block_json(+old: Model.Issue, +i: Model.Issue, appended: Maybe<&2, String>, extra: String) -> String:
+  String.concat(["{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"status\":", Failure.quoted(Model.status_of(i)), ",\"priority\":", Model.priority_of(i), ",\"assignee\":", person_json(Model.assignee_of(i)), ",\"owner\":", person_json(Model.owner_of(i)), ",\"updated_at\":", Failure.quoted(Time.print(Model.updated_of(i), "Z")), append_json(appended, Maybe.default(&2, String, Model.notes_of(old), ""), Maybe.default(&2, String, Model.notes_of(i), "")), extra, "}"])
+
+# S4.398 (spec twin) the acceptance-list flags on one edited issue: their refusal, or the criteria rewritten, with
+# `updated_at` stamped, when a byte changed
+def acceptance_applied(e: Edit, acc: Acceptance.Done, +now: Time.Instant) -> Edit:
+  match e acc:
+    case EditBad{f} _:
+      EditBad{f}
+    case EditOk{i, changed} Acceptance.AccBad{f}:
+      EditBad{f}
+    case EditOk{+i, changed} Acceptance.AccOk{text, moved, items, checked, unchecked, added}:
+      Bool.pick(Edit, moved, EditOk{stamped(set_text(2, i, Some{text}), now), True{}}, EditOk{i, changed})
+
+# S4.398 (spec twin) the acceptance-list flags, when any was given
+def with_acceptance(e: Edit, acc: Acceptance.Done, given: Bool, now: Time.Instant) -> Edit:
+  match given:
+    case False{}:
+      e
+    case True{}:
+      acceptance_applied(e, acc, now)
 
 # S4.262–S4.268 (spec twin) every flag of one `update` applied to one issue, in a fixed order; `priority` is the
 # priority's digits when `-p` was given and judged
 def edited(i: Model.Issue, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, parent: Maybe<&2, String>, model: List<&2, Model.Issue>) -> Edit:
   finished(with_parent(with_labels(with_claim(with_date(with_date(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_append(with_body(with_body(with_body(with_body(with_body(with_compared(with_compared(with_status(start(i), Cli.value(opts, "status")), priority, 2), lowered_kind(Cli.value(opts, "type")), 3), Cli.value(opts, "description"), 0, Cli.given(opts, "force")), Cli.value(opts, "design"), 1, Cli.given(opts, "force")), Cli.value(opts, "acceptance-criteria"), 2, Cli.given(opts, "force")), Cli.value(opts, "prerequisites"), 3, Cli.given(opts, "force")), Cli.value(opts, "notes"), 4, Cli.given(opts, "force")), Cli.value(opts, "append-notes")), Cli.value(opts, "title"), 0), Cli.value(opts, "assignee"), 1), Cli.value(opts, "owner"), 2), Cli.value(opts, "external-ref"), 3), Cli.value(opts, "source-repo"), 4), Cli.value(opts, "source-repo-path"), 5), Cli.value(opts, "estimate"), 6), Cli.value(opts, "due"), 0, now, "due_at"), Cli.value(opts, "defer"), 1, now, "defer_until"), Cli.given(opts, "claim"), relation, actor, Cli.given(opts, "force")), Cli.values(opts, "set-labels"), Cli.values(opts, "add-label"), Cli.values(opts, "remove-label"), (Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label")), Cli.given(opts, "set-labels")), parent, model, actor, now), now)
+
+# S4.396 (spec twin) `--transition-comment` on one edited issue: refused unless `--status` moved it to another
+# status; otherwise a comment by the actor at the invocation instant
+def transition_noted(e: Edit, +old: String, +text: String, given: Bool, actor: String, now: Time.Instant, comment_id: String) -> Edit:
+  match e given:
+    case EditBad{f} _:
+      EditBad{f}
+    case EditOk{+i, changed} False{}:
+      EditBad{Create.invalid("status", "issue " ++ Model.id_of(i) ++ ": transition comments and workflow-policy bypasses require a real status transition")}
+    case EditOk{+i, changed} True{}:
+      Bool.pick(Edit, String.eq(Model.status_of(i), old), EditBad{Create.invalid("status", "issue " ++ Model.id_of(i) ++ ": transition comments and workflow-policy bypasses cannot be attached to a same-status update")}, EditOk{Status.with_comment(i, Model.Comment{comment_id, Model.id_of(i), actor, text, now}), changed})
+
+# S4.396 (spec twin) an edit with its transition comment, when one was given
+def transition_note(e: Edit, +old: String, comment: Maybe<&2, String>, given: Bool, actor: String, now: Time.Instant, comment_id: String) -> Edit:
+  match comment:
+    case None{}:
+      e
+    case Some{text}:
+      transition_noted(e, old, text, given, actor, now, comment_id)
 
 # S4.261 (data) a batch so far: the refusal (sticky), or the model with the edits in it, the plain blocks and the JSON
 # elements (both REVERSED), whether any stored column changed, and the last id acted on
@@ -453,14 +495,14 @@ def replaced(model: List<&2, Model.Issue>, +new: Model.Issue) -> List<&2, Model.
       Bool.pick(Model.Issue, String.eq(Model.id_of(i), Model.id_of(new)), new, i) <> replaced(rest, new)
 
 # S4.261 (spec twin) one edited issue folded into the batch
-def batch_put(b: Batch, e: Edit, +old: Model.Issue, any_flag: Bool, +appended: Maybe<&2, String>) -> Batch:
+def batch_put(b: Batch, e: Edit, +old: Model.Issue, any_flag: Bool, +appended: Maybe<&2, String>, plain_extra: String, json_extra: String) -> Batch:
   match b e:
     case BatchBad{f} _:
       BatchBad{f}
     case BatchOk{model, plain, json, changed, last} EditBad{f}:
       BatchBad{f}
     case BatchOk{model, plain, json, changed, last} EditOk{+new, touched}:
-      BatchOk{replaced(model, new), block_plain(old, new, any_flag, appended) <> plain, block_json(old, new, appended) <> json, (changed || touched), Model.id_of(new)}
+      BatchOk{replaced(model, new), (block_plain(old, new, any_flag, appended) ++ plain_extra) <> plain, block_json(old, new, appended, json_extra) <> json, (changed || touched), Model.id_of(new)}
 
 # S4.261 (spec twin) the current model of a batch; nothing once it was refused
 def batch_model(b: Batch) -> List<&2, Model.Issue>:
@@ -470,13 +512,18 @@ def batch_model(b: Batch) -> List<&2, Model.Issue>:
     case BatchOk{model, plain, json, changed, last}:
       model
 
+# S4.261 S4.396 S4.398 (spec twin) one issue once its acceptance-list run is known: the edit, the checklist, the
+# transition comment, and the blocks, with the acceptance block after the plain one when a list flag was given
+def batch_checked(+b: Batch, +i: Model.Issue, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, any_flag: Bool, parent: Maybe<&2, String>, +acc: Acceptance.Done, +given: Bool) -> Batch:
+  batch_put(b, transition_note(with_acceptance(edited(i, opts, priority, relation, actor, now, parent, batch_model(b)), acc, given, now), Model.status_of(i), Cli.value(opts, "transition-comment"), Cli.given(opts, "status"), actor, now, Status.next_comment_id(batch_model(b))), i, any_flag, Cli.value(opts, "append-notes"), Bool.pick(String, given, Acceptance.plain(acc, Model.id_of(i), Cli.given(opts, "check-acceptance"), Cli.given(opts, "uncheck-acceptance"), Cli.given(opts, "add-acceptance")), ""), Bool.pick(String, given, Acceptance.json(acc), ""))
+
 # S4.261 (spec twin) one resolved id: the issue as the batch holds it NOW (an id named twice is edited twice)
-def batch_id(+b: Batch, found: Maybe<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, actor: String, now: Time.Instant, any_flag: Bool, parent: Maybe<&2, String>) -> Batch:
+def batch_id(+b: Batch, found: Maybe<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, any_flag: Bool, parent: Maybe<&2, String>) -> Batch:
   match found:
     case None{}:
       b
     case Some{+i}:
-      batch_put(b, edited(i, opts, priority, relation, actor, now, parent, batch_model(b)), i, any_flag, Cli.value(opts, "append-notes"))
+      batch_checked(b, i, opts, priority, relation, actor, now, any_flag, parent, Acceptance.run(Model.id_of(i), Maybe.default(&2, String, Model.acceptance_of(i), ""), Cli.values(opts, "check-acceptance"), Cli.values(opts, "uncheck-acceptance"), Cli.values(opts, "add-acceptance")), (Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance")))
 
 # S4.261 (spec twin) every resolved id, in command-line order
 def batch_go(ids: List<&2, String>, +b: Batch, +opts: List<&2, Cli.Occ>, +priority: Maybe<&2, String>, +relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, +any_flag: Bool, +parent: Maybe<&2, String>) -> Batch:

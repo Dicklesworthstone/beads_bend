@@ -12,6 +12,7 @@ import ./model.bend as Model
 import ./failure.bend as Failure
 import ./render.bend as Render
 import ./resolve.bend as Resolve
+import ./acceptance.bend as Acceptance
 
 # S5.31 (data) a record on the other end of an edge: its id, title, status and priority, the edge's type, and
 # when the record was created (the second sort key)
@@ -320,10 +321,11 @@ def parent_member(id: String) -> String:
     case SCon{h, t}:
       ",\"parent\":" ++ Failure.quoted(SCon{h, t})
 
-# S5.30 (spec twin) one element of `show --json`: the record's own members as the file spells them (labels kept, its
-# own edge and comment arrays left out), then `dependencies`, `dependents`, `comments`, `parent`, each omitted when empty
+# S5.30 S4.398 (spec twin) one element of `show --json`: the record's own members as the file spells them (labels kept,
+# its own edge and comment arrays left out), then `dependencies`, `dependents`, `comments`, `parent`, each omitted when
+# empty, and last `acceptance_items` when the criteria hold a checklist item
 def json_one(+i: Model.Issue, +all: List<&2, Model.Issue>) -> String:
-  String.concat(["{", Model.members_raw(Model.without_edges(i)), related_member("dependencies", List.sort(~Related, ~related_le, dependencies(Model.deps_of(i), all))), related_member("dependents", List.sort(~Related, ~related_le, dependents(all, Model.id_of(i)))), after_comma(Model.o_comments(Model.comments_of(i))), parent_member(parent_of(Model.deps_of(i), "")), "}"])
+  String.concat(["{", Model.members_raw(Model.without_edges(i)), related_member("dependencies", List.sort(~Related, ~related_le, dependencies(Model.deps_of(i), all))), related_member("dependents", List.sort(~Related, ~related_le, dependents(all, Model.id_of(i)))), after_comma(Model.o_comments(Model.comments_of(i))), parent_member(parent_of(Model.deps_of(i), "")), Acceptance.items_member(Model.acceptance_of(i)), "}"])
 
 # ---------------------------------------------------------------- the command
 

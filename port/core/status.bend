@@ -3,9 +3,10 @@
 # Every id is judged against the store as it was BEFORE the batch (S4.290: the
 # precondition pass comes first), a precondition that fails is a per-id SKIP
 # and the batch goes on (S4.213), and the survivors are written back once.
+# `--transition-comment` and `close --session` ride along as a Note (S4.396).
 # Not here yet, each refused with the port's own failure by the dispatcher:
-# `--transition-comment`, `--session`, `--bypass-policy`, the dot-notation
-# child check of `close` (S4.292). Nothing here consults the original.
+# `--bypass-policy`, the dot-notation child check of `close` (S4.292).
+# Nothing here consults the original.
 import Base
 import ./time.bend as Time
 import ./model.bend as Model
@@ -221,21 +222,64 @@ def max_comment_id(issues: List<&2, Model.Issue>, acc: U32) -> U32:
 def next_comment_id(issues: List<&2, Model.Issue>) -> String:
   U32.show((max_comment_id(issues, 0) + 1 : U32))
 
+# S4.396 (data) what rides along with a transition: `--transition-comment` (a comment by the actor), and for
+# `close` `--session` (`closed_by_session`)
+type Note is Data:
+  Note{comment: Maybe<&2, String>, actor: String, session: Maybe<&2, String>}
+
+# S4.396 (spec twin) an acted-on issue with the transition comment appended; a skip carries none
+def commented(v: Verdict, +text: String, actor: String, +now: Time.Instant, comment_id: String) -> Verdict:
+  match v:
+    case Skipped{reason}:
+      Skipped{reason}
+    case Acted{+issue, plain, json}:
+      Acted{with_comment(issue, Model.Comment{comment_id, Model.id_of(issue), actor, text, now}), plain, json}
+
+# S4.396 (spec twin) an issue with `closed_by_session` set
+def with_session(i: Model.Issue, session: String) -> Model.Issue:
+  match i:
+    case Model.Issue{head, texts, people, times, Model.Closing{r, s, bypassed, bypass_reason, gates}, source, deletion, compaction, meta, flags, labels, dependencies, comments}:
+      Model.Issue{head, texts, people, times, Model.Closing{r, Some{session}, bypassed, bypass_reason, gates}, source, deletion, compaction, meta, flags, labels, dependencies, comments}
+
+# S4.396 (spec twin) an acted-on issue with the session of `--session`; a skip carries none
+def session_set(v: Verdict, s: String) -> Verdict:
+  match v:
+    case Skipped{reason}:
+      Skipped{reason}
+    case Acted{issue, plain, json}:
+      Acted{with_session(issue, s), plain, json}
+
+# S4.396 (spec twin) a verdict with `--session` applied when it was given
+def sessioned(v: Verdict, session: Maybe<&2, String>) -> Verdict:
+  match session:
+    case None{}:
+      v
+    case Some{s}:
+      session_set(v, s)
+
+# S4.396 (spec twin) a verdict with its note applied; the comment id is one past the batch's model as it stands
+def noted(v: Verdict, n: Note, now: Time.Instant, comment_id: String) -> Verdict:
+  match n:
+    case Note{None{}, actor, session}:
+      sessioned(v, session)
+    case Note{Some{text}, actor, session}:
+      commented(sessioned(v, session), text, actor, now, comment_id)
+
 # S4.292 (spec twin) one id of `close` folded in; a record that is missing is the skip `issue not found`
-def close_step(b: Batch, +id: String, found: Maybe<&2, Model.Issue>, all: List<&2, Model.Issue>, relation: List<&2, Blocked.Entry>, now: Time.Instant, reason: String, force: Bool) -> Batch:
+def close_step(+b: Batch, +id: String, found: Maybe<&2, Model.Issue>, all: List<&2, Model.Issue>, relation: List<&2, Blocked.Entry>, +now: Time.Instant, reason: String, force: Bool, note: Note) -> Batch:
   match found:
     case None{}:
       settle(b, id, Skipped{"issue not found"})
     case Some{i}:
-      settle(b, id, close_one(i, all, relation, now, reason, force))
+      settle(b, id, noted(close_one(i, all, relation, now, reason, force), note, now, next_comment_id(model_of(b))))
 
 # S4.299 (spec twin) `close` over resolved ids, in command-line order; `all` and `relation` are the store before the batch
-def close_go(ids: List<&2, String>, b: Batch, +all: List<&2, Model.Issue>, +relation: List<&2, Blocked.Entry>, +now: Time.Instant, +reason: String, +force: Bool) -> Batch:
+def close_go(ids: List<&2, String>, b: Batch, +all: List<&2, Model.Issue>, +relation: List<&2, Blocked.Entry>, +now: Time.Instant, +reason: String, +force: Bool, +note: Note) -> Batch:
   match ids:
     case Nil{}:
       b
     case Con{+id, rest}:
-      close_go(rest, close_step(b, id, Blocked.lookup(all, id), all, relation, now, reason, force), all, relation, now, reason, force)
+      close_go(rest, close_step(b, id, Blocked.lookup(all, id), all, relation, now, reason, force, note), all, relation, now, reason, force, note)
 
 # S4.313 (spec twin) one id of `reopen` folded in; the comment id comes from the batch's model as it stands
 def reopen_step(+b: Batch, +id: String, found: Maybe<&2, Model.Issue>, now: Time.Instant, reason: Maybe<&2, String>, actor: String) -> Batch:
@@ -254,22 +298,22 @@ def reopen_go(ids: List<&2, String>, b: Batch, +all: List<&2, Model.Issue>, +now
       reopen_go(rest, reopen_step(b, id, Blocked.lookup(all, id), now, reason, actor), all, now, reason, actor)
 
 # S4.326 (spec twin) one id of `defer` (`deferring` true) or `undefer` folded in
-def gate_step(b: Batch, +id: String, found: Maybe<&2, Model.Issue>, now: Time.Instant, until: Maybe<&2, Time.Instant>, deferring: Bool) -> Batch:
+def gate_step(+b: Batch, +id: String, found: Maybe<&2, Model.Issue>, +now: Time.Instant, until: Maybe<&2, Time.Instant>, deferring: Bool, note: Note) -> Batch:
   match found deferring:
     case None{} _:
       settle(b, id, Skipped{"issue not found"})
     case Some{i} True{}:
-      settle(b, id, defer_one(i, now, until))
+      settle(b, id, noted(defer_one(i, now, until), note, now, next_comment_id(model_of(b))))
     case Some{i} False{}:
-      settle(b, id, undefer_one(i, now))
+      settle(b, id, noted(undefer_one(i, now), note, now, next_comment_id(model_of(b))))
 
 # S4.321 S4.325 (spec twin) `defer` or `undefer` over resolved ids
-def gate_go(ids: List<&2, String>, b: Batch, +all: List<&2, Model.Issue>, +now: Time.Instant, +until: Maybe<&2, Time.Instant>, +deferring: Bool) -> Batch:
+def gate_go(ids: List<&2, String>, b: Batch, +all: List<&2, Model.Issue>, +now: Time.Instant, +until: Maybe<&2, Time.Instant>, +deferring: Bool, +note: Note) -> Batch:
   match ids:
     case Nil{}:
       b
     case Con{+id, rest}:
-      gate_go(rest, gate_step(b, id, Blocked.lookup(all, id), now, until, deferring), all, now, until, deferring)
+      gate_go(rest, gate_step(b, id, Blocked.lookup(all, id), now, until, deferring, note), all, now, until, deferring, note)
 
 # S4.293 (spec twin) the skips as the summary names them: up to five `<id>: <reason>` joined by `; `, then `+<n> more`
 def summary_go(skips: List<&2, Skip>, left: Nat) -> List<&2, String>:
@@ -295,7 +339,7 @@ def nothing_to_do(+skips: List<&2, Skip>) -> Failure.Failure:
 
 # S4.294 S9.14 (spec twin) some ids of a `close` landed and some were skipped: the closures are written, then this failure
 def close_incomplete(+closed: Nat, +skips: List<&2, Skip>) -> Failure.Failure:
-  Failure.Failure{"CLOSE_INCOMPLETE", "Partially applied: " ++ Nat.show(closed) ++ " closed, " ++ Nat.show(List.length(&2, Skip, skips)) ++ " skipped — " ++ summary(skips), Some{skip_hint(summary(skips))}, False{}, [Failure.CtxMember{"closed", Failure.CBare{Nat.show(closed)}}, Failure.CtxMember{"skipped", Failure.CBare{Nat.show(List.length(&2, Skip, skips))}}, Failure.CtxMember{"summary", Failure.CStr{summary(skips)}}], 3}
+  Failure.Failure{"CLOSE_INCOMPLETE", "Partially applied: " ++ Nat.show(closed) ++ " closed, " ++ Nat.show(List.length(&2, Skip, skips)) ++ " skipped — " ++ summary(skips), Some{skip_hint(summary(skips))}, False{}, [Failure.CtxMember{"closed", Failure.CBare{Nat.show(closed)}}, Failure.CtxMember{"skipped", Failure.CBare{Nat.show(List.length(&2, Skip, skips))}}, Failure.CtxMember{"reason", Failure.CStr{summary(skips)}}], 3}
 
 # S4.292 S4.313 (spec twin) the skips as warnings for stderr (`close`) …
 def warning_lines(skips: List<&2, Skip>) -> List<&2, String>:
@@ -328,10 +372,22 @@ def skip_objects(skips: List<&2, Skip>, first: Bool) -> List<&2, String>:
 def epic_closed(+i: Model.Issue, +now: Time.Instant) -> Model.Issue:
   moved(i, "closed", now, Some{now}, Some{"All children completed"}, Model.defer_of(i), True{})
 
-# S4.391 (spec twin) every named epic closed in ONE batch, with one shared instant
-def epics_closed(issues: List<&2, Model.Issue>, +ids: List<&2, String>, +now: Time.Instant) -> List<&2, Model.Issue>:
+# S4.391 S4.396 (spec twin) one issue of the batch: a named epic closed, with the transition comment numbered
+# `next` when one was given
+def epic_put(+i: Model.Issue, closing: Bool, note: Maybe<&2, String>, actor: String, +now: Time.Instant, next: U32) -> Model.Issue:
+  match closing note:
+    case False{} _:
+      i
+    case True{} None{}:
+      epic_closed(i, now)
+    case True{} Some{text}:
+      with_comment(epic_closed(i, now), Model.Comment{U32.show(next), Model.id_of(i), actor, text, now})
+
+# S4.391 S4.396 (spec twin) every named epic closed in ONE batch, with one shared instant; `--transition-comment`
+# gives each a comment, numbered on from `next` in store order
+def epics_closed(issues: List<&2, Model.Issue>, +ids: List<&2, String>, +now: Time.Instant, +note: Maybe<&2, String>, +actor: String, +next: U32) -> List<&2, Model.Issue>:
   match issues:
     case Nil{}:
       Nil{}
     case Con{+i, rest}:
-      Bool.pick(Model.Issue, Blocked.among(ids, Model.id_of(i)), epic_closed(i, now), i) <> epics_closed(rest, ids, now)
+      epic_put(i, Blocked.among(ids, Model.id_of(i)), note, actor, now, next) <> epics_closed(rest, ids, now, note, actor, (next + Bool.to_u32(Blocked.among(ids, Model.id_of(i))) : U32))

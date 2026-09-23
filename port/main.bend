@@ -220,14 +220,64 @@ def probe_all(paths: List<&2, String>) -> IO(List<&2, Bool>):
         oks : List<&2, Bool> <- probe_all(rest)
         return ok <> oks
 
-# S8.1 S8.12 S8.13 (shell) read the workspace's files, call the core once, perform
-def run_in(args: List<String>, +cwd: String, env: List<&2, Run.Var>, +dir: String) -> IO(Unit):
+# S4.397 (shell) the errno of a failed open or read
+def side_failed(e: U32 & String) -> Run.Side:
+  match e:
+    case (code, words):
+      Run.SideErr{code}
+
+# S4.397 (shell) a named file after its first read: a failed read keeps its errno, anything else reads on to the end
+def side_first(path: String, got: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(Run.Var):
+  match got:
+    case (f, Fail{e}):
+      do IO<Run.Var>:
+        File.close(f)
+        return Run.side_var(path, side_failed(e))
+    case (f, Done{bytes}):
+      do IO<Run.Var>:
+        all : List<&2, U32> <- read_chunks(1024n, (f, Done{bytes}), Nil{})
+        return Run.side_var(path, Run.SideOk{all})
+
+# S4.397 (shell) a named file once the open answered
+def side_opened(path: String, r: Result<&1, &1, U32 & String, File>) -> IO(Run.Var):
+  match r:
+    case Fail{e}:
+      IO.pure(Run.Var, Run.side_var(path, side_failed(e)))
+    case Done{file}:
+      do IO<Run.Var>:
+        got : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(file, 67108864)
+        side_first(path, got)
+
+# S4.397 (shell) read one file the argv names, as the variable the core looks up
+def side_read(+path: String) -> IO(Run.Var):
+  do IO<Run.Var>:
+    r : Result<&1, &1, U32 & String, File> <- File.open(path, "r")
+    side_opened(path, r)
+
+# S4.397 (shell) read every file the core named (Run.side_files), in order
+def side_all(paths: List<&2, String>) -> IO(List<&2, Run.Var>):
+  match paths:
+    case Nil{}:
+      IO.pure(List<&2, Run.Var>, Nil{})
+    case Con{p, rest}:
+      do IO<List<&2, Run.Var>>:
+        v : Run.Var <- side_read(p)
+        more : List<&2, Run.Var> <- side_all(rest)
+        return v <> more
+
+# S8.1 S8.12 S8.13 S4.397 (shell) read the workspace's files and the files the argv names, call the core once, perform
+def run_argv(+argv: List<&2, String>, +cwd: String, env: List<&2, Run.Var>, +dir: String) -> IO(Unit):
   do IO<Unit>:
     store : List<&2, U32> <- read_all(Run.inside(dir, "issues.jsonl"))
     touched : List<&2, U32> <- read_all(Run.inside(dir, "last-touched"))
     config : List<&2, U32> <- read_all(Run.inside(dir, "config.yaml"))
+    sides : List<&2, Run.Var> <- side_all(Run.side_files(argv))
     wall : String <- Clock.wall()
-    perform(dir, Run.outcome(Run.Inputs{args_list(args), Bool.not(String.is_empty(dir)), Run.root_of(dir, cwd), store, touched, Run.Var{"BEADS_BEND_WALL", wall} <> Run.Var{"BEADS_BEND_DIR", dir} <> Run.file_var(".beads/config.yaml", config) <> env}))
+    perform(dir, Run.outcome(Run.Inputs{argv, Bool.not(String.is_empty(dir)), Run.root_of(dir, cwd), store, touched, Run.Var{"BEADS_BEND_WALL", wall} <> Run.Var{"BEADS_BEND_DIR", dir} <> Run.file_var(".beads/config.yaml", config) <> List.append(&2, Run.Var, sides, env)}))
+
+# S8.1 (shell) the argv as the core takes it
+def run_in(args: List<String>, +cwd: String, env: List<&2, Run.Var>, +dir: String) -> IO(Unit):
+  run_argv(args_list(args), cwd, env, dir)
 
 # S2.1 S2.2 (shell) test the directories discovery names, then run in the first that opened
 def discover(args: List<String>, +cwd: String, +env: List<&2, Run.Var>) -> IO(Unit):

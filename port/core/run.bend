@@ -121,7 +121,7 @@ def list_page(+rows: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, +opts: 
     case True{}:
       printed(Render.list_json(Query.page(rows, offset, limit), all, List.length(&2, Model.Issue, rows), limit, offset, Query.has_more(List.length(&2, Model.Issue, rows), offset, limit)), "", quiet)
     case False{}:
-      printed(Render.list_plain(Query.page(rows, offset, limit), Cli.given(opts, "long")), Render.truncation_note(Query.has_more(List.length(&2, Model.Issue, rows), offset, limit), outside_query(opts), List.length(&2, Model.Issue, Query.page(rows, offset, limit)), List.length(&2, Model.Issue, rows)), quiet)
+      printed(Render.list_plain(Query.page(rows, offset, limit), Cli.given(opts, "long"), Cli.given(opts, "pretty"), Cli.given(opts, "tree")), Render.truncation_note(Query.has_more(List.length(&2, Model.Issue, rows), offset, limit), outside_query(opts), List.length(&2, Model.Issue, Query.page(rows, offset, limit)), List.length(&2, Model.Issue, rows)), quiet)
 
 # S4.118 (spec twin) `list` once its filter is built: the sort key is judged next (9 is a key nobody knows)
 def list_sorted(+key: U32, f: Query.Filter, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, bad: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
@@ -317,31 +317,53 @@ def ready_scoped(named: Maybe<&2, String>, +opts: List<&2, Cli.Occ>, +issues: Li
 def ready_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, env: List<&2, Var>, json: Bool, quiet: Bool, prefix: String) -> Outcome:
   ready_scoped(parent_named(Cli.value(opts, "parent"), Cli.value(opts, "epic")), opts, issues, env, json, quiet, prefix)
 
-# S5.53 S5.167–S5.171 (spec twin) `stats` once its lead time is known: one the port cannot print yet answers the port's own failure
-def stats_out(f: Work.Figures, l: Work.Lead, json: Bool, quiet: Bool) -> Outcome:
+# S5.53 S5.167–S5.172 (spec twin) `stats` once its lead time is known: one the port cannot print yet answers the
+# port's own failure; `dims` are the breakdowns asked for, counted over `live` (the records that are not tombstones)
+def stats_out(f: Work.Figures, l: Work.Lead, json: Bool, quiet: Bool, +dims: List<&2, U32>, +live: List<&2, Model.Issue>) -> Outcome:
   match l json:
     case Work.LeadBad{} _:
       failed(unported(), json)
     case Work.NoLead{} True{}:
-      printed(Render.stats_json(f, ""), "", quiet)
+      printed(Render.stats_json(f, "", Render.breaks_json(dims, live)), "", quiet)
     case Work.NoLead{} False{}:
-      printed(Render.stats_plain(f, ""), "", quiet)
+      printed(Render.stats_plain(f, "", Render.breaks_plain(dims, live)), "", quiet)
     case Work.LeadOk{plain, number} True{}:
-      printed(Render.stats_json(f, number), "", quiet)
+      printed(Render.stats_json(f, number, Render.breaks_json(dims, live)), "", quiet)
     case Work.LeadOk{plain, number} False{}:
-      printed(Render.stats_plain(f, plain), "", quiet)
+      printed(Render.stats_plain(f, plain, Render.breaks_plain(dims, live)), "", quiet)
 
 # S4.154 (spec twin) the figures with their average lead time
-def stats_figures(+f: Work.Figures, json: Bool, quiet: Bool) -> Outcome:
-  stats_out(f, Work.lead(f), json, quiet)
+def stats_figures(+f: Work.Figures, json: Bool, quiet: Bool, +dims: List<&2, U32>, +live: List<&2, Model.Issue>) -> Outcome:
+  stats_out(f, Work.lead(f), json, quiet, dims, live)
 
-# S4.151–S4.156 (spec twin) `stats`; its breakdowns and its activity block are not ported (the activity block needs git: PLAN §3)
-def stats_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, +env: List<&2, Var>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
+# S5.172 (spec twin) the breakdowns the `--by-*` flags ask for, in the fixed order type, priority, assignee, label
+# whatever the order of the flags (`stats_by_label_type`); the numbers are Query.group_keys'
+def stats_dims(+opts: List<&2, Cli.Occ>) -> List<&2, U32>:
+  List.concat(&2, U32, [Bool.pick(List<&2, U32>, Cli.given(opts, "by-type"), [2], []), Bool.pick(List<&2, U32>, Cli.given(opts, "by-priority"), [1], []), Bool.pick(List<&2, U32>, Cli.given(opts, "by-assignee"), [3], []), Bool.pick(List<&2, U32>, Cli.given(opts, "by-label"), [4], [])])
+
+# S5.172 (spec twin) keep a record that is not a tombstone
+def live_put(i: Model.Issue, keep: Bool, rest: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match keep:
+    case True{}:
+      i <> rest
+    case False{}:
+      rest
+
+# S5.172 (spec twin) the records the breakdowns count: every one that is not a tombstone (`scn_stats_tombstone`)
+def not_tombstones(issues: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      live_put(i, Bool.not(String.eq(Model.status_of(i), "tombstone")), not_tombstones(rest))
+
+# S4.151–S4.156 S5.172 (spec twin) `stats` with its breakdowns; the activity block is not ported (it needs git: PLAN §3)
+def stats_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +env: List<&2, Var>, json: Bool, quiet: Bool, later: Bool) -> Outcome:
   match later:
     case True{}:
       failed(unported(), json)
     case False{}:
-      stats_figures(Work.figures(issues, Show.pinned(now_of(env)), spec_of(env)), json, quiet)
+      stats_figures(Work.figures(issues, Show.pinned(now_of(env)), spec_of(env)), json, quiet, stats_dims(opts), not_tombstones(issues))
 
 # S1.34 (spec twin) the one positional of `search`, trimmed
 def first_word(words: List<&2, String>) -> String:
@@ -358,6 +380,115 @@ def touched_text(d: Bytes.Decoded) -> String:
       ""
     case Bytes.Utf8{codes}:
       String.trim(Cli.text(codes))
+
+# ---------------------------------------------------------------- files the argv names (S4.340, S4.381, S4.397)
+
+# S4.397 (data) what the shell read for one file the argv names: its bytes, or the errno of the open or of the
+# first read that failed
+type Side is Data:
+  SideOk{bytes: List<&2, U32>}
+  SideErr{code: U32}
+
+# S4.397 (spec twin) keep a named path
+def path_put(given: Maybe<&2, String>, rest: List<&2, String>) -> List<&2, String>:
+  match given:
+    case None{}:
+      rest
+    case Some{p}:
+      p <> rest
+
+# S4.340 S4.381 S4.397 (spec twin) the files one command names: `delete --from-file`, `comments add -f/--file`
+# except `-` (standard input, not ported), `update` and `create --description-file`
+def command_files(+path: String, +opts: List<&2, Cli.Occ>) -> List<&2, String>:
+  path_put(Bool.pick(Maybe<&2, String>, String.eq(path, "delete"), Cli.value(opts, "from-file"), None{}), path_put(Bool.pick(Maybe<&2, String>, (String.eq(path, "comments add") && Bool.not(String.eq(Maybe.default(&2, String, Cli.value(opts, "file"), "-"), "-"))), Cli.value(opts, "file"), None{}), path_put(Bool.pick(Maybe<&2, String>, (String.eq(path, "update") || String.eq(path, "create")), Cli.value(opts, "description-file"), None{}), Nil{})))
+
+# S4.397 (spec twin) the files of a parse: none unless the argument parser accepted a command
+def parsed_files(p: Cli.Parsed) -> List<&2, String>:
+  match p:
+    case Cli.Refused{err}:
+      Nil{}
+    case Cli.Helped{path, long}:
+      Nil{}
+    case Cli.GroupHelp{path}:
+      Nil{}
+    case Cli.Versioned{}:
+      Nil{}
+    case Cli.Outside{word}:
+      Nil{}
+    case Cli.Command{path, opts, words}:
+      command_files(path, opts)
+
+# S4.397 (spec twin, entry) the files the shell reads before the run, in the order the shell passes them back
+def side_files(argv: List<&2, String>) -> List<&2, String>:
+  parsed_files(Cli.parse(argv))
+
+# S4.397 (spec twin) a text that is not UTF-8, as the variable of S4.397 carries it
+def side_text(+path: String, d: Bytes.Decoded) -> Var:
+  match d:
+    case Bytes.NotUtf8{}:
+      Var{"@errno " ++ path, "utf8"}
+    case Bytes.Utf8{codes}:
+      Var{"@file " ++ path, Cli.text(codes)}
+
+# S4.397 (spec twin, entry) what the shell read, as a variable of the run: `@file <path>` holds the text,
+# `@errno <path>` the errno (`utf8` for bytes that are not UTF-8)
+def side_var(+path: String, s: Side) -> Var:
+  match s:
+    case SideErr{code}:
+      Var{"@errno " ++ path, U32.show(code)}
+    case SideOk{bytes}:
+      side_text(path, Bytes.decode(bytes))
+
+# S8.5 (spec twin) the value of a variable, when one was passed
+def var_find(env: List<&2, Var>, +name: String) -> Maybe<&2, String>:
+  match env:
+    case Nil{}:
+      None{}
+    case Con{Var{n, v}, rest}:
+      Bool.pick(Maybe<&2, String>, String.eq(n, name), Some{v}, var_find(rest, name))
+
+# S4.397 (data) a file the argv names, as the run sees it: its text, or the words of the error that stopped the read
+type Read is Data:
+  ReadOk{text: String}
+  ReadBad{why: String}
+
+# S4.397 (spec twin) the `strerror` text of the errnos a read of a named path can meet
+def errno_text(+code: String) -> String:
+  Bool.pick(String, String.eq(code, "2"), "No such file or directory", Bool.pick(String, String.eq(code, "13"), "Permission denied", Bool.pick(String, String.eq(code, "20"), "Not a directory", Bool.pick(String, String.eq(code, "21"), "Is a directory", Bool.pick(String, String.eq(code, "36"), "File name too long", Bool.pick(String, String.eq(code, "40"), "Too many levels of symbolic links", "Unknown error " ++ code))))))
+
+# S4.397 (spec twin) the words of Rust's `io::Error` for a failed read: `<strerror> (os error <n>)`
+def os_words(+code: String) -> String:
+  Bool.pick(String, String.eq(code, "utf8"), "stream did not contain valid UTF-8", String.concat([errno_text(code), " (os error ", code, ")"]))
+
+# S4.397 (spec twin) the read from its two variables
+def read_pick(ok: Maybe<&2, String>, bad: Maybe<&2, String>) -> Read:
+  match ok bad:
+    case Some{text} _:
+      ReadOk{text}
+    case None{} Some{code}:
+      ReadBad{os_words(code)}
+    case None{} None{}:
+      ReadBad{"not read"}
+
+# S4.397 (spec twin) a named file as the run sees it
+def read_of(+env: List<&2, Var>, +path: String) -> Read:
+  read_pick(var_find(env, "@file " ++ path), var_find(env, "@errno " ++ path))
+
+# S4.397 (spec twin) the file an option names, read, when the option was given
+def file_read(+env: List<&2, Var>, given: Maybe<&2, String>) -> Maybe<&2, Read>:
+  match given:
+    case None{}:
+      None{}
+    case Some{path}:
+      Some{read_of(env, path)}
+
+# S4.340 S4.381 S9.1 (spec twin) a read that failed where the original propagates `io::Error`: `IO_ERROR`, exit 8
+def io_failure(+why: String) -> Failure.Failure:
+  Failure.Failure{"IO_ERROR", "I/O error: " ++ why, None{}, False{}, Nil{}, 8}
+
+# S4.397 (spec twin) a `--description-file` that could not be read: a validation failure naming the path
+def description_unread(+path: String, +why: String) -> Failure.Failure:
+  Create.invalid("description_file", "failed to read description file '" ++ path ++ "': " ++ why)
 
 
 # S5.105 S5.155 (spec twin) what `show` answered, as an outcome
@@ -473,6 +604,17 @@ def world_actor(w: Create.World) -> String:
 def create_in(+w: Create.World, +opts: List<&2, Cli.Occ>, words: List<&2, String>, raw: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
   created(Create.make(create_request(opts, create_title(words, Cli.value(opts, "title")), world_actor(w)), w), opts, Store.model(raw), json, quiet, Cli.given(opts, "dry-run"), Cli.given(opts, "ephemeral"))
 
+# S4.397 (spec twin) `create --description-file`: its text is the `--description` value (the parser refuses the two
+# together), and a file that could not be read is a validation failure
+def create_described(file: Maybe<&2, Read>, at: Time.Instant, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, +env: List<&2, Var>, cwd: String, +json: Bool, quiet: Bool) -> Outcome:
+  match file:
+    case None{}:
+      create_in(world_of(at, now_of(env), opts, raw, env, cwd), opts, words, raw, json, quiet)
+    case Some{ReadBad{why}}:
+      failed(description_unread(Maybe.default(&2, String, Cli.value(opts, "description-file"), ""), why), json)
+    case Some{ReadOk{text}}:
+      create_in(world_of(at, now_of(env), opts, raw, env, cwd), List.append(&2, Cli.Occ, opts, Cli.Occ{"description", text} <> Nil{}), words, raw, json, quiet)
+
 # S4.254 S5.38 (spec twin) what `q` answered: the bare id and a newline; as JSON, an object of the id and the title only
 def quick(m: Create.Made, model: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
   match m:
@@ -482,7 +624,7 @@ def quick(m: Create.Made, model: List<&2, Model.Issue>, +json: Bool, quiet: Bool
       wrote(Bool.pick(String, json, "{\"id\":" ++ Failure.quoted(Model.id_of(issue)) ++ ",\"title\":" ++ Failure.quoted(Model.title_of(issue)) ++ "}\n", Model.id_of(issue) ++ "\n"), changes(Some{Store.text(List.append(&2, Model.Issue, model, issue <> Nil{}))}, Model.id_of(issue)), quiet)
 
 # S4.237 S4.225 S4.232 (spec twin) `create` and `q` once the pinned instant was read: without one the port refuses
-# (no clock effect yet); `--file`, `--description-file` and `--agent-context` are not ported yet
+# (no clock effect yet); `--file` and `--agent-context` are not ported yet
 def create_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, +env: List<&2, Var>, cwd: String, +json: Bool, quiet: Bool, later: Bool, is_q: Bool) -> Outcome:
   match now later is_q:
     case None{} _ _:
@@ -490,7 +632,7 @@ def create_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: Li
     case Some{at} True{} _:
       failed(unported(), json)
     case Some{at} False{} False{}:
-      create_in(world_of(at, now_of(env), opts, raw, env, cwd), opts, words, raw, json, quiet)
+      create_described(file_read(env, Cli.value(opts, "description-file")), at, opts, words, raw, env, cwd, json, quiet)
     case Some{at} False{} True{}:
       quick(Create.make(q_request(opts, words), world_of(at, now_of(env), opts, raw, env, cwd)), Store.model(raw), json, quiet)
 
@@ -525,7 +667,7 @@ def updated(b: Update.Batch, json: Bool, quiet: Bool) -> Outcome:
 
 # S4.260 S4.264 (spec twin) was any field flag given: without one, `update` reports `No updates specified`
 def any_update_flag(+opts: List<&2, Cli.Occ>) -> Bool:
-  (Cli.given(opts, "status") || Cli.given(opts, "priority") || Cli.given(opts, "type") || Cli.given(opts, "title") || Cli.given(opts, "description") || Cli.given(opts, "design") || Cli.given(opts, "acceptance-criteria") || Cli.given(opts, "prerequisites") || Cli.given(opts, "notes") || Cli.given(opts, "append-notes") || Cli.given(opts, "parent") || Cli.given(opts, "assignee") || Cli.given(opts, "owner") || Cli.given(opts, "estimate") || Cli.given(opts, "due") || Cli.given(opts, "defer") || Cli.given(opts, "external-ref") || Cli.given(opts, "source-repo") || Cli.given(opts, "source-repo-path") || Cli.given(opts, "claim") || Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label"))
+  (Cli.given(opts, "status") || Cli.given(opts, "priority") || Cli.given(opts, "type") || Cli.given(opts, "title") || Cli.given(opts, "description") || Cli.given(opts, "design") || Cli.given(opts, "acceptance-criteria") || Cli.given(opts, "prerequisites") || Cli.given(opts, "notes") || Cli.given(opts, "append-notes") || Cli.given(opts, "parent") || Cli.given(opts, "assignee") || Cli.given(opts, "owner") || Cli.given(opts, "estimate") || Cli.given(opts, "due") || Cli.given(opts, "defer") || Cli.given(opts, "external-ref") || Cli.given(opts, "source-repo") || Cli.given(opts, "source-repo-path") || Cli.given(opts, "claim") || Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance"))
 
 # S4.270 (spec twin) `update` once its `--parent` was resolved: an id that resolves to nothing is refused
 # (`error_update_parent_missing`); `""` clears the parent (`update_parent_clear`)
@@ -546,13 +688,17 @@ def new_parent(given: Maybe<&2, String>, +ids: List<&2, String>, +prefix: String
     case Some{+word}:
       Bool.pick(Resolve.Found, String.is_empty(String.trim(word)), Resolve.FoundOk{""}, Resolve.resolve(ids, word, prefix))
 
-# S4.212 S4.260 (spec twin) `update` once every id is resolved, then its `--parent`
+# S4.396 (spec twin) `update --session`: only a close takes a session, and `update` never closes (S4.269)
+def session_via_update() -> Failure.Failure:
+  Create.invalid("session", "--session can only be used when closing with --status closed")
+
+# S4.212 S4.260 S4.396 (spec twin) `update` once every id is resolved, then its `--session`, then its `--parent`
 def update_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool, +prefix: String) -> Outcome:
   match m:
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{ids}:
-      update_parented(new_parent(Cli.value(opts, "parent"), Show.ids_of(model), prefix), Cli.given(opts, "parent"), ids, opts, model, priority, actor, now, json, quiet)
+      Bool.pick(Outcome, Cli.given(opts, "session"), failed(session_via_update(), json), update_parented(new_parent(Cli.value(opts, "parent"), Show.ids_of(model), prefix), Cli.given(opts, "parent"), ids, opts, model, priority, actor, now, json, quiet))
 
 # S4.260 (spec twin) `update` once its ids are known: none at all (no positional, no last-touched issue) is refused
 def update_ids(ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +prefix: String, +json: Bool, quiet: Bool) -> Outcome:
@@ -562,19 +708,30 @@ def update_ids(ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +raw: List<&2, M
     case Con{id, rest}:
       update_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), opts, Store.model(raw), priority, actor, now, json, quiet, prefix)
 
+# S4.397 (spec twin) `update --description-file`: read before any id is resolved; its text is the `--description`
+# value (the parser refuses the two together), and a file that could not be read is a validation failure
+def update_described(file: Maybe<&2, Read>, ids: List<&2, String>, +opts: List<&2, Cli.Occ>, raw: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, prefix: String, +json: Bool, quiet: Bool) -> Outcome:
+  match file:
+    case None{}:
+      update_ids(ids, opts, raw, priority, actor, now, prefix, json, quiet)
+    case Some{ReadBad{why}}:
+      failed(description_unread(Maybe.default(&2, String, Cli.value(opts, "description-file"), ""), why), json)
+    case Some{ReadOk{text}}:
+      update_ids(ids, List.append(&2, Cli.Occ, opts, Cli.Occ{"description", text} <> Nil{}), raw, priority, actor, now, prefix, json, quiet)
+
 # S4.224 S4.275 (spec twin) `update` once its priority was judged
-def update_ranked(r: Create.Rank, given: Bool, ids: List<&2, String>, opts: List<&2, Cli.Occ>, raw: List<&2, Model.Issue>, actor: String, now: Time.Instant, prefix: String, json: Bool, quiet: Bool) -> Outcome:
+def update_ranked(r: Create.Rank, given: Bool, ids: List<&2, String>, opts: List<&2, Cli.Occ>, raw: List<&2, Model.Issue>, actor: String, now: Time.Instant, prefix: String, json: Bool, quiet: Bool, file: Maybe<&2, Read>) -> Outcome:
   match r given:
     case Create.RankBad{f} _:
       failed(f, json)
     case Create.RankOk{digits} True{}:
-      update_ids(ids, opts, raw, Some{digits}, actor, now, prefix, json, quiet)
+      update_described(file, ids, opts, raw, Some{digits}, actor, now, prefix, json, quiet)
     case Create.RankOk{digits} False{}:
-      update_ids(ids, opts, raw, None{}, actor, now, prefix, json, quiet)
+      update_described(file, ids, opts, raw, None{}, actor, now, prefix, json, quiet)
 
 # S4.269 S4.275 (spec twin) `update`: the forms that are not ported, the missing clock, and a terminal `--status` are
 # answered before anything else
-def update_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, ids: List<&2, String>, raw: List<&2, Model.Issue>, actor: String, prefix: String, +json: Bool, quiet: Bool, later: Bool, terminal: Bool) -> Outcome:
+def update_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, ids: List<&2, String>, raw: List<&2, Model.Issue>, actor: String, prefix: String, +json: Bool, quiet: Bool, later: Bool, terminal: Bool, file: Maybe<&2, Read>) -> Outcome:
   match now later terminal:
     case _ True{} _:
       failed(unported(), json)
@@ -583,7 +740,7 @@ def update_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, ids: List
     case Some{at} False{} True{}:
       failed(close_via_update(), json)
     case Some{at} False{} False{}:
-      update_ranked(Create.rank_of(Cli.value(opts, "priority")), Cli.given(opts, "priority"), ids, opts, raw, actor, at, prefix, json, quiet)
+      update_ranked(Create.rank_of(Cli.value(opts, "priority")), Cli.given(opts, "priority"), ids, opts, raw, actor, at, prefix, json, quiet, file)
 
 # S5.1 S5.18 (spec twin) the file changes of a transition batch: nothing when no id was acted on
 def batch_writes(model: List<&2, Model.Issue>, last: String) -> List<&2, Write>:
@@ -655,12 +812,12 @@ def closed_batch(b: Status.Batch, before: List<&2, String>, suggest: Bool, +json
       close_done(close_text(List.reverse(&2, String, elements), List.reverse(&2, String, plain), List.reverse(&2, Status.Skip, skips), unblocked(before, Blocked.keys(Blocked.relation(model)), model), suggest, json), List.reverse(&2, Status.Skip, skips), List.length(&2, String, plain), batch_writes(model, last), json, quiet)
 
 # S4.290 S4.297 (spec twin) `close` once every id is resolved: `--suggest-next` works with a single id only
-def close_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
+def close_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
   match m:
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{+ids}:
-      Bool.pick(Outcome, (Cli.given(opts, "suggest-next") && Nat.is_gt(List.length(&2, String, ids), 1n)), failed(Create.invalid("suggest-next", "--suggest-next only works with a single issue ID"), json), closed_batch(Status.close_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, Blocked.relation(model), now, Maybe.default(&2, String, Cli.value(opts, "reason"), "done"), Cli.given(opts, "force")), Blocked.keys(Blocked.relation(model)), Cli.given(opts, "suggest-next"), json, quiet))
+      Bool.pick(Outcome, (Cli.given(opts, "suggest-next") && Nat.is_gt(List.length(&2, String, ids), 1n)), failed(Create.invalid("suggest-next", "--suggest-next only works with a single issue ID"), json), closed_batch(Status.close_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, Blocked.relation(model), now, Maybe.default(&2, String, Cli.value(opts, "reason"), "done"), Cli.given(opts, "force"), Status.Note{Cli.value(opts, "transition-comment"), actor, Cli.value(opts, "session")}), Blocked.keys(Blocked.relation(model)), Cli.given(opts, "suggest-next"), json, quiet))
 
 # S4.314 S4.326 S5.42 S5.43 S5.107 (spec twin) what `reopen`, `defer` or `undefer` answered: the successes before
 # the skips; `hush` is `--quiet` for `defer` and `undefer`, which S5.107 short-circuits, and False for `reopen`,
@@ -683,25 +840,25 @@ def reopen_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Mode
       gated_batch(Status.reopen_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, now, Cli.value(opts, "reason"), actor), "reopened", "No issues to reopen.\n", json, False{})
 
 # S4.321–S4.326 (spec twin) `defer` (`deferring` true) or `undefer` once every id is resolved
-def gate_many(m: Resolve.Many, +model: List<&2, Model.Issue>, now: Time.Instant, until: Maybe<&2, Time.Instant>, +deferring: Bool, +json: Bool, quiet: Bool) -> Outcome:
+def gate_many(m: Resolve.Many, +model: List<&2, Model.Issue>, now: Time.Instant, until: Maybe<&2, Time.Instant>, +deferring: Bool, note: Status.Note, +json: Bool, quiet: Bool) -> Outcome:
   match m:
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{ids}:
-      gated_batch(Status.gate_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, now, until, deferring), Bool.pick(String, deferring, "deferred", "undeferred"), Bool.pick(String, deferring, "No issues to defer.\n", "No issues to undefer.\n"), json, quiet)
+      gated_batch(Status.gate_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, now, until, deferring, note),Bool.pick(String, deferring, "deferred", "undeferred"), Bool.pick(String, deferring, "No issues to defer.\n", "No issues to undefer.\n"), json, quiet)
 
 # S4.322 S4.324 (spec twin) `defer --until`, judged once before any issue is examined
-def gate_until(n: When.Named, m: Resolve.Many, model: List<&2, Model.Issue>, now: Time.Instant, json: Bool, quiet: Bool) -> Outcome:
+def gate_until(n: When.Named, m: Resolve.Many, model: List<&2, Model.Issue>, now: Time.Instant, note: Status.Note, json: Bool, quiet: Bool) -> Outcome:
   match n:
     case When.NoTime{why}:
       failed(Create.invalid("defer_until", When.reason(why)), json)
     case When.AtTime{at}:
-      gate_many(m, model, now, Some{at}, True{}, json, quiet)
+      gate_many(m, model, now, Some{at}, True{}, note, json, quiet)
 
 # S4.290 S4.310 S4.320 (spec twin) the four status transitions: `which` is 0 close, 1 reopen, 2 defer, 3 undefer. Forms that
 # are not ported and a missing clock are answered first; `close` and `reopen` fall back to `.beads/last-touched`,
 # `defer` and `undefer` demand an id
-def transition(which: U32, now: Maybe<&2, Time.Instant>, later: Bool, +ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, +quiet: Bool) -> Outcome:
+def transition(which: U32, now: Maybe<&2, Time.Instant>, later: Bool, +ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, +actor: String, +prefix: String, +json: Bool, +quiet: Bool) -> Outcome:
   match which now later ids:
     case _ _ True{} _:
       failed(unported(), json)
@@ -714,13 +871,13 @@ def transition(which: U32, now: Maybe<&2, Time.Instant>, later: Bool, +ids: List
     case _ Some{at} False{} Nil{}:
       failed(Create.invalid("ids", "at least one issue ID is required"), json)
     case 0 Some{at} False{} Con{id, rest}:
-      close_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), opts, Store.model(raw), at, json, quiet)
+      close_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), opts, Store.model(raw), actor, at, json, quiet)
     case 1 Some{at} False{} Con{id, rest}:
       reopen_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), opts, Store.model(raw), actor, at, json, quiet)
     case 2 Some{+at} False{} Con{id, rest}:
-      Bool.pick(Outcome, Cli.given(opts, "until"), gate_until(When.named(String.trim(Maybe.default(&2, String, Cli.value(opts, "until"), "")), at), Resolve.many(id <> rest, Show.ids_of(raw), prefix), Store.model(raw), at, json, quiet), gate_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), Store.model(raw), at, None{}, True{}, json, quiet))
+      Bool.pick(Outcome, Cli.given(opts, "until"), gate_until(When.named(String.trim(Maybe.default(&2, String, Cli.value(opts, "until"), "")), at), Resolve.many(id <> rest, Show.ids_of(raw), prefix), Store.model(raw), at, Status.Note{Cli.value(opts, "transition-comment"), actor, None{}}, json, quiet), gate_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), Store.model(raw), at, None{}, True{}, Status.Note{Cli.value(opts, "transition-comment"), actor, None{}}, json, quiet))
     case _ Some{at} False{} Con{id, rest}:
-      gate_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), Store.model(raw), at, None{}, False{}, json, quiet)
+      gate_many(Resolve.many(id <> rest, Show.ids_of(raw), prefix), Store.model(raw), at, None{}, False{}, Status.Note{Cli.value(opts, "transition-comment"), actor, None{}}, json, quiet)
 
 # S5.20 S5.105 (spec twin) what a small view answered, as an outcome; a form that is not ported answers the port's own failure
 def viewed(v: Views.View, json: Bool, quiet: Bool) -> Outcome:
@@ -997,15 +1154,26 @@ def commented(d: Labels.Done, json: Bool, quiet: Bool) -> Outcome:
       wrote(plain, batch_changes(model, changed, last), quiet)
 
 # S4.380 (spec twin) `comments add` once the issue's record is in hand
-def comment_found(found: Maybe<&2, Model.Issue>, +model: List<&2, Model.Issue>, +id: String, author: String, +text: String, at: Time.Instant, json: Bool, quiet: Bool) -> Outcome:
-  match found:
-    case None{}:
+def comment_found(found: Maybe<&2, Model.Issue>, +model: List<&2, Model.Issue>, +id: String, author: String, text: Read, at: Time.Instant, json: Bool, quiet: Bool) -> Outcome:
+  match found text:
+    case None{} _:
       failed(Resolve.not_found(id), json)
-    case Some{i}:
-      commented(Labels.comment(model, i, author, text, at, String.is_empty(String.trim(text))), json, quiet)
+    case Some{i} ReadBad{why}:
+      failed(io_failure(why), json)
+    case Some{i} ReadOk{+t}:
+      commented(Labels.comment(model, i, author, t, at, String.is_empty(String.trim(t))), json, quiet)
 
-# S4.380 S4.384 (spec twin) `comments add` once its issue is resolved; a missing text source is its own refusal
-def comment_resolved(f: Resolve.Found, +model: List<&2, Model.Issue>, author: String, text: String, at: Time.Instant, +json: Bool, quiet: Bool, none: Bool) -> Outcome:
+# S4.381 (spec twin) the text source that wins: the file of `-f`, else `-m`, else the positional words
+def comment_source(file: Maybe<&2, Read>, given: Maybe<&2, String>, words: List<&2, String>) -> Read:
+  match file:
+    case None{}:
+      ReadOk{comment_text(given, words)}
+    case Some{r}:
+      r
+
+# S4.380 S4.384 (spec twin) `comments add` once its issue is resolved; a missing text source is its own refusal,
+# and a file that could not be read an `IO_ERROR` (after the issue resolved)
+def comment_resolved(f: Resolve.Found, +model: List<&2, Model.Issue>, author: String, text: Read, at: Time.Instant, +json: Bool, quiet: Bool, none: Bool) -> Outcome:
   match f none:
     case Resolve.FoundBad{bad} _:
       failed(bad, json)
@@ -1014,15 +1182,15 @@ def comment_resolved(f: Resolve.Found, +model: List<&2, Model.Issue>, author: St
     case Resolve.FoundOk{+id} False{}:
       comment_found(Blocked.lookup(model, id), model, id, author, text, at, json, quiet)
 
-# S4.380–S4.385 (spec twin) `comments add <id> [text…]`; `-f` (a file or stdin) is not ported
-def comment_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool, later: Bool) -> Outcome:
+# S4.380–S4.385 (spec twin) `comments add <id> [text…]`; `-f -` (standard input) is not ported
+def comment_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool, later: Bool, file: Maybe<&2, Read>) -> Outcome:
   match now words later:
     case _ _ True{}:
       failed(unported(), json)
     case None{} _ False{}:
       failed(no_clock(), json)
     case Some{at} Con{first, +rest} False{}:
-      comment_resolved(Resolve.resolve(Show.ids_of(raw), first, prefix), Store.model(raw), Maybe.default(&2, String, Cli.value(opts, "author"), actor), comment_text(Cli.value(opts, "message"), rest), at, json, quiet, (Bool.not(Cli.given(opts, "message")) && Bool.not(Nat.is_gt(List.length(&2, String, rest), 0n))))
+      comment_resolved(Resolve.resolve(Show.ids_of(raw), first, prefix), Store.model(raw), Maybe.default(&2, String, Cli.value(opts, "author"), actor), comment_source(file, Cli.value(opts, "message"), rest), at, json, quiet, (Bool.not(Cli.given(opts, "file")) && Bool.not(Cli.given(opts, "message")) && Bool.not(Nat.is_gt(List.length(&2, String, rest), 0n))))
     case Some{at} Nil{} False{}:
       failed(no_comment_id(), json)
 
@@ -1051,32 +1219,30 @@ def epic_dry(+epics: List<&2, Model.Issue>, model: List<&2, Model.Issue>, json: 
 
 # S4.391 S4.392 (spec twin) a real run: nothing eligible prints its own line and writes nothing; otherwise every
 # eligible epic is closed at one instant and the store is rewritten, but never `.beads/last-touched`
-def epic_done(+model: List<&2, Model.Issue>, +epics: List<&2, Model.Issue>, +ids: List<&2, String>, now: Time.Instant, none: Bool, json: Bool, quiet: Bool) -> Outcome:
+def epic_done(+model: List<&2, Model.Issue>, +epics: List<&2, Model.Issue>, +ids: List<&2, String>, now: Time.Instant, none: Bool, json: Bool, quiet: Bool, note: Maybe<&2, String>, actor: String) -> Outcome:
   match none json:
     case True{} True{}:
       printed("{\"closed\":[],\"count\":0}\n", "", quiet)
     case True{} False{}:
       printed("No epics eligible for closure\n", "", quiet)
     case False{} mode:
-      wrote(Bool.pick(String, mode, epic_json(ids), "✓ Closed " ++ Nat.show(List.length(&2, Model.Issue, epics)) ++ " epic(s)\n" ++ epic_lines(epics, False{})), store_only(Status.epics_closed(model, ids, now), True{}), quiet)
+      wrote(Bool.pick(String, mode, epic_json(ids), "✓ Closed " ++ Nat.show(List.length(&2, Model.Issue, epics)) ++ " epic(s)\n" ++ epic_lines(epics, False{})), store_only(Status.epics_closed(model, ids, now, note, actor, (Status.max_comment_id(model, 0) + 1 : U32)), True{}), quiet)
 
 # S4.390 (spec twin) `epic close-eligible` once the eligible epics are known
-def epic_at(+epics: List<&2, Model.Issue>, model: List<&2, Model.Issue>, at: Time.Instant, json: Bool, quiet: Bool, dry: Bool) -> Outcome:
+def epic_at(+epics: List<&2, Model.Issue>, model: List<&2, Model.Issue>, at: Time.Instant, json: Bool, quiet: Bool, dry: Bool, note: Maybe<&2, String>, actor: String) -> Outcome:
   match dry:
     case True{}:
       epic_dry(epics, model, json, quiet)
     case False{}:
-      epic_done(model, epics, Show.ids_of(epics), at, Nat.is_eq(List.length(&2, Model.Issue, epics), 0n), json, quiet)
+      epic_done(model, epics, Show.ids_of(epics), at, Nat.is_eq(List.length(&2, Model.Issue, epics), 0n), json, quiet, note, actor)
 
-# S4.390–S4.393 (spec twin) `epic close-eligible`; `--transition-comment` is not ported
-def epic_close_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool, later: Bool) -> Outcome:
-  match now later:
-    case _ True{}:
-      failed(unported(), json)
-    case None{} False{}:
+# S4.390–S4.393 S4.396 (spec twin) `epic close-eligible`; `--transition-comment` comments on every epic it closes
+def epic_close_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool, actor: String) -> Outcome:
+  match now:
+    case None{}:
       failed(no_clock(), json)
-    case Some{at} False{}:
-      epic_at(Query.ordered(Views.epics_of(model, Work.child_index(False{}, model), True{}), 0, False{}), model, at, json, quiet, Cli.given(opts, "dry-run"))
+    case Some{at}:
+      epic_at(Query.ordered(Views.epics_of(model, Work.child_index(False{}, model), True{}), 0, False{}), model, at, json, quiet, Cli.given(opts, "dry-run"), Cli.value(opts, "transition-comment"), actor)
 
 # ---------------------------------------------------------------- delete (S4.330–S4.341)
 
@@ -1100,10 +1266,9 @@ def deleted_out(d: Remove.Done, +touched: String, json: Bool, quiet: Bool) -> Ou
     case Remove.DelDone{out, model, ids, changed}:
       wrote(out, delete_writes(model, ids, touched, changed), quiet)
 
-# S4.333 S4.335 (spec twin) `delete` once its ids are resolved and its dependents are known. The JSON shape of a
-# preview and of a dry run, and a dry run under `--force`/`--cascade`, are not captured by any case
-def delete_at(+model: List<&2, Model.Issue>, +ids: List<&2, String>, +direct: List<&2, String>, now: Time.Instant, actor: String, reason: String, +force: Bool, +cascade: Bool, +json: Bool, quiet: Bool, +dry: Bool, +touched: String) -> Outcome:
-  Bool.pick(Outcome, ((json && (dry || (Nat.is_gt(List.length(&2, String, direct), 0n) && Bool.not(force) && Bool.not(cascade)))) || (dry && (force || cascade))), failed(unported(), json), deleted_out(Remove.run(model, ids, direct, now, actor, reason, (Nat.is_gt(List.length(&2, String, direct), 0n) && Bool.not(force) && Bool.not(cascade)), force, cascade, json, dry), touched, json, quiet))
+# S4.333 S4.335 (spec twin) `delete` once its ids are resolved and its dependents are known
+def delete_at(+model: List<&2, Model.Issue>, +ids: List<&2, String>, +direct: List<&2, String>, now: Time.Instant, actor: String, reason: String, +force: Bool, +cascade: Bool, +json: Bool, quiet: Bool, +dry: Bool, hard: Bool, +touched: String) -> Outcome:
+  deleted_out(Remove.run(model, ids, direct, now, actor, reason, (Nat.is_gt(List.length(&2, String, direct), 0n) && Bool.not(force) && Bool.not(cascade)), force, cascade, json, dry, hard), touched, json, quiet)
 
 # S4.332 (spec twin) `delete` once its ids are resolved
 def delete_resolved(m: Resolve.Many, +model: List<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, now: Time.Instant, actor: String, +json: Bool, quiet: Bool, touched: String) -> Outcome:
@@ -1111,20 +1276,45 @@ def delete_resolved(m: Resolve.Many, +model: List<&2, Model.Issue>, +opts: List<
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{+ids}:
-      delete_at(model, ids, Remove.dependents(model, ids), now, actor, Maybe.default(&2, String, Cli.value(opts, "reason"), "delete"), Cli.given(opts, "force"), Cli.given(opts, "cascade"), json, quiet, Cli.given(opts, "dry-run"), touched)
+      delete_at(model, ids, Remove.dependents(model, ids), now, actor, Maybe.default(&2, String, Cli.value(opts, "reason"), "delete"), Cli.given(opts, "force"), Cli.given(opts, "cascade"), json, quiet, Cli.given(opts, "dry-run"), Cli.given(opts, "hard"), touched)
 
-# S4.330–S4.340 (spec twin) `delete`: the ids are deduplicated and sorted ascending before resolution, so the
-# command line's order never reaches the output. `--hard` and `--from-file` are not ported
-def delete_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool, touched: String, later: Bool) -> Outcome:
-  match now words later:
-    case _ _ True{}:
-      failed(unported(), json)
-    case None{} _ False{}:
-      failed(no_clock(), json)
-    case Some{at} Nil{} False{}:
-      failed(no_delete_ids(), json)
-    case Some{at} Con{w, rest} False{}:
+# S4.339 S4.340 (spec twin) `delete` with no ids: under `--hard` the purge of every tombstone, else the refusal
+def delete_none(+model: List<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, now: Time.Instant, +json: Bool, quiet: Bool, touched: String) -> Outcome:
+  Bool.pick(Outcome, Cli.given(opts, "hard"), deleted_out(Remove.purge(model, now, json, Cli.given(opts, "dry-run")), touched, json, quiet), failed(no_delete_ids(), json))
+
+# S4.340 (spec twin) keep one line of a `--from-file` as an id: trimmed, unless empty or a `#` comment
+def id_line_put(+line: String, +rest: List<&2, String>) -> List<&2, String>:
+  Bool.pick(List<&2, String>, (String.is_empty(String.trim(line)) || String.starts_with(String.trim(line), "#")), rest, String.trim(line) <> rest)
+
+# S4.340 (spec twin) the ids of the lines of a `--from-file`
+def id_lines_kept(lines: List<&2, String>) -> List<&2, String>:
+  match lines:
+    case Nil{}:
+      Nil{}
+    case Con{line, rest}:
+      id_line_put(line, id_lines_kept(rest))
+
+# S4.330–S4.340 (spec twin) `delete` once its ids are gathered: the ids are deduplicated and sorted ascending before
+# resolution, so the command line's order never reaches the output
+def delete_words(at: Time.Instant, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool, touched: String) -> Outcome:
+  match words:
+    case Nil{}:
+      delete_none(Store.model(raw), opts, at, json, quiet, touched)
+    case Con{w, rest}:
       delete_resolved(Resolve.many(Model.dedup(List.sort(~String, ~String.is_le, w <> rest)), Show.ids_of(raw), prefix), Store.model(raw), opts, at, actor, json, quiet, touched)
+
+# S4.330–S4.340 (spec twin) `delete`: the positional ids, then the ids of `--from-file`; a file that could not be
+# read is an `IO_ERROR` before any id is resolved
+def delete_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool, touched: String, file: Maybe<&2, Read>) -> Outcome:
+  match now file:
+    case None{} _:
+      failed(no_clock(), json)
+    case Some{at} Some{ReadBad{why}}:
+      failed(io_failure(why), json)
+    case Some{at} Some{ReadOk{text}}:
+      delete_words(at, opts, List.append(&2, String, words, id_lines_kept(String.split(text, Chr{10}))), raw, actor, prefix, json, quiet, touched)
+    case Some{at} None{}:
+      delete_words(at, opts, words, raw, actor, prefix, json, quiet, touched)
 
 # S2.2 S2.4 S5.56 (spec twin) the workspace directory as discovery found it (`<root>/_beads`, or `BEADS_DIR` as
 # given), which the shell passes as `BEADS_BEND_DIR`; `<root>/.beads` when it is not given (a law's inputs)
@@ -1137,7 +1327,7 @@ def beads_dir_of(+env: List<&2, Var>, +cwd: String) -> String:
 def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) -> Outcome:
   match n c:
     case 1 Call{path, +opts, words, json, quiet, touched, env, cwd}:
-      list_cmd(opts, Store.model(issues), json, quiet, (Cli.given(opts, "tree") || Cli.given(opts, "pretty")), Show.pinned(now_of(env)))
+      list_cmd(opts, Store.model(issues), json, quiet, False{}, Show.pinned(now_of(env)))
     case 2 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       count_cmd(opts, Store.model(issues), json, quiet, Nat.is_gt(List.length(&2, String, selectors(opts)), 1n))
     case 3 Call{path, opts, words, +json, quiet, touched, +env, cwd}:
@@ -1149,7 +1339,7 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) 
     case 6 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       blocked_cmd(opts, Store.model(issues), json, quiet, Cli.given(opts, "detailed"))
     case 7 Call{path, +opts, words, json, quiet, touched, env, cwd}:
-      stats_cmd(opts, Store.model(issues), env, json, quiet, (Cli.given(opts, "by-type") || Cli.given(opts, "by-priority") || Cli.given(opts, "by-assignee") || Cli.given(opts, "by-label") || Cli.given(opts, "activity")))
+      stats_cmd(opts, Store.model(issues), env, json, quiet, Cli.given(opts, "activity"))
     case 8 Call{path, opts, words, json, quiet, touched, env, cwd}:
       dep_list_cmd(opts, Store.model(issues), first_word(words), prefix, json, quiet)
     case 9 Call{path, opts, words, json, quiet, touched, env, cwd}:
@@ -1167,19 +1357,19 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) 
     case 15 Call{path, opts, words, +json, quiet, touched, +env, +cwd}:
       viewed(Views.whereabouts(beads_dir_of(env, cwd), Prefix.reported(Prefix.configured(env_of(env, ".beads/config.yaml")), issues), json), json, quiet)
     case 16 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, (Cli.given(opts, "file") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context")), False{})
+      create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, (Cli.given(opts, "file") || Cli.given(opts, "agent-context")), False{})
     case 17 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, False{}, True{})
     case 19 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(0, Show.pinned(now_of(env)), (Cli.given(opts, "transition-comment") || Cli.given(opts, "session") || Cli.given(opts, "bypass-policy") || Cli.given(opts, "bypass-reason")), Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
+      transition(0, Show.pinned(now_of(env)), (Cli.given(opts, "bypass-policy") || Cli.given(opts, "bypass-reason")), Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 20 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       transition(1, Show.pinned(now_of(env)), False{}, Show.wanted(words, touched_text(Bytes.decode(touched))), opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 21 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(2, Show.pinned(now_of(env)), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
+      transition(2, Show.pinned(now_of(env)), False{}, words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 22 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      transition(3, Show.pinned(now_of(env)), Cli.given(opts, "transition-comment"), words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
+      transition(3, Show.pinned(now_of(env)), False{}, words, opts, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 18 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      update_cmd(Show.pinned(now_of(env)), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, (Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance") || Cli.given(opts, "transition-comment") || Cli.given(opts, "description-file") || Cli.given(opts, "agent-context") || Cli.given(opts, "session")), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))))
+      update_cmd(Show.pinned(now_of(env)), opts, Show.wanted(words, touched_text(Bytes.decode(touched))), issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, Cli.given(opts, "agent-context"), terminal_word(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))), file_read(env, Cli.value(opts, "description-file")))
     case 23 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       edge_cmd(True{}, Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet)
     case 24 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
@@ -1191,11 +1381,11 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) 
     case 27 Call{path, opts, words, json, quiet, touched, +env, cwd}:
       rename_cmd(Show.pinned(now_of(env)), words, issues, json, quiet)
     case 28 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      comment_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, Cli.given(opts, "file"))
+      comment_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, String.eq(Maybe.default(&2, String, Cli.value(opts, "file"), ""), "-"), file_read(env, Cli.value(opts, "file")))
     case 30 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
-      epic_close_cmd(Show.pinned(now_of(env)), opts, Store.model(issues), json, quiet, Cli.given(opts, "transition-comment"))
+      epic_close_cmd(Show.pinned(now_of(env)), opts, Store.model(issues), json, quiet, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")))
     case 29 Call{path, +opts, words, json, quiet, +touched, +env, cwd}:
-      delete_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, touched_text(Bytes.decode(touched)), (Cli.given(opts, "hard") || Cli.given(opts, "from-file")))
+      delete_cmd(Show.pinned(now_of(env)), opts, words, issues, actor_of(Cli.value(opts, "actor"), env_of(env, "USER")), prefix, json, quiet, touched_text(Bytes.decode(touched)), file_read(env, Cli.value(opts, "from-file")))
     case _ Call{path, opts, words, json, quiet, touched, env, cwd}:
       failed(unported(), json)
 

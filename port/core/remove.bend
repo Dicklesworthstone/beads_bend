@@ -3,9 +3,10 @@
 # (S4.340), so the command line's order never reaches the output. Dependents
 # that neither `--force` nor `--cascade` accounts for turn the run into a
 # PREVIEW that writes nothing. Every edge touching a deleted id is removed
-# from both ends, then the tombstones are written.
-# Not here yet, each refused with the port's own failure by the dispatcher:
-# `--hard` (a purge) and `--from-file`. Nothing here consults the original.
+# from both ends, then the tombstones are written; `--hard` drops the records
+# instead, and `--hard` with no ids purges every tombstone (S4.339).
+# Not here yet, refused with the port's own failure by the dispatcher:
+# `--from-file`. Nothing here consults the original.
 import Base
 import ./time.bend as Time
 import ./model.bend as Model
@@ -84,6 +85,27 @@ def applied(issues: List<&2, Model.Issue>, +ids: List<&2, String>, +now: Time.In
     case Con{+i, rest}:
       applied_one(i, ids, now, actor, reason, edges_without(Model.deps_of(i), ids)) <> applied(rest, ids, now, actor, reason)
 
+# S4.339 (spec twin) one record after a `--hard` delete: a deleted id leaves the store, tombstone or not; another
+# issue loses its edges to deleted ids as in S4.331
+def purged_one(+i: Model.Issue, +ids: List<&2, String>, +now: Time.Instant, +kept: List<&2, Model.Dependency>, +rest: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  Bool.pick(List<&2, Model.Issue>, Blocked.among(ids, Model.id_of(i)), rest, Bool.pick(Model.Issue, Nat.is_eq(List.length(&2, Model.Dependency, kept), List.length(&2, Model.Dependency, Model.deps_of(i))), i, bumped(with_edges(i, kept), now)) <> rest)
+
+# S4.339 (spec twin) the model after a `--hard` delete
+def purged(issues: List<&2, Model.Issue>, +ids: List<&2, String>, +now: Time.Instant) -> List<&2, Model.Issue>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      purged_one(i, ids, now, edges_without(Model.deps_of(i), ids), purged(rest, ids, now))
+
+# S4.336 S4.339 (spec twin) the labels the deleted records carry, which `--hard` removes with them
+def labels_removed(issues: List<&2, Model.Issue>, +ids: List<&2, String>, acc: U32) -> U32:
+  match issues:
+    case Nil{}:
+      acc
+    case Con{+i, rest}:
+      labels_removed(rest, ids, (acc + Bool.pick(U32, Blocked.among(ids, Model.id_of(i)), U32.from_nat(List.length(&2, String, Model.labels_of(i))), 0) : U32))
+
 # ---------------------------------------------------------------- dependents (S4.332)
 
 # S4.332 (spec twin) does one issue depend on a deleted id: it has a BLOCKING edge pointing at one
@@ -101,6 +123,14 @@ def word_put(word: String, drop: Bool, rest: List<&2, String>) -> List<&2, Strin
       rest
     case False{}:
       word <> rest
+
+# S4.339 (spec twin) the ids of the tombstones, in store order
+def tombstone_ids(issues: List<&2, Model.Issue>) -> List<&2, String>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      word_put(Model.id_of(i), Bool.not(String.eq(Model.status_of(i), "tombstone")), tombstone_ids(rest))
 
 # S4.332 (spec twin) the parents named by the `parent-child` edges of a deleted id
 def parents_of(edges: List<&2, Model.Dependency>, +mine: Bool) -> List<&2, String>:
@@ -211,10 +241,45 @@ def quoted_all(ids: List<&2, String>) -> List<&2, String>:
     case Con{+id, rest}:
       Failure.quoted(id) <> quoted_all(rest)
 
-# S4.336 (spec twin) the seven counters of `delete --json`; `labels_removed`, `events_removed` and
-# `references_updated` are zero on every soft delete
-def json_text(+ids: List<&2, String>, links: U32, orphans: List<&2, String>) -> String:
-  String.concat(["{\"deleted\":[", String.join(quoted_all(ids), ","), "],\"deleted_count\":", Nat.show(List.length(&2, String, ids)), ",\"dependencies_removed\":", U32.show(links), ",\"labels_removed\":0,\"events_removed\":0,\"references_updated\":0,\"orphaned_issues\":[", String.join(quoted_all(orphans), ","), "]}\n"])
+# S4.336 (spec twin) the seven counters of `delete --json`; `labels_removed` and `events_removed` are zero on
+# every soft delete, and `references_updated` is always zero
+def json_text(+ids: List<&2, String>, links: U32, labels: U32, events: U32, orphans: List<&2, String>) -> String:
+  String.concat(["{\"deleted\":[", String.join(quoted_all(ids), ","), "],\"deleted_count\":", Nat.show(List.length(&2, String, ids)), ",\"dependencies_removed\":", U32.show(links), ",\"labels_removed\":", U32.show(labels), ",\"events_removed\":", U32.show(events), ",\"references_updated\":0,\"orphaned_issues\":[", String.join(quoted_all(orphans), ","), "]}\n"])
+
+# S4.333 S4.338 (spec twin) the JSON of a run that writes nothing: the dependents preview and every `--dry-run`
+def preview_json(ids: List<&2, String>, cascade: List<&2, String>, blocked: List<&2, String>, orphans: List<&2, String>) -> String:
+  String.concat(["{\"preview\":true,\"would_delete\":[", String.join(quoted_all(ids), ","), "],\"cascade_delete\":[", String.join(quoted_all(cascade), ","), "],\"blocked_dependents\":[", String.join(quoted_all(blocked), ","), "],\"orphaned_issues\":[", String.join(quoted_all(orphans), ","), "]}\n"])
+
+# S4.338 (spec twin) a `Would …` block of a dry run, absent when it names no id
+def would_block(lead: String, ids: List<&2, String>) -> String:
+  match ids:
+    case Nil{}:
+      ""
+    case Con{+w, +rest}:
+      lead ++ Nat.show(List.length(&2, String, w <> rest)) ++ " dependent(s):\n" ++ id_lines(w <> rest)
+
+# S4.338 (spec twin) the block a dry run adds under `--force` (the orphans) or `--cascade` (the closure beyond the
+# named ids)
+def dry_extra(direct: List<&2, String>, extra: List<&2, String>, force: Bool, cascade: Bool) -> String:
+  match force cascade:
+    case True{} _:
+      would_block("Would orphan ", direct)
+    case False{} True{}:
+      would_block("Would also cascade delete ", extra)
+    case False{} False{}:
+      ""
+
+# S4.339 (spec twin) the plain text of a purge and of its dry run
+def purge_text(ids: List<&2, String>, dry: Bool) -> String:
+  match ids dry:
+    case Nil{} True{}:
+      "Dry-run: no tombstones to purge.\n"
+    case Nil{} False{}:
+      "✓ No tombstones to purge.\n"
+    case Con{+w, +rest} True{}:
+      "Dry-run: Would purge " ++ Nat.show(List.length(&2, String, w <> rest)) ++ " tombstone(s):\n" ++ id_lines(w <> rest)
+    case Con{+w, +rest} False{}:
+      "✓ Purged " ++ Nat.show(List.length(&2, String, w <> rest)) ++ " tombstone(s)\n" ++ id_lines(w <> rest)
 
 # S4.341 (spec twin) is any named id still a live record: a set of ids that are all tombstones already changes
 # nothing, so the store is not rewritten at all
@@ -227,24 +292,56 @@ def any_live(issues: List<&2, Model.Issue>, +ids: List<&2, String>) -> Bool:
 
 # S4.330 S4.331 S4.336 (spec twin) the delete itself: the edges of the whole set go first, then the tombstones,
 # and the report names the ids, the links that went and the orphans `--force` left behind
-def deleted(+model: List<&2, Model.Issue>, +set: List<&2, String>, +orphans: List<&2, String>, now: Time.Instant, actor: String, reason: String, json: Bool) -> Done:
-  DelDone{Bool.pick(String, json, json_text(set, links_removed(model, set, 0), orphans), plain_text(set, links_removed(model, set, 0), orphans)), applied(model, set, now, actor, reason), set, (any_live(model, set) || Bool.not(U32.is_eq(links_removed(model, set, 0), 0)))}
-
-# S4.338 (spec twin) a `--dry-run` that reached this far writes nothing and prints what it would have deleted
-def dry_run(+model: List<&2, Model.Issue>, +set: List<&2, String>, orphans: List<&2, String>, now: Time.Instant, actor: String, reason: String, json: Bool, dry: Bool) -> Done:
-  match dry:
+def deleted(+model: List<&2, Model.Issue>, +set: List<&2, String>, +orphans: List<&2, String>, now: Time.Instant, actor: String, reason: String, json: Bool, hard: Bool) -> Done:
+  match hard:
     case True{}:
-      DelPreview{dry_text(model, set)}
+      DelDone{Bool.pick(String, json, json_text(set, links_removed(model, set, 0), labels_removed(model, set, 0), links_removed(model, set, 0), orphans), plain_text(set, links_removed(model, set, 0), orphans)), purged(model, set, now), set, True{}}
     case False{}:
-      deleted(model, set, orphans, now, actor, reason, json)
+      DelDone{Bool.pick(String, json, json_text(set, links_removed(model, set, 0), 0, 0, orphans), plain_text(set, links_removed(model, set, 0), orphans)), applied(model, set, now, actor, reason), set, (any_live(model, set) || Bool.not(U32.is_eq(links_removed(model, set, 0), 0)))}
+
+# S4.338 (spec twin) a `--dry-run` that reached past the preview writes nothing and prints what it would have
+# deleted, with the orphans of `--force` or the closure of `--cascade`; its JSON is the preview's shape
+def dry_run(+model: List<&2, Model.Issue>, +ids: List<&2, String>, +direct: List<&2, String>, +force: Bool, +cascade: Bool, json: Bool) -> Done:
+  match json:
+    case True{}:
+      DelPreview{preview_json(ids, Bool.pick(List<&2, String>, force, Nil{}, drop_known(deleted_set(model, ids, True{}), ids)), Bool.pick(List<&2, String>, (force || cascade), Nil{}, direct), Bool.pick(List<&2, String>, force, direct, Nil{}))}
+    case False{}:
+      DelPreview{dry_text(model, ids) ++ dry_extra(direct, drop_known(deleted_set(model, ids, True{}), ids), force, cascade)}
+
+# S4.334 S4.335 S4.338 (spec twin) a run past the preview: `--force` orphans the dependents, `--cascade` deletes
+# them too
+def settled(+model: List<&2, Model.Issue>, +ids: List<&2, String>, +direct: List<&2, String>, now: Time.Instant, actor: String, reason: String, drying: Bool, forcing: Bool, cascade: Bool, json: Bool, hard: Bool) -> Done:
+  match drying forcing:
+    case True{} forced:
+      dry_run(model, deleted_set(model, ids, False{}), direct, forced, cascade, json)
+    case False{} True{}:
+      deleted(model, deleted_set(model, ids, False{}), direct, now, actor, reason, json, hard)
+    case False{} False{}:
+      deleted(model, deleted_set(model, ids, cascade), Nil{}, now, actor, reason, json, hard)
 
 # S4.333 S4.334 S4.335 (spec twin) `delete` once its ids are resolved: dependents that neither `--force` nor
-# `--cascade` accounts for make the run a preview; `--force` orphans them; `--cascade` deletes them too
-def run(+model: List<&2, Model.Issue>, +ids: List<&2, String>, +direct: List<&2, String>, now: Time.Instant, actor: String, reason: String, previewing: Bool, force: Bool, cascade: Bool, json: Bool, dry: Bool) -> Done:
-  match previewing force:
-    case True{} _:
+# `--cascade` accounts for make the run a preview (JSON: the dependents as `blocked_dependents`), whatever
+# `--dry-run` and `--hard` say
+def run(+model: List<&2, Model.Issue>, +ids: List<&2, String>, +direct: List<&2, String>, now: Time.Instant, actor: String, reason: String, previewing: Bool, force: Bool, cascade: Bool, json: Bool, dry: Bool, hard: Bool) -> Done:
+  match previewing json:
+    case True{} False{}:
       DelPreview{preview_text(direct, drop_known(deleted_set(model, ids, True{}), List.append(&2, String, ids, direct)), List.length(&2, String, drop_known(deleted_set(model, ids, True{}), ids)))}
-    case False{} True{}:
-      dry_run(model, deleted_set(model, ids, False{}), direct, now, actor, reason, json, dry)
-    case False{} False{}:
-      dry_run(model, deleted_set(model, ids, cascade), Nil{}, now, actor, reason, json, dry)
+    case True{} True{}:
+      DelPreview{preview_json(deleted_set(model, ids, False{}), drop_known(deleted_set(model, ids, True{}), ids), direct, Nil{})}
+    case False{} js:
+      settled(model, ids, direct, now, actor, reason, dry, force, cascade, js, hard)
+
+# S4.339 (spec twin) `delete --hard` with no ids: every tombstone leaves the store, in ascending id order; the
+# counters are those of S4.336 over that set, and an empty set writes nothing
+def purge_of(+model: List<&2, Model.Issue>, +set: List<&2, String>, now: Time.Instant, dry: Bool, json: Bool) -> Done:
+  match dry json:
+    case True{} True{}:
+      DelPreview{preview_json(set, Nil{}, Nil{}, Nil{})}
+    case True{} False{}:
+      DelPreview{purge_text(set, True{})}
+    case False{} js:
+      DelDone{Bool.pick(String, js, json_text(set, links_removed(model, set, 0), labels_removed(model, set, 0), links_removed(model, set, 0), Nil{}), purge_text(set, False{})), purged(model, set, now), set, Bool.not(List.is_empty(&2, String, set))}
+
+# S4.339 (spec twin) the purge of every tombstone
+def purge(+model: List<&2, Model.Issue>, now: Time.Instant, json: Bool, dry: Bool) -> Done:
+  purge_of(model, List.sort(~String, ~String.is_le, tombstone_ids(model)), now, dry, json)

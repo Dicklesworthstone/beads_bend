@@ -94,6 +94,10 @@ def named(key: String, short: U32, value: String, repeat: Bool) -> Opt:
 def dashed(+key: String, short: U32, alias: String) -> Opt:
   Opt{key, short, alias, placeholder(key), False{}, False{}, True{}, Free{}}
 
+# S1.87 (data) an option whose value may begin with `-`, with a placeholder not derived from its name
+def named_dashed(key: String, short: U32, value: String, repeat: Bool) -> Opt:
+  Opt{key, short, "", value, repeat, False{}, True{}, Free{}}
+
 # S1.22 (data) an 8-bit unsigned value
 def u8() -> Check:
   Ranged{"0", "255", "0"}
@@ -148,11 +152,11 @@ def q_opts() -> List<&2, Opt>:
 
 # S1.39 (data) the options of `update`
 def update_opts() -> List<&2, Opt>:
-  one("title") <> dashed("description", 100, "body") <> named("description-file", 0, "PATH", False{}) <> one("design") <> Opt{"acceptance-criteria", 0, "acceptance", "ACCEPTANCE_CRITERIA", False{}, False{}, False{}, Free{}} <> one("prerequisites") <> named("check-acceptance", 0, "ITEMS", True{}) <> named("uncheck-acceptance", 0, "ITEMS", True{}) <> named("add-acceptance", 0, "TEXT", True{}) <> one("notes") <> named("append-notes", 0, "TEXT", True{}) <> named("transition-comment", 0, "COMMENT", False{}) <> one_s("status", 115) <> one_s("priority", 112) <> one_s("type", 116) <> one("assignee") <> one("owner") <> flag("claim") <> flag("force") <> one("due") <> one("defer") <> checked("estimate", i32()) <> many("add-label") <> many("remove-label") <> Opt{"set-labels", 0, "labels", "SET_LABELS", True{}, False{}, False{}, Free{}} <> one("parent") <> one("external-ref") <> one("source-repo") <> one("source-repo-path") <> one("agent-context") <> one("session") <> attribution()
+  one("title") <> dashed("description", 100, "body") <> named("description-file", 0, "PATH", False{}) <> dashed("design", 0, "") <> Opt{"acceptance-criteria", 0, "acceptance", "ACCEPTANCE_CRITERIA", False{}, False{}, True{}, Free{}} <> dashed("prerequisites", 0, "") <> named_dashed("check-acceptance", 0, "ITEMS", True{}) <> named_dashed("uncheck-acceptance", 0, "ITEMS", True{}) <> named_dashed("add-acceptance", 0, "TEXT", True{}) <> dashed("notes", 0, "") <> named_dashed("append-notes", 0, "TEXT", True{}) <> named_dashed("transition-comment", 0, "COMMENT", False{}) <> one_s("status", 115) <> one_s("priority", 112) <> one_s("type", 116) <> one("assignee") <> one("owner") <> flag("claim") <> flag("force") <> one("due") <> one("defer") <> checked("estimate", i32()) <> many("add-label") <> many("remove-label") <> Opt{"set-labels", 0, "labels", "SET_LABELS", True{}, False{}, False{}, Free{}} <> one("parent") <> one("external-ref") <> one("source-repo") <> one("source-repo-path") <> one("agent-context") <> one("session") <> attribution()
 
 # S1.42 (data) the options of `close`
 def close_opts() -> List<&2, Opt>:
-  dashed("reason", 114, "") <> named("transition-comment", 0, "COMMENT", False{}) <> flag_s("force", 102) <> flag("suggest-next") <> one("session") <> flag("robot") <> flag("bypass-policy") <> named("bypass-reason", 0, "REASON", False{}) <> attribution()
+  dashed("reason", 114, "") <> named_dashed("transition-comment", 0, "COMMENT", False{}) <> flag_s("force", 102) <> flag("suggest-next") <> one("session") <> flag("robot") <> flag("bypass-policy") <> named("bypass-reason", 0, "REASON", False{}) <> attribution()
 
 # S1.43 (data) the options of `reopen`
 def reopen_opts() -> List<&2, Opt>:
@@ -160,11 +164,11 @@ def reopen_opts() -> List<&2, Opt>:
 
 # S1.44 (data) the options of `defer`
 def defer_opts() -> List<&2, Opt>:
-  one("until") <> flag("robot") <> named("transition-comment", 0, "COMMENT", False{}) <> attribution()
+  one("until") <> flag("robot") <> named_dashed("transition-comment", 0, "COMMENT", False{}) <> attribution()
 
 # S1.45 (data) the options of `undefer`
 def undefer_opts() -> List<&2, Opt>:
-  flag("robot") <> named("transition-comment", 0, "COMMENT", False{}) <> attribution()
+  flag("robot") <> named_dashed("transition-comment", 0, "COMMENT", False{}) <> attribution()
 
 # S1.46 (data) the options of `delete`
 def delete_opts() -> List<&2, Opt>:
@@ -292,6 +296,6 @@ def cmd_at(n: U32) -> Cmd:
     case 34:
       Cmd{"epic status", flag("eligible-only") <> Nil{}, Nil{}, Nil{}, Nil{}, False{}}
     case 35:
-      Cmd{"epic close-eligible", flag("dry-run") <> named("transition-comment", 0, "COMMENT", False{}) <> Nil{}, Nil{}, Nil{}, Nil{}, False{}}
+      Cmd{"epic close-eligible", flag("dry-run") <> named_dashed("transition-comment", 0, "COMMENT", False{}) <> Nil{}, Nil{}, Nil{}, Nil{}, False{}}
     case _:
       Cmd{"", Nil{}, Nil{}, Nil{}, top_names(), True{}}

@@ -9,6 +9,7 @@ import ./failure.bend as Failure
 import ./query.bend as Query
 import ./work.bend as Work
 import ./blocked.bend as Blocked
+import ./resolve.bend as Resolve
 
 # S5.110 (spec twin) the glyph of a status; a status that is not built in prints `?`
 def icon(+status: String) -> String:
@@ -77,6 +78,60 @@ def detail_date(label: String, value: Maybe<&2, Time.Instant>) -> String:
 def long_block(+i: Model.Issue) -> String:
   String.concat([summary(i), "  Status: ", inline(Model.status_of(i)), "\n  Priority: P", Model.priority_of(i), "\n  Type: ", inline(Model.type_of(i)), "\n", detail_text("Assignee: ", Model.assignee_of(i)), detail_text("Owner: ", Model.owner_of(i)), detail_date("Due: ", Model.due_of(i)), detail_date("Deferred Until: ", Model.defer_of(i)), "  Created: ", date(Model.created_of(i)), "\n  Updated: ", date(Model.updated_of(i)), "\n"])
 
+# S5.128 (spec twin) one optional detail of a `--pretty` block, without indent: none when absent or empty
+def item_text(label: String, value: Maybe<&2, String>) -> List<&2, String>:
+  match value:
+    case None{}:
+      Nil{}
+    case Some{SNil{}}:
+      Nil{}
+    case Some{SCon{h, t}}:
+      (label ++ inline(SCon{h, t})) <> Nil{}
+
+# S5.128 (spec twin) one optional date detail of a `--pretty` block
+def item_date(label: String, value: Maybe<&2, Time.Instant>) -> List<&2, String>:
+  match value:
+    case None{}:
+      Nil{}
+    case Some{at}:
+      (label ++ date(at)) <> Nil{}
+
+# S5.128 (spec twin) the `Created`/`Updated` pair, which `--pretty` shows only together with `--long`
+def item_stamps(+i: Model.Issue, long: Bool) -> List<&2, String>:
+  match long:
+    case True{}:
+      ("Created: " ++ date(Model.created_of(i))) <> ("Updated: " ++ date(Model.updated_of(i))) <> Nil{}
+    case False{}:
+      Nil{}
+
+# S5.128 (spec twin) the detail lines of a block in the order of S5.117, as items
+def pretty_items(+i: Model.Issue, long: Bool) -> List<&2, String>:
+  List.concat(&2, String, [("Status: " ++ inline(Model.status_of(i))) <> ("Priority: P" ++ Model.priority_of(i)) <> ("Type: " ++ inline(Model.type_of(i))) <> Nil{}, item_text("Assignee: ", Model.assignee_of(i)), item_text("Owner: ", Model.owner_of(i)), item_date("Due: ", Model.due_of(i)), item_date("Deferred Until: ", Model.defer_of(i)), item_stamps(i, long)])
+
+# S5.128 (spec twin) the connectors: `├── ` before every detail but the last, `└── ` before the last
+def connected(items: List<&2, String>) -> List<&2, String>:
+  match items:
+    case Nil{}:
+      Nil{}
+    case Con{x, Nil{}}:
+      ("└── " ++ x ++ "\n") <> Nil{}
+    case Con{x, rest}:
+      ("├── " ++ x ++ "\n") <> connected(rest)
+
+# S5.128 (spec twin) one `--pretty` block: the summary line unchanged, then the connected details
+def pretty_block(+i: Model.Issue, long: Bool) -> String:
+  summary(i) ++ String.concat(connected(pretty_items(i, long)))
+
+# S5.128 S5.122 (spec twin) one `--pretty` block per issue with one blank line between blocks, none at either end
+def pretty_blocks(issues: List<&2, Model.Issue>, +long: Bool) -> List<&2, String>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{i, Nil{}}:
+      pretty_block(i, long) <> Nil{}
+    case Con{i, rest}:
+      pretty_block(i, long) <> "\n" <> pretty_blocks(rest, long)
+
 # S5.120 (spec twin) one summary line per issue, nothing before, between or after
 def lines(issues: List<&2, Model.Issue>) -> List<&2, String>:
   match issues:
@@ -95,13 +150,167 @@ def blocks(issues: List<&2, Model.Issue>) -> List<&2, String>:
     case Con{i, rest}:
       long_block(i) <> "\n" <> blocks(rest)
 
-# S5.120–S5.122 (spec twin) the plain listing; an empty result prints nothing at all (S5.121)
-def list_plain(issues: List<&2, Model.Issue>, long: Bool) -> String:
+# ---------------------------------------------------------------- `list --tree` (S5.127)
+
+# S5.127 (spec twin) every code point an ASCII digit
+def all_digits(s: String) -> Bool:
+  match s:
+    case SNil{}:
+      True{}
+    case SCon{Chr{+c}, rest}:
+      (((c >= 48 : U32) && (c <= 57 : U32)) && all_digits(rest))
+
+# S5.127 (spec twin) a non-empty run of ASCII digits
+def is_number(s: String) -> Bool:
+  match s:
+    case SNil{}:
+      False{}
+    case SCon{h, t}:
+      all_digits(SCon{h, t})
+
+# S5.127 (spec twin) the parent half of a cut at the last `.`, when the other half is a child number
+def dotted_pick(c: Resolve.Cut) -> String:
+  match c:
+    case Resolve.Cut{+left, +right, True{}}:
+      Bool.pick(String, (String.is_empty(left) || Bool.not(is_number(right))), "", left)
+    case Resolve.Cut{left, right, False{}}:
+      ""
+
+# S5.127 (spec twin) the id a dotted child id hangs from: `proj-abk.10.1` → `proj-abk.10`; "" for an id that is not
+# a child id (its last `.` part is not a number)
+def dotted_parent(+id: String) -> String:
+  dotted_pick(Resolve.cut_last(id, 46))
+
+# S5.127 (spec twin) is this id among the listed ones
+def listed(ids: List<&2, String>, +id: String) -> Bool:
+  match ids:
+    case Nil{}:
+      False{}
+    case Con{+x, rest}:
+      (String.eq(x, id) || listed(rest, id))
+
+# S5.127 (spec twin) the nearest listed ancestor of an id by its dotted parents; "" when none is listed. One step per
+# code point of the id bounds the walk: every step drops a `.` part
+def ancestor(fuel: Nat, +ids: List<&2, String>, +id: String) -> String:
+  match fuel:
+    case Zero{}:
+      ""
+    case Succ{f}:
+      Bool.pick(String, String.is_empty(dotted_parent(id)), "", Bool.pick(String, listed(ids, dotted_parent(id)), dotted_parent(id), ancestor(f, ids, dotted_parent(id))))
+
+# S5.127 (spec twin) the listed node an issue hangs under
+def hangs_under(+ids: List<&2, String>, +i: Model.Issue) -> String:
+  ancestor((String.length(Model.id_of(i)) + 1n : Nat), ids, Model.id_of(i))
+
+# S5.127 (data) one child under a node: the issue, and its child number when it is a DIRECT dotted child (the order
+# key), none when it was adopted past an unlisted parent
+type Kid is Data:
+  Kid{issue: Model.Issue, number: Maybe<&2, U32>}
+
+# S5.127 (spec twin) the child number of a direct dotted child, from its last `.` part
+def kid_number(+i: Model.Issue, +node: String) -> Maybe<&2, U32>:
+  Bool.pick(Maybe<&2, U32>, String.eq(dotted_parent(Model.id_of(i)), node), U32.read(Resolve.remainder_of(Resolve.cut_last(Model.id_of(i), 46))), None{})
+
+# S5.127 (spec twin) keep a kid when it hangs under the node
+def kid_put(k: Kid, keep: Bool, rest: List<&2, Kid>) -> List<&2, Kid>:
+  match keep:
+    case True{}:
+      k <> rest
+    case False{}:
+      rest
+
+# S5.127 (spec twin) the listed issues that hang under `node` ("" for the roots), in list order
+def kids_of(issues: List<&2, Model.Issue>, +ids: List<&2, String>, +node: String) -> List<&2, Kid>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      kid_put(Kid{i, kid_number(i, node)}, String.eq(hangs_under(ids, i), node), kids_of(rest, ids, node))
+
+# S5.127 (spec twin) the order of the kids of a node: direct children first, by child number (`.9` before `.10`,
+# whatever `--sort` says), then the adopted ones in list order (`proj-abk.10.1` then `proj-abk.3.1`)
+def kid_le(x: Kid, y: Kid) -> Bool:
+  match x y:
+    case Kid{a, Some{n}} Kid{b, Some{m}}:
+      (n <= m : U32)
+    case Kid{a, Some{n}} Kid{b, None{}}:
+      True{}
+    case Kid{a, None{}} Kid{b, Some{m}}:
+      False{}
+    case Kid{a, None{}} Kid{b, None{}}:
+      True{}
+
+# S5.127 (data) one pending line of the tree: the issue, the prefix its line starts with, the prefix its own kids get
+type Row is Data:
+  Row{issue: Model.Issue, lead: String, below: String}
+
+# S5.127 (spec twin) the rows of a node's kids: `├── ` and `│   ` for all but the last, `└── ` and `    ` for the last
+def kid_rows(kids: List<&2, Kid>, +prefix: String) -> List<&2, Row>:
+  match kids:
+    case Nil{}:
+      Nil{}
+    case Con{Kid{i, n}, Nil{}}:
+      Row{i, prefix ++ "└── ", prefix ++ "    "} <> Nil{}
+    case Con{Kid{i, n}, rest}:
+      Row{i, prefix ++ "├── ", prefix ++ "│   "} <> kid_rows(rest, prefix)
+
+# S5.127 (spec twin) the roots' rows: no connector at all
+def root_rows(kids: List<&2, Kid>) -> List<&2, Row>:
+  match kids:
+    case Nil{}:
+      Nil{}
+    case Con{Kid{i, n}, rest}:
+      Row{i, "", ""} <> root_rows(rest)
+
+# S5.127 (spec twin) the tree in pre-order: pop a row, print it, push its kids' rows in front. Every listed issue is
+# printed once (it hangs under exactly one node), so one unit of fuel per issue suffices
+def tree_go(fuel: Nat, stack: List<&2, Row>, +issues: List<&2, Model.Issue>, +ids: List<&2, String>) -> List<&2, String>:
+  match fuel stack:
+    case Zero{} _:
+      Nil{}
+    case Succ{f} Nil{}:
+      Nil{}
+    case Succ{f} Con{Row{+i, lead, +below}, rest}:
+      (lead ++ summary(i)) <> tree_go(f, List.append(&2, Row, kid_rows(List.sort(~Kid, ~kid_le, kids_of(issues, ids, Model.id_of(i))), below), rest), issues, ids)
+
+# S5.127 (spec twin) `list --tree` over the listed page: roots in list order, each child under its nearest listed
+# ancestor by dotted id (a `parent-child` edge between undotted ids does not nest: `list_tree`)
+def tree_lines(+issues: List<&2, Model.Issue>, +ids: List<&2, String>) -> List<&2, String>:
+  tree_go((List.length(&2, Model.Issue, issues) + 1n : Nat), root_rows(kids_of(issues, ids, "")), issues, ids)
+
+# S5.127 (spec twin) the ids of the listed page
+def ids_of(issues: List<&2, Model.Issue>) -> List<&2, String>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      Model.id_of(i) <> ids_of(rest)
+
+# S5.120 S5.122 (spec twin) the listing without `--tree` and `--pretty`: blocks under `--long`, summary lines otherwise
+def list_flat(issues: List<&2, Model.Issue>, long: Bool) -> String:
   match long:
     case True{}:
       String.concat(blocks(issues))
     case False{}:
       String.concat(lines(issues))
+
+# S5.128 (spec twin) the listing without `--tree`: `--pretty` draws the details with connectors, and with `--long`
+# adds the `Created`/`Updated` pair
+def list_drawn(issues: List<&2, Model.Issue>, long: Bool, pretty: Bool) -> String:
+  match pretty:
+    case True{}:
+      String.concat(pretty_blocks(issues, long))
+    case False{}:
+      list_flat(issues, long)
+
+# S5.120–S5.122 S5.127 S5.128 (spec twin) the plain listing; an empty result prints nothing at all (S5.121);
+# `--tree` wins over `--long` and `--pretty` and prints summary lines only (`list_tree_long`)
+def list_plain(+issues: List<&2, Model.Issue>, long: Bool, pretty: Bool, tree: Bool) -> String:
+  match tree:
+    case True{}:
+      String.concat(tree_lines(issues, ids_of(issues)))
+    case False{}:
+      list_drawn(issues, long, pretty)
 
 # S5.124 (spec twin) the note a truncating limit writes to stderr before the listing: with the total when the
 # filters ran outside the query (`exact`), without it otherwise; nothing when nothing was cut
@@ -317,19 +526,72 @@ def blocked_json(page: List<&2, Work.Row>, total: Nat, limit: Nat, more: Bool) -
 def row_if(label: String, +n: U32) -> String:
   Bool.pick(String, U32.is_eq(n, 0), "", label ++ U32.show(n) ++ "\n")
 
+# S5.170 (spec twin) the `Deleted:` row of the `Extended:` block: the count with ` (tombstones)` after it
+# (`scn_stats_tombstone`), nothing without tombstones
+def deleted_row(+n: U32) -> String:
+  Bool.pick(String, U32.is_eq(n, 0), "", "  Deleted:                " ++ U32.show(n) ++ " (tombstones)\n")
+
 # S5.170 (spec twin) the `Extended:` block: only when a lead time exists or tombstones exist
 def extended(lead: String, +tombstones: U32) -> String:
   match lead:
     case SNil{}:
-      Bool.pick(String, U32.is_eq(tombstones, 0), "", "\nExtended:\n" ++ row_if("  Deleted:                ", tombstones))
+      Bool.pick(String, U32.is_eq(tombstones, 0), "", "\nExtended:\n" ++ deleted_row(tombstones))
     case SCon{h, t}:
-      "\nExtended:\n  Avg Lead Time:          " ++ SCon{h, t} ++ "\n" ++ row_if("  Deleted:                ", tombstones)
+      "\nExtended:\n  Avg Lead Time:          " ++ SCon{h, t} ++ "\n" ++ deleted_row(tombstones)
+
+# ---------------------------------------------------------------- the `stats` breakdowns (S5.53, S5.172)
+
+# S5.172 (spec twin) a dimension's name: 1 priority, 2 type, 3 assignee, 4 label (Query.group_keys' numbers)
+def dimension_name(+d: U32) -> String:
+  Bool.pick(String, U32.is_eq(d, 1), "priority", Bool.pick(String, U32.is_eq(d, 2), "type", Bool.pick(String, U32.is_eq(d, 3), "assignee", "label")))
+
+# S5.172 (spec twin) one row of a breakdown: `  {key}: {count}`
+def break_rows(groups: List<&2, Query.Group>) -> List<&2, String>:
+  match groups:
+    case Nil{}:
+      Nil{}
+    case Con{Query.Group{key, count}, rest}:
+      ("  " ++ inline(key) ++ ": " ++ U32.show(count) ++ "\n") <> break_rows(rest)
+
+# S5.53 (spec twin) one count of a breakdown as JSON: `{"key":…,"count":…}`, `,` before all but the first
+def break_objects(groups: List<&2, Query.Group>, first: Bool) -> List<&2, String>:
+  match groups:
+    case Nil{}:
+      Nil{}
+    case Con{Query.Group{key, count}, rest}:
+      (Bool.pick(String, first, "", ",") ++ "{\"key\":" ++ Failure.quoted(key) ++ ",\"count\":" ++ U32.show(count) ++ "}") <> break_objects(rest, False{})
+
+# S5.172 (spec twin) the plain blocks: for each dimension a blank line, `By {dimension}:`, then its rows (an empty
+# store keeps the heading with no rows, `empty_stats_by_type_label`); the groups are those of `count --by` (S4.148,
+# S4.149) over the records that are not tombstones (`scn_stats_tombstone`)
+def breaks_plain(dims: List<&2, U32>, +live: List<&2, Model.Issue>) -> String:
+  match dims:
+    case Nil{}:
+      ""
+    case Con{+d, rest}:
+      "\nBy " ++ dimension_name(d) ++ ":\n" ++ String.concat(break_rows(Query.grouped(live, d, Nil{}))) ++ breaks_plain(rest, live)
+
+# S5.53 (spec twin) the `breakdowns` array's elements, in the fixed dimension order
+def breaks_objects(dims: List<&2, U32>, +live: List<&2, Model.Issue>, first: Bool) -> List<&2, String>:
+  match dims:
+    case Nil{}:
+      Nil{}
+    case Con{+d, rest}:
+      (Bool.pick(String, first, "", ",") ++ "{\"dimension\":\"" ++ dimension_name(d) ++ "\",\"counts\":[" ++ String.concat(break_objects(Query.grouped(live, d, Nil{}), True{})) ++ "]}") <> breaks_objects(rest, live, False{})
+
+# S5.53 (spec twin) the `breakdowns` member after `summary`, absent without a `--by-*` flag
+def breaks_json(dims: List<&2, U32>, +live: List<&2, Model.Issue>) -> String:
+  match dims:
+    case Nil{}:
+      ""
+    case Con{d, rest}:
+      ",\"breakdowns\":[" ++ String.concat(breaks_objects(d <> rest, live, True{})) ++ "]"
 
 # S5.167–S5.171 (spec twin) plain `stats`; every value starts at column 27; `lead` is the lead-time text with its unit, "" when there is none
-def stats_plain(f: Work.Figures, lead: String) -> String:
+def stats_plain(f: Work.Figures, lead: String, breaks: String) -> String:
   match f:
     case Work.Figures{total, open, in_progress, closed, blocked, deferred, draft, ready, +tombstone, pinned, epics, lead_sum, lead_count}:
-      String.concat(["📊 Issue Database Status\n\nSummary:\n  Total Issues:           ", U32.show(total), "\n  Open:                   ", U32.show(open), "\n  In Progress:            ", U32.show(in_progress), "\n  Blocked:                ", U32.show(blocked), "\n  Closed:                 ", U32.show(closed), "\n  Ready to Work:          ", U32.show(ready), "\n", row_if("  Deferred:               ", deferred), row_if("  Tombstones:             ", tombstone), row_if("  Pinned:                 ", pinned), row_if("  Epics ready to close:   ", epics), extended(lead, tombstone), "\nFor more details, use 'br list' to see individual issues.\n"])
+      String.concat(["📊 Issue Database Status\n\nSummary:\n  Total Issues:           ", U32.show(total), "\n  Open:                   ", U32.show(open), "\n  In Progress:            ", U32.show(in_progress), "\n  Blocked:                ", U32.show(blocked), "\n  Closed:                 ", U32.show(closed), "\n  Ready to Work:          ", U32.show(ready), "\n", row_if("  Deferred:               ", deferred), row_if("  Tombstones:             ", tombstone), row_if("  Pinned:                 ", pinned), row_if("  Epics ready to close:   ", epics), extended(lead, tombstone), breaks, "\nFor more details, use 'br list' to see individual issues.\n"])
 
 # S5.53 S5.54 (spec twin) `average_lead_time_hours`, when it exists
 def lead_member(lead: String) -> String:
@@ -340,7 +602,7 @@ def lead_member(lead: String) -> String:
       ",\"average_lead_time_hours\":" ++ SCon{h, t}
 
 # S5.53 (spec twin) `stats --json`: eleven integers in this order, then the average lead time when it exists
-def stats_json(f: Work.Figures, lead: String) -> String:
+def stats_json(f: Work.Figures, lead: String, breaks: String) -> String:
   match f:
     case Work.Figures{total, open, in_progress, closed, blocked, deferred, draft, ready, tombstone, pinned, epics, lead_sum, lead_count}:
-      String.concat(["{\"summary\":{\"total_issues\":", U32.show(total), ",\"open_issues\":", U32.show(open), ",\"in_progress_issues\":", U32.show(in_progress), ",\"closed_issues\":", U32.show(closed), ",\"blocked_issues\":", U32.show(blocked), ",\"deferred_issues\":", U32.show(deferred), ",\"draft_issues\":", U32.show(draft), ",\"ready_issues\":", U32.show(ready), ",\"tombstone_issues\":", U32.show(tombstone), ",\"pinned_issues\":", U32.show(pinned), ",\"epics_eligible_for_closure\":", U32.show(epics), lead_member(lead), "}}\n"])
+      String.concat(["{\"summary\":{\"total_issues\":", U32.show(total), ",\"open_issues\":", U32.show(open), ",\"in_progress_issues\":", U32.show(in_progress), ",\"closed_issues\":", U32.show(closed), ",\"blocked_issues\":", U32.show(blocked), ",\"deferred_issues\":", U32.show(deferred), ",\"draft_issues\":", U32.show(draft), ",\"ready_issues\":", U32.show(ready), ",\"tombstone_issues\":", U32.show(tombstone), ",\"pinned_issues\":", U32.show(pinned), ",\"epics_eligible_for_closure\":", U32.show(epics), lead_member(lead), "}", breaks, "}\n"])
