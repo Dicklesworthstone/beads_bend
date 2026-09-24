@@ -1,0 +1,7 @@
+
+🚫 Blocked issues (2):
+
+[● P2] proj-a1: t proj-a1
+  Blocked by 3 open dependencies: [external:, external:p:, external:solo]
+[● P2] proj-b1: t proj-b1
+  Blocked by 1 open dependencies: [proj-a1]

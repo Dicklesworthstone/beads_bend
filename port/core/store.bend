@@ -465,14 +465,21 @@ def dep_other(+issue: String, +id: String) -> Failure.Failure:
 def dep_self(+id: String) -> Failure.Failure:
   Failure.Failure{"SELF_DEPENDENCY", "Issue cannot depend on itself: " ++ id, Some{"An issue cannot depend on itself"}, False{}, [Failure.CtxMember{"id", Failure.CStr{id}}], 5}
 
-# S2.58 (spec twin) the rule one dependency breaks: the `issue_id` first, then the target
-def dep_pick(other: Bool, self: Bool, +issue: String, +id: String) -> Maybe<&2, Failure.Failure>:
-  match other self:
-    case True{} _:
+# S2.58 (spec twin) a `parent-child` dependency on an `external:` target: VALIDATION_FAILED, exit 4 (the words of S4.357)
+def dep_external_parent(+target: String) -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: depends_on_id: parent-child dependencies must link local issues: " ++ target, None{}, True{}, [Failure.CtxMember{"field", Failure.CStr{"depends_on_id"}}, Failure.CtxMember{"reason", Failure.CStr{"parent-child dependencies must link local issues: " ++ target}}], 4}
+
+# S2.58 (spec twin) the rule one dependency breaks: the `issue_id` first, then the target itself, then a
+# `parent-child` edge to an `external:` target (`r12_ext_pc_load_json`, `r12_ext_pc_then_self`)
+def dep_pick(other: Bool, self: Bool, outside: Bool, +issue: String, +id: String, +target: String) -> Maybe<&2, Failure.Failure>:
+  match other self outside:
+    case True{} _ _:
       Some{dep_other(issue, id)}
-    case False{} True{}:
+    case False{} True{} _:
       Some{dep_self(id)}
-    case False{} False{}:
+    case False{} False{} True{}:
+      Some{dep_external_parent(target)}
+    case False{} False{} False{}:
       None{}
 
 # S2.58 (spec twin) a refusal found already is kept; otherwise this dependency is asked
@@ -481,7 +488,7 @@ def dep_keep(found: Maybe<&2, Failure.Failure>, +d: Model.Dependency, +id: Strin
     case Some{f}:
       Some{f}
     case None{}:
-      dep_pick(Bool.not(String.eq(Model.dep_issue_of(d), id)), String.eq(Model.target_of(d), id), Model.dep_issue_of(d), id)
+      dep_pick(Bool.not(String.eq(Model.dep_issue_of(d), id)), String.eq(Model.target_of(d), id), (String.eq(Model.dep_type_repaired(Model.dep_type_of(d)), "parent-child") && String.starts_with(Model.target_of(d), "external:")), Model.dep_issue_of(d), id, Model.target_of(d))
 
 # S2.58 (spec twin) the first dependency of a record that breaks a rule, in order
 def deps_rule(ds: List<&2, Model.Dependency>, +id: String, found: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:
@@ -516,13 +523,35 @@ def verdict_of(found: Maybe<&2, Failure.Failure>, +issues: List<&2, Model.Issue>
       LoadOk{issues}
 
 # S2.57 S2.58 (spec twin) the import's checks in their order: every record's dependency edges (S2.58), then the
-# members each record would not carry through (S2.57)
-def checked(edges: Maybe<&2, Failure.Failure>, +issues: List<&2, Model.Issue>, +ids: Ids) -> Loaded:
+# members each record would not carry through (S2.57); `keep` are the records the import keeps
+def checked(edges: Maybe<&2, Failure.Failure>, +issues: List<&2, Model.Issue>, +keep: List<&2, Model.Issue>, +ids: Ids) -> Loaded:
   match edges:
     case Some{f}:
       LoadBad{f}
     case None{}:
-      verdict_of(first_conflict(issues, ids, None{}), issues)
+      verdict_of(first_conflict(keep, ids, None{}), issues)
+
+# S2.42 S2.57 (spec twin) a record joins the kept ones unless it is ephemeral (after the repair that marks a `-wisp-` id)
+def kept_put(+i: Model.Issue, drop: Bool, acc: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match drop:
+    case True{}:
+      acc
+    case False{}:
+      i <> acc
+
+# S2.42 S2.57 (spec twin) the records the import checks, REVERSED onto acc: an ephemeral record is dropped before the
+# checks, so none of them applies to it and it is not a stored target (`r12_dep_to_ephemeral_count`,
+# `r12_dep_from_ephemeral_count`)
+def kept_go(issues: List<&2, Model.Issue>, acc: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
+  match issues:
+    case Nil{}:
+      acc
+    case Con{+i, rest}:
+      kept_go(rest, kept_put(i, Model.is_ephemeral(Model.repaired(i)), acc))
+
+# S2.57 S2.58 (spec twin) the checks over the kept records, in file order
+def checked_kept(+issues: List<&2, Model.Issue>, +keep: List<&2, Model.Issue>, +fast: Bool) -> Loaded:
+  checked(records_rule(keep, None{}), issues, keep, ids_of(fast, keep))
 
 # S2.57 S2.58 (spec twin) a loaded store through the import; `show` reads the file directly and skips it. `fast`
 # picks the id set over the scan (`load_fast` against `load`)
@@ -533,7 +562,7 @@ def imported(st: Loaded, strict: Bool, +fast: Bool) -> Loaded:
     case LoadOk{issues} False{}:
       LoadOk{issues}
     case LoadOk{+issues} True{}:
-      checked(records_rule(issues, None{}), issues, ids_of(fast, issues))
+      checked_kept(issues, List.reverse(&2, Model.Issue, kept_go(issues, Nil{})), fast)
 
 # ---------------------------------------------------------------- the record loop
 

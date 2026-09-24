@@ -1,0 +1,12 @@
+○ proj-a1 · t proj-a1   [● P2 · OPEN]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-01
+
+Dependencies:
+  -> external: (waits-for) - ⏳ external:
+  -> external:p: (blocks) - ⏳ external:p:
+  -> external:p:q:r (related) - ⏳ p:q:r
+  -> external:solo (blocks) - ⏳ external:solo
+
+Dependents:
+  <- proj-b1 (blocks) - t proj-b1

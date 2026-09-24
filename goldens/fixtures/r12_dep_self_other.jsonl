@@ -1,0 +1,2 @@
+{"id":"proj-a1","title":"t proj-a1","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z","dependencies":[{"issue_id":"proj-a1","depends_on_id":"proj-a1","type":"blocks","created_at":"2026-01-01T10:00:00Z","created_by":"tester"},{"issue_id":"proj-b1","depends_on_id":"proj-x","type":"blocks","created_at":"2026-01-01T10:00:00Z","created_by":"tester"}]}
+{"id":"proj-b1","title":"t proj-b1","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}

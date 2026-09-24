@@ -41,10 +41,25 @@ def lookup(issues: List<&2, Model.Issue>, +id: String) -> Maybe<&2, Model.Issue>
 # title, `blocked` the status and 2 the priority (OQ-045); its creation instant, a sort key, is unmeasured and taken
 # as the epoch. Any other end that is not stored (only `show` reads such a store: the import refuses it, S2.57)
 # stands as `[missing issue: <id>]`, status `tombstone`, priority 2, sorted by the edge's own `created_at` (OQ-132)
+# Measured (round 12): the `external:` end sorts by the edge's `created_at` too, and its title drops the `external:`
+# prefix when the rest is `<project>:<id>` with both parts non-empty (`r12_ext_names_show`, `r12_show_mix`)
+def ext_parts_ok(parts: List<&2, String>) -> Bool:
+  match parts:
+    case Con{p, Con{q, more}}:
+      (Bool.not(String.is_empty(p)) && Bool.not(String.is_empty(String.join(q <> more, ":"))))
+    case _:
+      False{}
+
+# S5.151 (spec twin) the title of an `external:` end: `p:q:r` for `external:p:q:r`; the whole reference for
+# `external:solo`, `external:` and `external:p:`
+def ext_title(+target: String) -> String:
+  Bool.pick(String, ext_parts_ok(String.split(String.drop(target, 9n), Chr{58})), String.drop(target, 9n), target)
+
+# S5.151 S5.31 (spec twin) an end that is not stored: the `external:` pseudo-issue or the missing issue (above)
 def external_put(+target: String, kind: String, external: Bool, at: Time.Instant, rest: List<&2, Related>) -> List<&2, Related>:
   match external:
     case True{}:
-      Related{target, "⏳ " ++ target, "blocked", "2", kind, Time.Instant{0, 0, 0}} <> rest
+      Related{target, "⏳ " ++ ext_title(target), "blocked", "2", kind, at} <> rest
     case False{}:
       Related{target, "[missing issue: " ++ target ++ "]", "tombstone", "2", kind, at} <> rest
 

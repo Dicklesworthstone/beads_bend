@@ -1,0 +1,1 @@
+Error: Validation failed: depends_on_id: parent-child dependencies must link local issues: external:solo

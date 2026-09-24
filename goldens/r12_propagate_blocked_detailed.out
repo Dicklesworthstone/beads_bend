@@ -1,0 +1,26 @@
+
+🚫 Blocked issues (7):
+
+[● P2] proj-e1: t proj-e1
+  Blocked by:
+    • proj-c1: t proj-c1 [P2] [open]
+    • proj-x1: t proj-x1 [P1] [open]
+[● P2] proj-p1: t proj-p1
+  Blocked by:
+    • proj-q1: t proj-q1 [P2] [deferred]
+    • proj-x1: t proj-x1 [P1] [open]
+[● P2] proj-c1: t proj-c1
+  Blocked by:
+    • proj-e1: t proj-e1 [P2] [open]
+[● P2] proj-g1: t proj-g1
+  Blocked by:
+    • proj-c1: t proj-c1 [P2] [open]
+[● P2] proj-h1: t proj-h1
+  Blocked by:
+    • proj-g1: t proj-g1 [P2] [open]
+[● P2] proj-k2: t proj-k2
+  Blocked by:
+    • proj-k1: t proj-k1 [P2] [closed]
+[● P2] proj-r1: t proj-r1
+  Blocked by:
+    • proj-q2: t proj-q2 [P2] [qareview]

@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: depends_on_id: parent-child dependencies must link local issues: external:up:x",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "depends_on_id",
+      "reason": "parent-child dependencies must link local issues: external:up:x"
+    }
+  }
+}

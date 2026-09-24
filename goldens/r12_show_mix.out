@@ -1,0 +1,15 @@
+○ proj-a1 · t proj-a1   [● P2 · OPEN]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-01
+
+Dependencies:
+  -> proj-c1 (waits-for) - t proj-c1
+  -> proj-m0 (blocks) - [missing issue: proj-m0]
+  -> proj-m2 (related) - [missing issue: proj-m2]
+  -> proj-b1 (parent-child) - t proj-b1
+  -> external:o:x (blocks) - ⏳ o:x
+  -> proj-m1 (parent-child) - [missing issue: proj-m1]
+
+Dependents:
+  <- proj-d1 (blocks) - t proj-d1
+  <- proj-e1 (related) - t proj-e1

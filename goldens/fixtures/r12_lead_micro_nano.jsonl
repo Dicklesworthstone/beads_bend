@@ -1,0 +1,4 @@
+{"id":"proj-a1","title":"t proj-a1","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00.000001Z","updated_at":"2026-01-01T11:00:00Z","closed_at":"2026-01-01T11:00:00Z"}
+{"id":"proj-a2","title":"t proj-a2","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:59:59.999999999Z","closed_at":"2026-01-01T10:59:59.999999999Z"}
+{"id":"proj-a3","title":"t proj-a3","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00.5-01:30","updated_at":"2026-01-02T12:30:00.5Z","closed_at":"2026-01-02T12:30:00.5Z"}
+{"id":"proj-a4","title":"t proj-a4","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z"}
