@@ -37,7 +37,10 @@ with open(src, encoding="utf-8") as fh:
         if prefix in seen:
             continue
         seen.add(prefix)
-        argv = ["@env=BUN_JSC_forceRAMSize=10737418240", "@env=INTERP_NOTE_CACHE=1"] + json.loads(parts[1])
+        argv = json.loads(parts[1])
+        # ws_inner.py refuses @env on a scenario (it applies to one step), so a @scn row runs with the defaults
+        if not any(a.startswith("@scn=") for a in argv):
+            argv = ["@env=BUN_JSC_forceRAMSize=10737418240", "@env=INTERP_NOTE_CACHE=1"] + argv
         rows.append("\t".join([parts[0], json.dumps(argv)] + parts[2:]))
 if limit:
     rows = rows[:limit]
