@@ -337,11 +337,11 @@ The corpus must cover:
 | `edge_` | boundary inputs: the `precision` fixture (OQ-001, OQ-002), the maximum title |
 | `scn_` | multi-step scenarios from `goldens/scenarios/` |
 
-The case count is `grep -vc '^#' goldens/cases.tsv` and must equal the count in the `goldens/MANIFEST.txt` header (384 on 2026-09-20).
+The case count is `grep -vc '^#' goldens/cases.tsv` and must equal the count in the `goldens/MANIFEST.txt` header (1009 on 2026-09-24).
 
 ### Test Fixtures
 
-`goldens/fixtures/` holds `basic`, `basic_touched`, `conflict`, `empty`, `large`, `malformed` and `precision`. `large` is the one that is not a captured run or a hand-written edge file: 512 records, 167,808 bytes, derived from `basic` by repeating its eight records with fresh ids and no edges or comments, so that a case exists above the size at which the JS lane used to fault (DISC-008). `goldens/scenarios/` holds `build_basic`, `child_ids`, `dup_title`, `last_touched` and `lifecycle`. See "Fixtures are never overwritten".
+`goldens/fixtures/` holds 163 stores (`ls goldens/fixtures/*.jsonl | wc -l`, 2026-09-24), some with `.config.yaml` or `.last-touched` sidecars. The first seven were `basic`, `basic_touched`, `conflict`, `empty`, `large`, `malformed` and `precision`; most of the others are the original's own output (`scripts/make-fixture.sh`) or hand-written edge files, each named after the rule it exercises (`dup_id`, `dep_dangling`, `lead_subsecond`, …). `large` is the one that is not a captured run or a hand-written edge file: 512 records, 167,808 bytes, derived from `basic` by repeating its eight records with fresh ids and no edges or comments, so that a case exists above the size at which the JS lane used to fault (DISC-008). `goldens/scenarios/` holds 74 tracked scenarios (`git ls-files goldens/scenarios | wc -l`), the first being `build_basic`, `child_ids`, `dup_title`, `last_touched` and `lifecycle`. See "Fixtures are never overwritten".
 
 ---
 
@@ -396,7 +396,7 @@ Law: <fast_is_spec> — <verdict line> (unsafe <k> = <a> @unsafe + <b> instances
 Not claimed: <refused captures with predicates>
 ```
 
-Anything that does not fit these shapes is not said. **As of 2026-09-20 neither shape can be filled: no find-fix round has run, convergence is not computed, and nothing has been measured. What may be said is the lane line the gates print — 384 of 384 cases on c-1t, c-8t and js, `All terms check.` with 50 laws — never that the port is complete, fast, certified or verified.**
+Anything that does not fit these shapes is not said. **As of 2026-09-24 neither shape can be filled: `scripts/converge.sh` says NOT_CONVERGED (open OQs and four OPEN DISCs), the interpreter lane has not run on the current code, and nothing has been measured (the timings in `perf/EXPERIMENTS.md` are exploratory). What may be said is the lane line the gates print — 1007 of 1009 cases on c-1t, c-8t and js, `All terms check.` with 68 laws — never that the port is complete, fast, certified or verified.**
 
 ---
 
@@ -434,14 +434,14 @@ bend2.dev is unofficial. `bend guide`, `bend base`, the repository and the paper
 
 | fact | how to check |
 |---|---|
-| **The Bend implementation answers every command the corpus exercises and writes the store, and is not certified.** `port/main.bend` is the IO shell (three custom effects: `Sys.exit`, `Sys.cwd`, `Sys.remove`); `port/core/` holds the pure core: UTF-8, SHA-256, the id hash, instants, the JSON line lexer and decoder, the 44-member record, the store loader and `Store.text`, failures, the argument parser (`surface.bend` tables, `cli.bend` algorithm, `help.bend` generated texts), the queries, the graph, the mutations (`create`, `update`, the status transitions, `edges`, `labels`, `remove`) and the dispatcher `run.bend`. **384 of 384 cases pass on c-1t, c-8t and js**; forms no case captures answer the port's own "not ported yet" failure instead of a guess | `ls port/core`; `docs/PORT_STATE.md` "Last gate outputs" |
+| **The Bend implementation answers every command the corpus exercises and writes the store, and is not certified.** `port/main.bend` is the IO shell (five custom effects: `Sys.exit`, `Sys.cwd`, `Sys.remove`, `Sys.stdin`, `Clock.wall`); `port/core/` holds the pure core: UTF-8, SHA-256, the id hash, instants, the JSON line lexer and decoder, the 44-member record, the store loader and `Store.text`, failures, the argument parser (`surface.bend` tables, `cli.bend` algorithm, `help.bend` generated texts), the queries, the graph, the mutations (`create`, `update`, the status transitions, `edges`, `labels`, `remove`) and the dispatcher `run.bend`. **1007 of 1009 cases pass on c-1t, c-8t and js at `fd0a945` (2026-09-24); the two failures are the original's random draws, DISC-010 and DISC-011**; forms no case captures answer the port's own "not ported yet" failure instead of a guess | `ls port/core`; `docs/PORT_STATE.md` "Last gate outputs" |
 | Phases −1, 0, 1 (first pass) and 2 are done; Phase 3 is at its exit gate (the interpreter lane is the open item). The corpus is `grep -vc '^#' goldens/cases.tsv` cases | `docs/PORT_STATE.md`; `git log --oneline` |
 | The spec is merged from `docs/spec-parts/` by `scripts/merge-spec-parts.py`: edit a part, then merge; never edit `docs/EXISTING_BEADS_RUST_STRUCTURE.md` directly | `python3 -B scripts/merge-spec-parts.py --check` |
 | `port/core/help.bend` is generated from the spec appendix `docs/spec-parts/HELP_TEXTS.md` (clause S1.89) by `scripts/gen-help-bend.py`; `port/core/model.bend` and `port/core/decode.bend` were generated once and are now the source | `python3 -B scripts/gen-help-bend.py --check` |
 | DISC-001 through DISC-007 are ACCEPTED by the owner's delegation (quoted in each entry); they can revoke any of them | `docs/DISCREPANCIES.md` |
 | The inner loop is the JS lane (`bend main.bend -o bn.js`, about a minute, then `scripts/conform.sh … --lane js`); a C build now takes about 8 minutes and 19 GB of RAM and is OOM-killed when the machine is busy (exit 137 with no binary: check the file exists). The gate is `scripts/lanes.sh`, whose interpreter lane type-checks the program per case — 2 min 28 s per case at this size, about 14.5 hours for the corpus | `scripts/quick-lanes.sh --help`; `docs/PORT_STATE.md` |
 | The gpu lane is MISSING: no CUDA device on this host | PLAN §2b |
-| No `.beads/` directory and no `.github/workflows/`; `README.md`, `LICENSE` and the remote `origin` exist | `ls -a`; `git remote -v` |
+| A `.beads/` workspace (prefix `bb`, since 2026-09-23) and no `.github/workflows/`; `README.md`, `LICENSE` and the remote `origin` exist | `ls -a`; `git remote -v`; `br list --json` |
 
 ### Phases (PLAN §6)
 
@@ -500,7 +500,7 @@ beads_bend/
 ├── port/
 │   ├── main.bend                  # The IO shell: gathers the inputs, calls `Run.outcome` once, performs it
 │   ├── core/                     # The pure core, one module per area (PLAN §8: core and shell are separate files)
-│   ├── effs/                     # The custom effects' C and JS sides (`Sys.exit`, `Sys.cwd`, `Sys.remove`)
+│   ├── effs/                     # The custom effects' C and JS sides (`Sys.exit`, `Sys.cwd`, `Sys.remove`, `Sys.stdin`, `Clock.wall`)
 │   ├── LAWS.bend                  # HUMAN-OWNED. Add, never weaken or delete
 │   ├── PROOF.bend                 # The agent's proofs
 │   └── probes/                    # Bend probes that settle runtime questions (clock: OQ-004, OQ-009)
@@ -580,7 +580,7 @@ Beads provides a lightweight, dependency-aware issue database and CLI (`br` - be
 
 **Important:** `br` is non-invasive—it NEVER runs git commands automatically. You must manually commit changes after `br sync --flush-only`.
 
-**Two roles, one binary.** `~/.local/bin/br` is both this repository's issue tracker and the port's oracle. As a tracker it runs from the repository root in its default mode. As the oracle it runs only as `br --no-db` inside `scripts/ws-run.sh --oracle`. Never mix the two: no tracker data is a fixture, and no sandbox run touches the tracker. As of 2026-09-20 this repository has no `.beads/` directory: the `br` commands below have no workspace here until one is initialized at the repository root (`br init`). Until then the open items live in the "Open items" table of `docs/PORT_STATE.md`.
+**Two roles, one binary.** `~/.local/bin/br` is both this repository's issue tracker and the port's oracle. As a tracker it runs from the repository root in its default mode. As the oracle it runs only as `br --no-db` inside `scripts/ws-run.sh --oracle`. Never mix the two: no tracker data is a fixture, and no sandbox run touches the tracker. Since 2026-09-23 this repository has its own `.beads/` workspace at the root (issue prefix `bb`); the open items live there as beads, and the "Open items" table of `docs/PORT_STATE.md` names the ones that block a gate. Because 14 cases name sandbox-relative paths such as `.beads/last-touched`, `scripts/golden-capture.sh` records the tracker's files as capture inputs and `scripts/pin-check.sh` turns RED after any bead edit (bead `bb-nvc`); re-capture after the session's last bead edit.
 
 Beads and the port's registers do different jobs:
 

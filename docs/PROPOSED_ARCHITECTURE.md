@@ -25,6 +25,7 @@ performs the `Outcome`. Nothing in the core mentions `IO`.
 | S1 argv grammar, usage and parse-error texts (S1.1–S1.92) | core `Cli.*` over the tables of `Surface.*`: argv → `Cli.Parsed` | spec twin | golden (every `usage_*` case); closed golden laws for the short texts (`cli_*` in `port/LAWS.bend`) |
 | S2.A–S2.C discovery, prefix, `metadata.json`, `config.yaml` (S2.1–S2.23) | decision in the core (`Discover.*` consumes probe results); the probes themselves in the shell | spec twin + shell | golden (`where_*`, `error_no_workspace_*`) |
 | S2.D JSONL grammar, S2.E validation (S2.24–S2.56) | core `Json.*`, `Model.*`, `Store.load`, `Validate.*` | spec twin | law (round trips) + golden (`edge_precision_*`, `error_conflict_markers*`, `error_malformed_jsonl*`) |
+| S2.F the import check (S2.57–S2.58; added 2026-09-23 and 2026-09-24) | core `Store.imported`: `Store.records_rule` (S2.58, dependency edges), `Store.first_conflict` over `Store.differing` (S2.57); `Store.Ids` picks the scan (`load`) or the id set (`load_fast`) | spec twin + fast twin (the id set) | golden (`edge_empty_*`, `error_load_dep_*`, `edge_load_dep_*`) + law (`store_load_fast_dangling`) |
 | S3 data model (S3.1–S3.15) | core types | data | golden (every `--json` case) |
 | S4.1–S4.51 identifiers, S4.52–S4.79 time and value parsing | core `Sha.*`, `Id.*`, `Time.*`, `Parse.*` | spec twin | law (closed vectors, round trips) + golden |
 | S4.100–S4.198 query semantics | core `Query.*`, `Blocked.*`, `Tree.*` | spec twin | law (conservation, order) + golden |
