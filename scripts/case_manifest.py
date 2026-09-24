@@ -241,9 +241,17 @@ def command_provenance(command):
 
 
 def provenance(command, manifest_path, manifest):
+    # Under a sandbox wrapper (`ws-run.sh … ::`, the stateful-originals convention) the case arguments
+    # run inside the sandbox's own fresh workspace: an operand such as `.beads/last-touched` names a
+    # file there, not on the host. Resolving it on the host fingerprinted whatever the repository
+    # happened to hold under that name (beads_bend's own issue tracker), so every tracker edit turned
+    # pin-check's manifest_hashes RED with no golden input changed. Case operands are host files only
+    # without a `::` wrapper; stdin files are host files either way.
+    sandboxed = "::" in command
     case_files = set()
     for _, arguments, _ in manifest:
-        case_files.update(str(Path(operand).resolve()) for operand in argument_files(arguments))
+        if not sandboxed:
+            case_files.update(str(Path(operand).resolve()) for operand in argument_files(arguments))
     return {**command_provenance(command), "case_manifest": file_record(manifest_path),
             "case_files": [file_record(path) for path in sorted(case_files)],
             "stdin_files": [file_record(path) for path in sorted({r[2] for r in manifest if r[2]})]}
@@ -447,7 +455,29 @@ def main():
     if mode == "floor":
         if args.repeat < 1:
             raise ValueError("--repeat must be positive")
+        # The floor runs the ORIGINAL. Without it there is nothing to measure, and running the whole
+        # corpus only to report INCONCLUSIVE hides that (toon_bend round 12). These checks read
+        # command[0]: under a sandbox wrapper (`ws-run.sh --oracle br …`) that is the WRAPPER, so a
+        # missing oracle inside it surfaces per case (exit 125, INCONCLUSIVE); pin-check.sh checks the
+        # oracle's own sha256 before any floor.
+        def refuse(reason):
+            print("floor: " + reason, file=sys.stderr)
+            print(json.dumps({"repeat": args.repeat, "verdict": "REFUSED", "reason": reason}, separators=(",", ":")))
+            return 2
+        if os.sep in command[0] or os.path.isfile(command[0]):
+            if not (os.path.isfile(command[0]) and os.access(command[0], os.X_OK)):
+                return refuse("the pinned original is not at %s (the oracle is not part of the repository: "
+                              "docs/PIN.toml names its identity; PLAN section 2 has the build command)" % command[0])
         originals = oracle_commands(args.gold)
+        # identity() resolves symlinks, so the SAME file under another name passes it, and then every
+        # usage case differs when the original prints argv[0]'s basename (clap does): a renamed
+        # oracle, not nondeterminism (toon_bend round 13: 62 false UNSTABLE cases). Refuse it by name.
+        if originals:
+            names = {os.path.basename(original[0]) for original in originals}
+            if os.path.basename(command[0]) not in names:
+                return refuse("the original is invoked as %r but was captured as %s; a program that prints "
+                              "argv[0] (clap usage lines do) is not the same program under another name. Invoke "
+                              "it under the captured name." % (os.path.basename(command[0]), ", ".join(sorted(names))))
         if originals and not any(identity(command) == identity(original) for original in originals):
             raise ValueError("floor command differs from the captured original; use the captured command or explicitly recapture")
         if not originals:
