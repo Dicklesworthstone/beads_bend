@@ -282,6 +282,26 @@ def Laws.work_figures_table():
 def Laws.work_ready_table():
   {==}
 
+# S4.157–S4.166 the table relation and the list relation agree on the hierarchy store
+def Laws.blocked_relation_table_hierarchy():
+  {==}
+
+# S4.157 the id table finds what the scan finds
+def Laws.blocked_table_lookup():
+  {==}
+
+# S4.157 neither finds an id that is not stored
+def Laws.blocked_table_lookup_missing():
+  {==}
+
+# S4.157 the id set answers a member as the scan does
+def Laws.blocked_set_member():
+  {==}
+
+# S4.157 and a non-member
+def Laws.blocked_set_nonmember():
+  {==}
+
 # S5.115 the greedy wrap of a small body
 def Laws.show_wrap_closed():
   {==}
