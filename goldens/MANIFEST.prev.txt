@@ -1,10 +1,10 @@
-captured: 2026-09-24T12:46:23.305361+00:00
+captured: 2026-09-24T14:41:44.309062+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (1062 cases)
-provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"a01ffe9ea391bb9816eded472c71b37ac3f77b7201e4c8c13501d8cc0b163b64"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"fc7ec11d2099e86040072ee898579d258e64dc335be45876ffb6775d5e49f30d"},"case_files":[],"stdin_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/plan.md","sha256":"37408972901f8596ed696ffbc7955502e868cce2e45bbb4c571688cf5e6e5703"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/two_lines.txt","sha256":"793d49044e660c5c0fc164516e0121a17241eec91a81fcc504ccd1084e4e0da9"}]}
-recapture: repin: harness (bb-nvc): case_manifest.py re-copied; the provenance no longer records sandbox-relative argv operands as host files; no case changed
+cases: goldens/cases.tsv (1067 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"cd242b8febeff0e78c7c2bab568dfa4eaff97cb106438efb7c100a1e65fe6333"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"eba9fc7c73c515b9751e027e8f275e5666bc9307d42feb3747a46e1bb465ac8d"},"case_files":[],"stdin_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/plan.md","sha256":"37408972901f8596ed696ffbc7955502e868cce2e45bbb4c571688cf5e6e5703"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/two_lines.txt","sha256":"793d49044e660c5c0fc164516e0121a17241eec91a81fcc504ccd1084e4e0da9"}]}
+recapture: repin: harness: ws_inner.py gains @file=<name> and accepts any @env name; 5 new cases: the markdown import of create -f (OQ-051)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1401,7 +1401,7 @@ sha256:
   33c2af4b405ea7f0c89d67f5d5db98e99a8eeb1c845bbb257d1d8401182e8f50  prefix_config_nested.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_nested.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_nested.exit
-  2815415d064df2b6e8198c34c55589f026df346189972d37e7c53fd37e34d3f6  prefix_config_both.out
+  07bbf8f5f45acb259c7962eb3c9bba01344626c54b2e82d944953692a5fac699  prefix_config_both.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_both.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_both.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_prefix_config_bad.out
@@ -1794,7 +1794,7 @@ sha256:
   5b901780df63af03b7785c360be7936f5b9e54b4e84afede380febb7e149155c  delete_hard_force_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_force_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_force_json.exit
-  422056cffdfd2d4bbccb504c841fe05084ba7a972dcb6def8bffbeb38e9094b7  delete_hard_cascade_json.out
+  17ebd38a3919c99d296ab73fbde849a050d589affe31e5347c64ea7826dce8fe  delete_hard_cascade_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_cascade_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_cascade_json.exit
   77c8c846694dd370c92a17b3e29a6201601c3f3a42fd0fee94b1980f08e27233  delete_hard_preview.out
@@ -3192,3 +3192,18 @@ sha256:
   7542d7ca3ba733526441084ce98a6d734c4800014dce7d7102d786d92af19e56  env_serial_export.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  env_serial_export.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  env_serial_export.exit
+  8419b6461f2f18454c715e673fe76546b0207539ee4f36e5fdf46cbaa89ec9c0  create_file_md.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_file_md.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_file_md.exit
+  8bf113f37fd87fa66093f9088be73274d3e298bfa753fe623ac6877a34af937e  create_file_md_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_file_md_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_file_md_json.exit
+  e4d6c16697d5696c3a1c495987821d609e51e764c0bd34e42b5ef0215304a638  create_file_md_edges.out
+  accf456cca671849e2705f205e5a9d048c217c81c0f666469167552a10bcaedc  create_file_md_edges.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_file_md_edges.exit
+  b627821b15182696ea44a048b28e6240eb07c7afa9cfd3adf53418909bb45905  create_file_md_rules.out
+  e1773908547a07b72713a2d3b3b2fc829e8f44f401f5539f632933b6c1096579  create_file_md_rules.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_file_md_rules.exit
+  af7544be483cb8edf5b220b74e98552325611e2b69b624ffb00c8d6b782f9474  create_file_md_one.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_file_md_one.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_file_md_one.exit

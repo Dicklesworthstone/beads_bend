@@ -126,13 +126,18 @@ def body_char(+c: U32, acc: String, keep: Bool, cr: Bool, ctl: Bool) -> String:
     case False{} False{} False{}:
       SCon{Chr{c}, acc}
 
+# S5.112 (spec twin) the body of a REVERSED text built in front of `acc` (what follows it): an accumulator, so a
+# 200 KB text does not recurse once per character (bb-rvt)
+def body_go(rev: String, acc: String) -> String:
+  match rev:
+    case SNil{}:
+      acc
+    case SCon{Chr{+c}, rest}:
+      body_go(rest, body_char(c, acc, (U32.is_eq(c, 9) || U32.is_eq(c, 10)), U32.is_eq(c, 13), ((c < 32 : U32) || ((c >= 127 : U32) && (c <= 159 : U32)))))
+
 # S5.112 (spec twin) a free-text body: `\n` and `\t` are preserved, every other control character is escaped
 def body(s: String) -> String:
-  match s:
-    case SNil{}:
-      ""
-    case SCon{Chr{+c}, rest}:
-      body_char(c, body(rest), (U32.is_eq(c, 9) || U32.is_eq(c, 10)), U32.is_eq(c, 13), ((c < 32 : U32) || ((c >= 127 : U32) && (c <= 159 : U32))))
+  body_go(String.reverse(s), "")
 
 # S5.143 (spec twin) ASCII upper case of one code point
 def upper_char(+c: U32, low: Bool) -> U32:
@@ -210,13 +215,83 @@ def closed_line(at: Maybe<&2, Time.Instant>, reason: Maybe<&2, String>) -> Strin
     case Some{when} other:
       "Closed: " ++ Render.date(when) ++ " (closed)\n"
 
-# S5.115 (spec twin) the leading spaces of a line: its indentation, carried onto every continuation
-def indent_of(s: String) -> String:
+# S5.115 (spec twin) one more space of the indentation while the leading run lasts
+def indent_add(keep: Bool, acc: String) -> String:
+  match keep:
+    case True{}:
+      SCon{Chr{32}, acc}
+    case False{}:
+      acc
+
+# S5.115 (spec twin) the leading run of spaces, by a tail walk over the whole line (`on` stays true while every code
+# point so far is a space; the run is all spaces, so the accumulator needs no reverse). The eager `Bool.pick` form
+# recursed once per code point of the line and faulted the JS lane on a 200 KB line (bb-rvt)
+def indent_go(s: String, +on: Bool, acc: String) -> String:
   match s:
     case SNil{}:
-      ""
+      acc
     case SCon{Chr{+c}, rest}:
-      Bool.pick(String, U32.is_eq(c, 32), SCon{Chr{c}, indent_of(rest)}, "")
+      indent_go(rest, (on && U32.is_eq(c, 32)), indent_add((on && U32.is_eq(c, 32)), acc))
+
+# S5.115 (spec twin) the leading spaces of a line: its indentation, carried onto every continuation
+def indent_of(s: String) -> String:
+  indent_go(s, True{}, "")
+
+# S5.115 (data) `String.split` by accumulators: the piece being built (REVERSED) and the finished pieces (REVERSED)
+type Pieces is Data:
+  Pieces{cur: String, acc: List<&2, String>}
+
+# S5.115 (spec twin) one code point: a separator finishes the piece, any other code point extends it
+def pieces_put(cut: Bool, +c: U32, p: Pieces) -> Pieces:
+  match cut:
+    case True{}:
+      match p:
+        case Pieces{cur, acc}:
+          Pieces{"", String.reverse(cur) <> acc}
+    case False{}:
+      match p:
+        case Pieces{cur, acc}:
+          Pieces{SCon{Chr{c}, cur}, acc}
+
+# S5.115 (spec twin) the walk, one tail call per code point
+def pieces_go(s: String, +sep: U32, p: Pieces) -> Pieces:
+  match s:
+    case SNil{}:
+      p
+    case SCon{Chr{+c}, rest}:
+      pieces_go(rest, sep, pieces_put(U32.is_eq(c, sep), c, p))
+
+# S5.115 (spec twin) the last piece finished
+def pieces_end(p: Pieces) -> List<&2, String>:
+  match p:
+    case Pieces{cur, acc}:
+      String.reverse(cur) <> acc
+
+# S5.115 (spec twin) the pieces of a text between separators, as `String.split` gives them (an empty text is one empty
+# piece), without recursing once per code point (Base's split does, and a 200 KB body faulted the JS lane, bb-rvt)
+def pieces(s: String, +sep: U32) -> List<&2, String>:
+  List.reverse(&2, String, pieces_end(pieces_go(s, sep, Pieces{"", Nil{}})))
+
+# S5.115 (spec twin) the REVERSED pieces joined in front of acc, the separator between two neighbours; `++` walks its
+# left operand only, so each step walks one piece and the separator, never the text joined so far (linear)
+def joined_go(rev: List<&2, String>, +sep: String, acc: String) -> String:
+  match rev:
+    case Nil{}:
+      acc
+    case Con{x, rest}:
+      joined_go(rest, sep, x ++ sep ++ acc)
+
+# S5.115 (spec twin) the last of the REVERSED pieces opens the accumulator
+def joined_rev(rev: List<&2, String>, +sep: String) -> String:
+  match rev:
+    case Nil{}:
+      ""
+    case Con{x, rest}:
+      joined_go(rest, sep, x)
+
+# S5.115 (spec twin) pieces joined by a separator, as `String.join`, by a tail loop over the pieces
+def joined(xs: List<&2, String>, +sep: String) -> String:
+  joined_rev(List.reverse(&2, String, xs), sep)
 
 # S5.115 (data) greedy filling: the finished lines (REVERSED), the line being built and its length in code points
 type Fill is Data:
@@ -249,7 +324,7 @@ def fill(words: List<&2, String>, st: Fill, +indent: String, +width: Nat) -> Fil
 def filled(st: Fill) -> String:
   match st:
     case Fill{done, cur, used}:
-      String.join(List.reverse(&2, String, cur <> done), "\n")
+      joined(List.reverse(&2, String, cur <> done), "\n")
 
 # S5.115 (spec twin) the first word opens the first line after the indentation; the words are the text after the
 # indentation split at single spaces, so a line that fits comes back unchanged
@@ -262,15 +337,20 @@ def wrap_words(words: List<&2, String>, +indent: String, +width: Nat) -> String:
 
 # S5.115 (spec twin) one line of a body, soft-wrapped: breaks at spaces only, never inside a word
 def wrap_line(+line: String, +width: Nat) -> String:
-  wrap_words(String.split(String.drop(line, String.length(indent_of(line))), Chr{32}), indent_of(line), width)
+  wrap_words(pieces(String.drop(line, String.length(indent_of(line))), 32), indent_of(line), width)
+
+# S5.115 (spec twin) every line of a body wrapped, REVERSED onto acc (one tail call per line: a body of many short
+# lines does not recurse once per line, bb-rvt)
+def wrap_lines_go(lines: List<&2, String>, +width: Nat, acc: List<&2, String>) -> List<&2, String>:
+  match lines:
+    case Nil{}:
+      acc
+    case Con{+l, rest}:
+      wrap_lines_go(rest, width, wrap_line(l, width) <> acc)
 
 # S5.115 (spec twin) every line of a body, its existing line breaks preserved
 def wrap_lines(lines: List<&2, String>, +width: Nat) -> List<&2, String>:
-  match lines:
-    case Nil{}:
-      Nil{}
-    case Con{+l, rest}:
-      wrap_line(l, width) <> wrap_lines(rest, width)
+  List.reverse(&2, String, wrap_lines_go(lines, width, Nil{}))
 
 # S5.115 (spec twin) a rendered body at a width; width 0 is `--no-wrap`
 def wrapped(+text: String, width: Nat) -> String:
@@ -278,7 +358,7 @@ def wrapped(+text: String, width: Nat) -> String:
     case 0n:
       text
     case 1n+w:
-      String.join(wrap_lines(String.split(text, Chr{10}), Nat.add(w, 1n)), "\n")
+      joined(wrap_lines(pieces(text, 10), Nat.add(w, 1n)), "\n")
 
 # S5.115 (spec twin) the wrap width: `COLUMNS` when it reads as a number of at least 20, else 100; 0 under `--no-wrap`
 def width_of(+columns: String, no_wrap: Bool) -> Nat:

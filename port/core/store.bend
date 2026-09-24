@@ -469,34 +469,69 @@ def dep_self(+id: String) -> Failure.Failure:
 def dep_external_parent(+target: String) -> Failure.Failure:
   Failure.Failure{"VALIDATION_FAILED", "Validation failed: depends_on_id: parent-child dependencies must link local issues: " ++ target, None{}, True{}, [Failure.CtxMember{"field", Failure.CStr{"depends_on_id"}}, Failure.CtxMember{"reason", Failure.CStr{"parent-child dependencies must link local issues: " ++ target}}], 4}
 
-# S2.58 (spec twin) the rule one dependency breaks: the `issue_id` first, then the target itself, then a
-# `parent-child` edge to an `external:` target (`r12_ext_pc_load_json`, `r12_ext_pc_then_self`)
-def dep_pick(other: Bool, self: Bool, outside: Bool, +issue: String, +id: String, +target: String) -> Maybe<&2, Failure.Failure>:
+# S2.58 (spec twin) a refused stored `metadata`: VALIDATION_FAILED, exit 4, `retryable` true, the field
+# `dependencies[<k>].metadata` (k the edge's place in the record's array as stored, from 0) and its reason
+def meta_failure(+k: U32, +reason: String) -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: dependencies[" ++ U32.show(k) ++ "].metadata: " ++ reason, None{}, True{}, [Failure.CtxMember{"field", Failure.CStr{"dependencies[" ++ U32.show(k) ++ "].metadata"}}, Failure.CtxMember{"reason", Failure.CStr{reason}}], 4}
+
+# S2.58 (spec twin) the verdict on a stored `metadata` that is one JSON text: none when it is one JSON value;
+# otherwise the words of S4.350 with `issue` before the pair; what the port cannot judge exactly is its own "not
+# ported yet" failure (OQ-136)
+def meta_verdict(c: Json.Checked, +raw: String, +id: String, +target: String, +kind: String, +k: U32) -> Maybe<&2, Failure.Failure>:
+  match c:
+    case Json.CheckOk{toks}:
+      None{}
+    case Json.CheckBad{msg, at}:
+      Some{meta_failure(k, "dependency metadata must be valid JSON for issue " ++ id ++ " -> " ++ target ++ " (type=" ++ kind ++ "); " ++ Failure.meta_found(raw, msg, Json.place(raw, at)))}
+    case Json.CheckOdd{}:
+      Some{Failure.unported()}
+
+# S2.58 S2.37 (spec twin) a stored `metadata` that is set (absent or blank is "not set", S2.37) must be one JSON
+# value (`[1]`, `7`, `null`, ` {} ` pass; `x`, `{"a":` fail)
+def meta_bad(m: Maybe<&2, String>, +id: String, +target: String, +kind: String, +k: U32) -> Maybe<&2, Failure.Failure>:
+  match m:
+    case None{}:
+      None{}
+    case Some{+raw}:
+      Bool.pick(Maybe<&2, Failure.Failure>, String.is_empty(String.trim(raw)), None{}, meta_verdict(Json.value(raw), raw, id, target, kind, k))
+
+# S2.58 (spec twin) the refusal of rule (3), or of rule (4) when rule (3) passes
+def meta_first(meta: Maybe<&2, Failure.Failure>, +outside: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:
+  match meta:
+    case Some{f}:
+      Some{f}
+    case None{}:
+      outside
+
+# S2.58 (spec twin) the rule one dependency breaks: the `issue_id` first, then the target itself, then its
+# `metadata`, then a `parent-child` edge to an `external:` target (`r12_ext_pc_load_json`, `r12_ext_pc_then_self`;
+# the metadata before the `external:` rule: OQ-136)
+def dep_pick(other: Bool, self: Bool, outside: Bool, +issue: String, +id: String, +target: String, meta: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:
   match other self outside:
     case True{} _ _:
       Some{dep_other(issue, id)}
     case False{} True{} _:
       Some{dep_self(id)}
     case False{} False{} True{}:
-      Some{dep_external_parent(target)}
+      meta_first(meta, Some{dep_external_parent(target)})
     case False{} False{} False{}:
-      None{}
+      meta
 
-# S2.58 (spec twin) a refusal found already is kept; otherwise this dependency is asked
-def dep_keep(found: Maybe<&2, Failure.Failure>, +d: Model.Dependency, +id: String) -> Maybe<&2, Failure.Failure>:
+# S2.58 (spec twin) a refusal found already is kept; otherwise this dependency, the k-th of its record, is asked
+def dep_keep(found: Maybe<&2, Failure.Failure>, +d: Model.Dependency, +id: String, +k: U32) -> Maybe<&2, Failure.Failure>:
   match found:
     case Some{f}:
       Some{f}
     case None{}:
-      dep_pick(Bool.not(String.eq(Model.dep_issue_of(d), id)), String.eq(Model.target_of(d), id), (String.eq(Model.dep_type_repaired(Model.dep_type_of(d)), "parent-child") && String.starts_with(Model.target_of(d), "external:")), Model.dep_issue_of(d), id, Model.target_of(d))
+      dep_pick(Bool.not(String.eq(Model.dep_issue_of(d), id)), String.eq(Model.target_of(d), id), (String.eq(Model.dep_type_repaired(Model.dep_type_of(d)), "parent-child") && String.starts_with(Model.target_of(d), "external:")), Model.dep_issue_of(d), id, Model.target_of(d), meta_bad(Model.dep_meta_of(d), id, Model.target_of(d), Model.dep_type_repaired(Model.dep_type_of(d)), k))
 
-# S2.58 (spec twin) the first dependency of a record that breaks a rule, in order
-def deps_rule(ds: List<&2, Model.Dependency>, +id: String, found: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:
+# S2.58 (spec twin) the first dependency of a record that breaks a rule, in order; k counts the edges from 0
+def deps_rule(ds: List<&2, Model.Dependency>, +id: String, found: Maybe<&2, Failure.Failure>, +k: U32) -> Maybe<&2, Failure.Failure>:
   match ds:
     case Nil{}:
       found
     case Con{+d, rest}:
-      deps_rule(rest, id, dep_keep(found, d, id))
+      deps_rule(rest, id, dep_keep(found, d, id, k), (k + 1 : U32))
 
 # S2.58 (spec twin) a refusal found already is kept; otherwise this record's dependencies are asked
 def record_keep(found: Maybe<&2, Failure.Failure>, +i: Model.Issue) -> Maybe<&2, Failure.Failure>:
@@ -504,7 +539,7 @@ def record_keep(found: Maybe<&2, Failure.Failure>, +i: Model.Issue) -> Maybe<&2,
     case Some{f}:
       Some{f}
     case None{}:
-      deps_rule(Model.deps_of(i), Model.id_of(i), None{})
+      deps_rule(Model.deps_of(i), Model.id_of(i), None{}, 0)
 
 # S2.58 (spec twin) the first record, in file order, with a dependency that breaks a rule
 def records_rule(issues: List<&2, Model.Issue>, found: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:

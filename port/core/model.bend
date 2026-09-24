@@ -663,6 +663,12 @@ def dep_type_of(d: Dependency) -> String:
     case Dependency{_, _, dep_type, _, _, _, _}:
       dep_type
 
+# S3.5 S2.58 (spec twin) an edge's `metadata` as loaded
+def dep_meta_of(d: Dependency) -> Maybe<&2, String>:
+  match d:
+    case Dependency{_, _, _, _, _, metadata, _}:
+      metadata
+
 # S3.1 S4.171 (spec twin) is the issue pinned (an absent marker counts as not pinned)
 def is_pinned(i: Issue) -> Bool:
   match i:

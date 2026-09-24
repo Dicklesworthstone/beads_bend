@@ -1,0 +1,1 @@
+Error: Validation failed: metadata: dependency metadata must be valid JSON for proj-5u2 -> proj-mta (type=blocks); found "{\n x": key must be a string at line 2 column 2

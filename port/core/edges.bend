@@ -13,6 +13,7 @@ import ./blocked.bend as Blocked
 import ./create.bend as Create
 import ./render.bend as Render
 import ./json.bend as Json
+import ./resolve.bend as Resolve
 
 # S4.350–S4.363 (data) what one edge command answered: the refusal, or the model to write (unchanged on a no-op),
 # the plain text, the JSON payload, and the dependent's id for `.beads/last-touched`
@@ -287,14 +288,14 @@ type Meta is Data:
   MetaBad{failure: Failure.Failure}
 
 # S4.350 S4.353 (spec twin) the verdict on one JSON text: it is stored verbatim when it is one JSON value; otherwise
-# serde_json's message and column name the pair and the type. The text is quoted the way JSON escapes it, which is
-# Rust's debug quoting except for control characters other than tab, line feed and carriage return
+# serde_json's message and position name the pair and the type. The text is quoted by Rust's `{:?}` and the position
+# counts lines (`{` LF ` x` → `line 2 column 2`; OQ-136)
 def meta_checked(c: Json.Checked, +raw: String, +dependent: String, +target: String, +kind: String) -> Meta:
   match c:
     case Json.CheckOk{toks}:
       MetaOk{raw}
     case Json.CheckBad{msg, at}:
-      MetaBad{Create.invalid("metadata", "dependency metadata must be valid JSON for " ++ dependent ++ " -> " ++ target ++ " (type=" ++ kind ++ "); found " ++ Failure.quoted(raw) ++ ": " ++ msg ++ " at line 1 column " ++ U32.show(at))}
+      MetaBad{Create.invalid("metadata", "dependency metadata must be valid JSON for " ++ dependent ++ " -> " ++ target ++ " (type=" ++ kind ++ "); " ++ Failure.meta_found(raw, msg, Json.place(raw, at)))}
     case Json.CheckOdd{}:
       MetaBad{Failure.unported()}
 
@@ -361,3 +362,347 @@ def remove_edge(+model: List<&2, Model.Issue>, +i: Model.Issue, +dependent: Stri
 # S4.360 (spec twin) the warning a `dep remove` that found nothing writes to stderr
 def not_found_warning(+dependent: String, +target: String) -> String:
   "Warning: Dependency not found: " ++ Render.inline(dependent) ++ " → " ++ Render.inline(target) ++ "\n"
+
+# ---------------------------------------------------------------- the markdown import's issues and edges (S4.237)
+
+# S4.237 (data) a created heading: its title and its id
+type MdTitle is Data:
+  MdTitle{title: String, id: String}
+
+# S4.237 (data) an edge the import adds after every heading is created: a parent named by a LATER heading, or one
+# dependency word of an issue
+type MdPend is Data:
+  PendParent{child: String, title: String}
+  PendDep{issue: String, word: String}
+
+# S4.237 (data) the import so far: the world (its ids grow), the created records, the titles, the pending edges and
+# the refusals (all REVERSED)
+type MdRun is Data:
+  MdRun{world: Create.World, made: List<&2, Model.Issue>, titles: List<&2, MdTitle>, pend: List<&2, MdPend>, errs: List<&2, String>}
+
+# S4.237 (spec twin) the id of a created heading with this exact title
+def md_title_id(titles: List<&2, MdTitle>, +t: String) -> Maybe<&2, String>:
+  match titles:
+    case Nil{}:
+      None{}
+    case Con{MdTitle{title, +id}, rest}:
+      Bool.pick(Maybe<&2, String>, String.eq(title, t), Some{id}, md_title_id(rest, t))
+
+# S4.237 (spec twin) does a later heading carry this title
+def md_later(plans: List<&2, Create.MdPlan>, +t: String) -> Bool:
+  match plans:
+    case Nil{}:
+      False{}
+    case Con{Create.MdPlanOk{r, d, p, ds}, rest}:
+      (String.eq(Create.request_title(r), t) || md_later(rest, t))
+    case Con{Create.MdPlanBad{title, reason}, rest}:
+      (String.eq(title, t) || md_later(rest, t))
+
+# S4.237 (spec twin) the dependency words of a created issue, as pending edges (REVERSED onto acc)
+def md_pend_deps(words: List<&2, String>, +id: String, acc: List<&2, MdPend>) -> List<&2, MdPend>:
+  match words:
+    case Nil{}:
+      acc
+    case Con{w, rest}:
+      md_pend_deps(rest, id, PendDep{id, w} <> acc)
+
+# S4.237 (spec twin) a deferred parent, as a pending edge in front of the issue's dependency words
+def md_pend_parent(later: Maybe<&2, String>, +id: String, acc: List<&2, MdPend>) -> List<&2, MdPend>:
+  match later:
+    case None{}:
+      acc
+    case Some{t}:
+      PendParent{id, t} <> acc
+
+# S4.237 (spec twin) the world of the import so far
+def md_world(run: MdRun) -> Create.World:
+  match run:
+    case MdRun{w, made, titles, pend, errs}:
+      w
+
+# S4.237 (spec twin) the titles created so far
+def md_titles(run: MdRun) -> List<&2, MdTitle>:
+  match run:
+    case MdRun{w, made, titles, pend, errs}:
+      titles
+
+# S4.237 (spec twin) one refusal more
+def md_err(run: MdRun, +e: String) -> MdRun:
+  match run:
+    case MdRun{w, made, titles, pend, errs}:
+      MdRun{w, made, titles, pend, e <> errs}
+
+# S4.237 (spec twin) one heading made (or refused by the create itself): the record joins without `created_by`, with
+# its design; its pending edges follow it
+def md_made(m: Create.Made, +title: String, d: Maybe<&2, String>, later: Maybe<&2, String>, words: List<&2, String>, run: MdRun) -> MdRun:
+  match m run:
+    case Create.MadeBad{f} MdRun{w, made, titles, pend, errs}:
+      MdRun{w, made, titles, pend, ("✗ Failed to create " ++ title ++ ": " ++ Create.failure_message(f)) <> errs}
+    case Create.MadeOk{+issue, built} MdRun{w, made, titles, pend, errs}:
+      MdRun{Create.taken(w, Model.id_of(issue)), Create.without_creator(Create.with_design(issue, d)) <> made, MdTitle{title, Model.id_of(issue)} <> titles, md_pend_deps(words, Model.id_of(issue), md_pend_parent(later, Model.id_of(issue), pend)), errs}
+
+# S4.237 (spec twin) a heading whose parent is not a created title: an id (full or partial) makes a child; a LATER
+# heading's title defers the edge; anything else refuses the heading
+def md_parent_found(p: Create.Parent, +r: Create.Request, d: Maybe<&2, String>, +parent: String, words: List<&2, String>, later: Bool, +run: MdRun) -> MdRun:
+  match p later:
+    case Create.ParentOk{id} _:
+      md_made(Create.make(Create.with_parent(r, id), md_world(run)), Create.request_title(r), d, None{}, words, run)
+    case Create.ParentBad{f} True{}:
+      md_made(Create.make(r, md_world(run)), Create.request_title(r), d, Some{parent}, words, run)
+    case Create.ParentBad{f} False{}:
+      md_err(run, "✗ Failed to resolve parent for " ++ Create.request_title(r) ++ ": " ++ Create.failure_message(f))
+    case Create.ParentNone{} _:
+      md_made(Create.make(r, md_world(run)), Create.request_title(r), d, None{}, words, run)
+
+# S4.237 (spec twin) a heading's parent: a created title first, then an id, then a later title
+def md_parented(found: Maybe<&2, String>, +r: Create.Request, d: Maybe<&2, String>, +parent: String, words: List<&2, String>, rest: List<&2, Create.MdPlan>, +run: MdRun) -> MdRun:
+  match found:
+    case Some{id}:
+      md_made(Create.make(Create.with_parent(r, id), md_world(run)), Create.request_title(r), d, None{}, words, run)
+    case None{}:
+      md_parent_found(Create.parent_of(Some{parent}, md_world(run)), r, d, parent, words, md_later(rest, parent), run)
+
+# S4.237 (spec twin) one heading of the first pass; `rest` are the headings after it
+def md_first(p: Create.MdPlan, rest: List<&2, Create.MdPlan>, +run: MdRun) -> MdRun:
+  match p:
+    case Create.MdPlanBad{title, reason}:
+      md_err(run, "✗ Failed to create " ++ title ++ ": " ++ reason)
+    case Create.MdPlanOk{+r, d, None{}, words}:
+      md_made(Create.make(r, md_world(run)), Create.request_title(r), d, None{}, words, run)
+    case Create.MdPlanOk{+r, d, Some{+parent}, words}:
+      md_parented(md_title_id(md_titles(run), parent), r, d, parent, words, rest, run)
+
+# S4.237 (spec twin) the first pass: every heading in order
+def md_pass1(plans: List<&2, Create.MdPlan>, run: MdRun) -> MdRun:
+  match plans:
+    case Nil{}:
+      run
+    case Con{p, +rest}:
+      md_pass1(rest, md_first(p, rest, run))
+
+# S4.237 (data) an edge to add: the dependent, the target, the type
+type MdEdge is Data:
+  MdEdge{from: String, to: String, kind: String}
+
+# S4.237 (data) the second pass's answer: the edges (REVERSED) and the warnings (REVERSED)
+type MdLinks is Data:
+  MdLinks{edges: List<&2, MdEdge>, warns: List<&2, String>}
+
+# S4.237 (spec twin) a dependency word's type and reference: `<known type>:<ref>`, else the whole word as a `blocks` ref
+def md_word_cut(c: Resolve.Cut, +word: String) -> Resolve.Cut:
+  match c:
+    case Resolve.Cut{+t, right, found}:
+      Bool.pick(Resolve.Cut, Model.listed_word(Model.known_dep_types(), Create.dep_kind(t)), Resolve.Cut{Create.dep_kind(t), String.trim(right), True{}}, Resolve.Cut{"blocks", word, True{}})
+
+# S4.237 (spec twin) one dependency word resolved: a created title first, then an id; unresolved is a warning
+def md_dep_found(title_hit: Maybe<&2, String>, f: Resolve.Found, +from: String, +kind: String, +word: String, links: MdLinks) -> MdLinks:
+  match title_hit f links:
+    case Some{id} _ MdLinks{edges, warns}:
+      MdLinks{MdEdge{from, id, kind} <> edges, warns}
+    case None{} Resolve.FoundOk{id} MdLinks{edges, warns}:
+      MdLinks{MdEdge{from, id, kind} <> edges, warns}
+    case None{} Resolve.FoundBad{e} MdLinks{edges, warns}:
+      MdLinks{edges, ("warning: unresolved dependency '" ++ word ++ "' for issue " ++ from ++ ": " ++ Create.failure_message(e)) <> warns}
+
+# S4.237 (spec twin) one dependency word, cut
+def md_dep_cut(c: Resolve.Cut, +from: String, +word: String, +titles: List<&2, MdTitle>, +w: Create.World, links: MdLinks) -> MdLinks:
+  match c:
+    case Resolve.Cut{+kind, +ref, found}:
+      md_dep_found(md_title_id(titles, ref), Create.dep_target(ref, w), from, kind, word, links)
+
+# S4.237 (spec twin) a deferred parent: the later heading's id (none when that heading was not created)
+def md_parent_edge(hit: Maybe<&2, String>, +child: String, links: MdLinks) -> MdLinks:
+  match hit links:
+    case Some{id} MdLinks{edges, warns}:
+      MdLinks{MdEdge{child, id, "parent-child"} <> edges, warns}
+    case None{} other:
+      other
+
+# S4.237 (spec twin) the second pass: every pending edge in order
+def md_pass2(pend: List<&2, MdPend>, +titles: List<&2, MdTitle>, +w: Create.World, links: MdLinks) -> MdLinks:
+  match pend:
+    case Nil{}:
+      links
+    case Con{PendParent{child, t}, rest}:
+      md_pass2(rest, titles, w, md_parent_edge(md_title_id(titles, t), child, links))
+    case Con{PendDep{from, +word}, rest}:
+      md_pass2(rest, titles, w, md_dep_cut(md_word_cut(Create.dep_cut(word), word), from, word, titles, w, links))
+
+# S4.237 (spec twin) a record with one more edge
+def md_with_edge(i: Model.Issue, e: Model.Dependency) -> Model.Issue:
+  match i:
+    case Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, deps, comments}:
+      Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, List.append(&2, Model.Dependency, deps, e <> Nil{}), comments}
+
+# S4.237 (spec twin) an edge put on its dependent among the created records
+def md_attach(made: List<&2, Model.Issue>, +from: String, +e: Model.Dependency) -> List<&2, Model.Issue>:
+  match made:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      Bool.pick(Model.Issue, String.eq(Model.id_of(i), from), md_with_edge(i, e), i) <> md_attach(rest, from, e)
+
+# S4.237 (data) one predecessor on a path search: the node and the node it was reached from
+type MdPred is Data:
+  MdPred{node: String, from: String}
+
+# S4.237 (spec twin) has a node been reached
+def md_seen(preds: List<&2, MdPred>, +n: String) -> Bool:
+  match preds:
+    case Nil{}:
+      False{}
+    case Con{MdPred{node, from}, rest}:
+      (String.eq(node, n) || md_seen(rest, n))
+
+# S4.237 (data) a round of the search: the predecessors and the next frontier (REVERSED)
+type MdPreds is Data:
+  MdPreds{preds: List<&2, MdPred>, next: List<&2, String>}
+
+# S4.237 (spec twin) keep a newly reached node
+def md_keep_arc(hit: Bool, +to: String, +n: String, st: MdPreds) -> MdPreds:
+  match hit st:
+    case True{} MdPreds{preds, next}:
+      MdPreds{MdPred{to, n} <> preds, to <> next}
+    case False{} other:
+      other
+
+# S4.237 (spec twin) whether an arc leaves `n` for a node not reached yet
+def md_fresh(+from: String, +to: String, +n: String, st: MdPreds) -> Bool:
+  match st:
+    case MdPreds{preds, next}:
+      (String.eq(from, n) && Bool.not(md_seen(preds, to)))
+
+# S4.237 (spec twin) one node's arcs, in arc order, reached for the first time
+def md_expand(ways: List<&2, Arc>, +n: String, +st: MdPreds) -> MdPreds:
+  match ways:
+    case Nil{}:
+      st
+    case Con{Arc{+from, +to}, rest}:
+      md_expand(rest, n, md_keep_arc(md_fresh(from, to, n, st), to, n, st))
+
+# S4.237 (spec twin) one round over a frontier
+def md_round(frontier: List<&2, String>, +ways: List<&2, Arc>, acc: MdPreds) -> MdPreds:
+  match frontier:
+    case Nil{}:
+      acc
+    case Con{+n, rest}:
+      md_round(rest, ways, md_expand(ways, n, acc))
+
+# S4.237 (spec twin) the breadth-first search from `start` until `goal` is reached (fuel: one round per node)
+def md_search(fuel: Nat, st: MdPreds, +ways: List<&2, Arc>, +goal: String) -> List<&2, MdPred>:
+  match fuel st:
+    case 0n MdPreds{preds, next}:
+      preds
+    case 1n+g MdPreds{+preds, +next}:
+      Bool.pick(List<&2, MdPred>, (md_seen(preds, goal) || List.is_empty(&2, String, next)), preds, md_search(g, md_round(List.reverse(&2, String, next), ways, MdPreds{preds, Nil{}}), ways, goal))
+
+# S4.237 (spec twin) the predecessor of a node
+def md_pred_of(preds: List<&2, MdPred>, +n: String) -> String:
+  match preds:
+    case Nil{}:
+      ""
+    case Con{MdPred{+node, from}, rest}:
+      Bool.pick(String, String.eq(node, n), from, md_pred_of(rest, n))
+
+# S4.237 (spec twin) the path back from `n` to `start`, as a list from start to n
+def md_back(fuel: Nat, +preds: List<&2, MdPred>, +start: String, +n: String, +acc: List<&2, String>) -> List<&2, String>:
+  match fuel:
+    case 0n:
+      n <> acc
+    case 1n+g:
+      Bool.pick(List<&2, String>, String.eq(n, start), n <> acc, md_back(g, preds, start, md_pred_of(preds, n), n <> acc))
+
+# S4.237 (spec twin) the least of some ids, in byte order
+def md_least(ids: List<&2, String>, +best: String) -> String:
+  match ids:
+    case Nil{}:
+      best
+    case Con{+i, rest}:
+      md_least(rest, Bool.pick(String, String.is_le(i, best), i, best))
+
+# S4.237 (spec twin) a ring of ids turned to start at `first`: the part from it on, then the part before it
+def md_turn(ring: List<&2, String>, +first: String, +before: List<&2, String>) -> List<&2, String>:
+  match ring:
+    case Nil{}:
+      List.reverse(&2, String, before)
+    case Con{+i, +rest}:
+      Bool.pick(List<&2, String>, String.eq(i, first), List.append(&2, String, i <> rest, List.reverse(&2, String, before)), md_turn(rest, first, i <> before))
+
+# S4.237 (spec twin) a ring as the words `a -> b -> … -> a`
+def md_cycle_ring(+ring: List<&2, String>) -> String:
+  String.join(List.append(&2, String, md_turn(ring, md_least(ring, Maybe.default(&2, String, List.head(&2, String, ring), "")), Nil{}), md_least(ring, Maybe.default(&2, String, List.head(&2, String, ring), "")) <> Nil{}), " -> ")
+
+# S4.237 (spec twin) the cycle an edge from → to closes, as the bulk warning prints it: the path to ⇝ from along the
+# blocking arcs, turned to start at its least id and closed on it
+def md_cycle_text(+issues: List<&2, Model.Issue>, +from: String, +to: String) -> String:
+  md_cycle_ring(md_back(Nat.add(List.length(&2, Model.Issue, issues), 1n), md_search(Nat.add(List.length(&2, Model.Issue, issues), 1n), MdPreds{MdPred{to, to} <> Nil{}, to <> Nil{}}, arcs(issues), from), to, from, Nil{}))
+
+# S4.237 (data) the third pass so far: the created records, the store with them, the first cycle's words, the failures
+# (REVERSED)
+type MdAdd is Data:
+  MdAdd{made: List<&2, Model.Issue>, cycle: Maybe<&2, String>, fails: List<&2, String>}
+
+# S4.237 (spec twin) would an edge close a cycle
+def md_closes(e: MdEdge, +issues: List<&2, Model.Issue>) -> Bool:
+  match e:
+    case MdEdge{+from, +to, +kind}:
+      closes_cycle(issues, from, to, kind)
+
+# S4.237 (spec twin) the cycle the bulk warning names: the first one met
+def md_first_cycle(cycle: Maybe<&2, String>, +issues: List<&2, Model.Issue>, +from: String, +to: String) -> Maybe<&2, String>:
+  match cycle:
+    case Some{c}:
+      Some{c}
+    case None{}:
+      Some{md_cycle_text(issues, from, to)}
+
+# S4.237 (spec twin) an edge that closes a cycle is refused (the first one names the cycle); any other is added
+def md_add_pick(closes: Bool, +e: MdEdge, +model: List<&2, Model.Issue>, +w: Create.World, st: MdAdd) -> MdAdd:
+  match closes e st:
+    case True{} MdEdge{+from, +to, kind} MdAdd{+made, cycle, fails}:
+      MdAdd{made, md_first_cycle(cycle, List.append(&2, Model.Issue, model, made), from, to), ("warning: failed to add dependency " ++ from ++ " → " ++ to ++ ": Cycle detected in dependencies: Adding dependency " ++ from ++ " -> " ++ to ++ " would create a cycle") <> fails}
+    case False{} MdEdge{+from, to, +kind} MdAdd{made, cycle, fails}:
+      MdAdd{md_attach(made, from, Create.edge_of(from, to, kind, w)), cycle, fails}
+
+# S4.237 (spec twin) the third pass: the edges added one at a time, in order, each checked against the store and the
+# edges added before it
+def md_pass3(edges: List<&2, MdEdge>, +model: List<&2, Model.Issue>, +w: Create.World, st: MdAdd) -> MdAdd:
+  match edges st:
+    case Nil{} other:
+      other
+    case Con{+e, rest} MdAdd{+made, cycle, fails}:
+      md_pass3(rest, model, w, md_add_pick(md_closes(e, List.append(&2, Model.Issue, model, made)), e, model, w, MdAdd{made, cycle, fails}))
+
+# S4.237 (data) what the import did: the created records in heading order, stderr's lines in order, the exit code
+type MdResult is Data:
+  MdResult{made: List<&2, Model.Issue>, errs: List<&2, String>, code: U32}
+
+# S4.237 (spec twin) the third pass's words: the bulk warning (once, when a cycle was met) before the failures
+def md_cycle_words(cycle: Maybe<&2, String>, fails: List<&2, String>) -> List<&2, String>:
+  match cycle:
+    case None{}:
+      fails
+    case Some{c}:
+      ("warning: bulk dependency import failed (Cycle detected in dependencies: " ++ c ++ "); retrying dependencies one by one") <> fails
+
+# S4.237 (spec twin) the answer from the three passes: exit 5 when a dependency was unresolved or refused
+def md_result(add: MdAdd, +links_warns: List<&2, String>, errs: List<&2, String>) -> MdResult:
+  match add:
+    case MdAdd{made, cycle, +fails}:
+      MdResult{made, List.concat(&2, String, [List.reverse(&2, String, errs), List.reverse(&2, String, links_warns), md_cycle_words(cycle, List.reverse(&2, String, fails))]), Bool.pick(U32, (List.is_empty(&2, String, links_warns) && List.is_empty(&2, String, fails)), 0, 5)}
+
+# S4.237 (spec twin) the third pass over the second's edges
+def md_linked2(links: MdLinks, made: List<&2, Model.Issue>, +model: List<&2, Model.Issue>, +w: Create.World, errs: List<&2, String>) -> MdResult:
+  match links:
+    case MdLinks{edges, warns}:
+      md_result(md_pass3(List.reverse(&2, MdEdge, edges), model, w, MdAdd{List.reverse(&2, Model.Issue, made), None{}, Nil{}}), warns, errs)
+
+# S4.237 (spec twin) the passes after the first: the pending edges resolved, then added
+def md_linked(run: MdRun, +model: List<&2, Model.Issue>) -> MdResult:
+  match run:
+    case MdRun{+w, made, +titles, pend, errs}:
+      md_linked2(md_pass2(List.reverse(&2, MdPend, pend), titles, w, MdLinks{Nil{}, Nil{}}), made, model, w, errs)
+
+# S4.237 (spec twin) the whole import of a file's plans into a store
+def md_import(plans: List<&2, Create.MdPlan>, w: Create.World, +model: List<&2, Model.Issue>) -> MdResult:
+  md_linked(md_pass1(plans, MdRun{w, Nil{}, Nil{}, Nil{}, Nil{}}), model)

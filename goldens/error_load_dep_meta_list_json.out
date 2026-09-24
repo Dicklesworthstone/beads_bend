@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: dependencies[1].metadata: dependency metadata must be valid JSON for issue proj-a1 -> proj-b1 (type=blocks); found \"x\": expected value at line 1 column 1",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "dependencies[1].metadata",
+      "reason": "dependency metadata must be valid JSON for issue proj-a1 -> proj-b1 (type=blocks); found \"x\": expected value at line 1 column 1"
+    }
+  }
+}

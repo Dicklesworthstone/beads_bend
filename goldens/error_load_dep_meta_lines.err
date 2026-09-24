@@ -1,0 +1,1 @@
+Error: Validation failed: dependencies[4].metadata: dependency metadata must be valid JSON for issue proj-a1 -> proj-f1 (type=related); found "{\n\t\u{1}é\u{200b} x": key must be a string at line 2 column 2

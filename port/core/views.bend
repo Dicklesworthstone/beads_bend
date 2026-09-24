@@ -665,13 +665,22 @@ def label_list_all(all: List<&2, Model.Issue>, json: Bool) -> View:
 def minute_of(+full: String) -> String:
   String.take(full, 10n) ++ " " ++ String.take(String.drop(full, 11n), 5n) ++ " UTC"
 
-# S5.193 (spec twin) each comment is three lines: `[{author}] at {when}`, the body without trailing whitespace, a blank line
+# S5.193 (spec twin) a reversed text without its leading line feeds: a body's TRAILING newlines are stripped and nothing
+# else (a trailing space or tab stays: `hello ` prints `hello `; the port's earlier trim of all white space was wrong)
+def no_lead_lf(s: String) -> String:
+  match s:
+    case SCon{Chr{10}, rest}:
+      no_lead_lf(rest)
+    case other:
+      other
+
+# S5.193 (spec twin) each comment is three lines: `[{author}] at {when}`, the body without trailing newlines, a blank line
 def comment_blocks(items: List<&2, Model.Comment>) -> List<&2, String>:
   match items:
     case Nil{}:
       Nil{}
     case Con{Model.Comment{id, issue_id, author, text, created_at}, rest}:
-      String.concat(["[", Render.inline(author), "] at ", minute_of(Time.print(created_at, "Z")), "\n", String.trim_end(text), "\n\n"]) <> comment_blocks(rest)
+      String.concat(["[", Render.inline(author), "] at ", minute_of(Time.print(created_at, "Z")), "\n", String.reverse(no_lead_lf(String.reverse(text))), "\n\n"]) <> comment_blocks(rest)
 
 # S5.51 S5.192–S5.194 (spec twin) `comments list <id>`
 def comments_list(h: Hit, json: Bool) -> View:

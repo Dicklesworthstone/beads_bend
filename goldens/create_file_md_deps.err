@@ -1,0 +1,4 @@
+warning: unresolved dependency 'Nowhere' for issue proj-7uq: Issue not found: Nowhere
+warning: unresolved dependency 'Dep' for issue proj-oi1: Issue not found: Dep
+warning: unresolved dependency 'self' for issue proj-oi1: Issue not found: self
+warning: unresolved dependency 'weird:Base' for issue proj-cn1: Issue not found: weird:Base

@@ -681,23 +681,23 @@ def md_errs(fails: List<&2, String>) -> String:
 # S4.237 (spec twin) what an import prints and writes: nothing created prints an empty JSON array (or nothing) and
 # writes nothing; otherwise `✓ Created <n> issues from <path>:` and the list (or the JSON array), one write-back of
 # the whole store and `last-touched` = the last created id
-def md_done(+made: List<&2, Model.Issue>, fails: List<&2, String>, +path: String, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
+def md_done(+made: List<&2, Model.Issue>, fails: List<&2, String>, +path: String, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool, code: U32) -> Outcome:
   match made:
     case Nil{}:
-      Outcome{Bool.pick(String, (json && Bool.not(quiet)), "[]\n", ""), md_errs(fails), 0, Nil{}}
+      Outcome{Bool.pick(String, (json && Bool.not(quiet)), "[]\n", ""), md_errs(fails), code, Nil{}}
     case Con{h, t}:
-      Outcome{Bool.pick(String, quiet, "", Bool.pick(String, json, "[" ++ String.join(md_json(made), ",") ++ "]\n", "✓ Created " ++ Nat.show(List.length(&2, Model.Issue, made)) ++ " issues from " ++ path ++ ":\n" ++ md_listed(made))), md_errs(fails), 0, changes(Some{Store.text(List.append(&2, Model.Issue, model, made))}, Model.id_of(Maybe.default(&2, Model.Issue, List.last(&2, Model.Issue, made), h)))}
+      Outcome{Bool.pick(String, quiet, "", Bool.pick(String, json, "[" ++ String.join(md_json(made), ",") ++ "]\n", "✓ Created " ++ Nat.show(List.length(&2, Model.Issue, made)) ++ " issues from " ++ path ++ ":\n" ++ md_listed(made))), md_errs(fails), code, changes(Some{Store.text(List.append(&2, Model.Issue, model, made))}, Model.id_of(Maybe.default(&2, Model.Issue, List.last(&2, Model.Issue, made), h)))}
 
-# S4.237 (spec twin) the batch of an import, rendered
-def md_out(b: Create.MdBatch, +path: String, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
-  match b:
-    case Create.MdBatch{w, made, fails}:
-      md_done(List.reverse(&2, Model.Issue, made), List.reverse(&2, String, fails), path, model, json, quiet)
+# S4.237 (spec twin) the import's answer, rendered
+def md_out(r: Edges.MdResult, +path: String, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
+  match r:
+    case Edges.MdResult{made, errs, code}:
+      md_done(made, errs, path, model, json, quiet, code)
 
-# S4.237 (spec twin) the markdown import of a read file: a heading that names a parent or dependencies keeps the
-# port's own refusal (not ported yet: bead bb-y4p); otherwise every heading is created in order
+# S4.237 (spec twin) the markdown import of a read file: every heading created in order, then the parents named by
+# later headings and the dependencies (Edges.md_import)
 def md_import(+text: String, +path: String, w: Create.World, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
-  Bool.pick(Outcome, Create.md_any_linked(Create.md_plans(Create.md_parse(text))), failed(Failure.unported(), json), md_out(Create.md_steps(Create.md_plans(Create.md_parse(text)), Create.MdBatch{Create.md_world(w), Nil{}, Nil{}}), path, model, json, quiet))
+  md_out(Edges.md_import(Create.md_plans(Create.md_parse(text)), w, model), path, model, json, quiet)
 
 # S4.237 (spec twin) the file of `create -f` once its name passed: a file that is not there is refused; a read one is
 # imported (without the pinned instant, the port refuses as `create` does)

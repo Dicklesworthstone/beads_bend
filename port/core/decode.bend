@@ -473,13 +473,33 @@ def dep_put(idx: U32, d: Model.Dependency, got_str: Got, got_opt: Got, got_time:
 def dep_names() -> List<&2, String>:
   ["issue_id", "depends_on_id", "type", "created_at", "created_by", "metadata", "thread_id"]
 
+# S3.5 (spec twin) one member read by the one reader its index needs (0–2 strings, 3 an instant, 4–6 optional
+# strings; an unknown name is kept), as `com_read`: the unused slots get an inert `GotStr{""}` that `dep_put` never
+# reads for that index, so a long `metadata` is not walked by the other readers (bb-rvt)
+def dep_read_at(plain: Bool, idx: U32, d: Model.Dependency, +value: List<&2, Json.Tok>) -> DepDec:
+  match plain:
+    case True{}:
+      dep_put(idx, d, take_str(value), GotStr{""}, GotStr{""}, value_col(value))
+    case False{}:
+      dep_put(idx, d, GotStr{""}, take_opt_str(value), GotStr{""}, value_col(value))
+
+# S3.5 (spec twin) the member by its index (see `dep_read_at`)
+def dep_read(idx: U32, d: Model.Dependency, +value: List<&2, Json.Tok>) -> DepDec:
+  match idx:
+    case 3:
+      dep_put(3, d, GotStr{""}, GotStr{""}, take_time(value), value_col(value))
+    case 999:
+      dep_put(999, d, GotStr{""}, GotStr{""}, GotStr{""}, 0)
+    case +other:
+      dep_read_at((U32.is_eq(other, 0) || U32.is_eq(other, 1) || U32.is_eq(other, 2)), other, d, value)
+
 # S3.5 (spec twin) a refusal is sticky; otherwise read one member
 def dep_member(st: DepDec, key: String, +value: List<&2, Json.Tok>) -> DepDec:
   match st:
     case DepBad{msg, at}:
       DepBad{msg, at}
     case DepOk{d}:
-      dep_put(index_of(dep_names(), key), d, take_str(value), take_opt_str(value), take_time(value), value_col(value))
+      dep_read(index_of(dep_names(), key), d, value)
 
 # S3.5 (spec twin) the loop over a dependency's members
 def dep_go(ms: List<&2, Json.Member>, st: DepDec) -> DepDec:
@@ -575,13 +595,28 @@ def com_put(idx: U32, c: Model.Comment, got_str: Got, got_int: Got, got_time: Go
 def com_names() -> List<&2, String>:
   ["id", "issue_id", "author", "text", "created_at"]
 
+# S3.6 (spec twin) one member read by the one reader its index needs (`id` an integer, `created_at` an instant, the
+# rest strings; an unknown name is kept). Only that reader runs: every reader of a long `text` built its own refusal
+# message and parse over the whole text, which faulted the JS lane on an 80 KB comment (bb-rvt). The unused slots get
+# an inert `GotStr{""}` that `com_put` never reads for that index
+def com_read(idx: U32, c: Model.Comment, +value: List<&2, Json.Tok>) -> ComDec:
+  match idx:
+    case 0:
+      com_put(0, c, GotStr{""}, take_int(value, True{}), GotStr{""}, value_col(value))
+    case 4:
+      com_put(4, c, GotStr{""}, GotStr{""}, take_time(value), value_col(value))
+    case 999:
+      com_put(999, c, GotStr{""}, GotStr{""}, GotStr{""}, 0)
+    case other:
+      com_put(other, c, take_str(value), GotStr{""}, GotStr{""}, value_col(value))
+
 # S3.6 (spec twin) a refusal is sticky; otherwise read one member
 def com_member(st: ComDec, key: String, +value: List<&2, Json.Tok>) -> ComDec:
   match st:
     case ComBad{msg, at}:
       ComBad{msg, at}
     case ComOk{c}:
-      com_put(index_of(com_names(), key), c, take_str(value), take_int(value, True{}), take_time(value), value_col(value))
+      com_read(index_of(com_names(), key), c, value)
 
 # S3.6 (spec twin) the loop over a comment's members
 def com_go(ms: List<&2, Json.Member>, st: ComDec) -> ComDec:

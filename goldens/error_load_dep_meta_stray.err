@@ -1,0 +1,1 @@
+Error: Validation failed: dependencies[0].metadata: dependency metadata must be valid JSON for issue proj-a1 -> proj-b1 (type=blocks); found "é\t\"q": expected value at line 1 column 1

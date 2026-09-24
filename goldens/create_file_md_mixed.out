@@ -1,0 +1,10 @@
+✓ Created 3 issues from md_sections.md:
+  proj-ldo: Alpha
+  proj-ldo.1: Beta
+  proj-ea4: Gamma
+--- .beads/issues.jsonl ---
+{"id":"proj-ea4","title":"Gamma","status":"open","priority":3,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ldo","title":"Alpha","description":"First line of alpha.","design":"The design.","acceptance_criteria":"It works.","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-ldo","depends_on_id":"proj-ldo.1","type":"blocks","created_at":"2026-01-02T03:04:05Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-ldo.1","title":"Beta","status":"open","priority":0,"issue_type":"feature","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["one","two"],"dependencies":[{"issue_id":"proj-ldo.1","depends_on_id":"proj-ldo","type":"parent-child","created_at":"2026-01-02T03:04:05Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+--- .beads/last-touched ---
+proj-ea4

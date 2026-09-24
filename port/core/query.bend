@@ -30,13 +30,18 @@ def lower_char(+c: U32, up: Bool) -> U32:
     case False{}:
       c
 
-# S4.105 S4.109 S4.112 (spec twin) a string with the 26 ASCII capitals folded to lower case and every other code point kept
-def folded(s: String) -> String:
+# S4.105 S4.109 S4.112 (spec twin) the fold below, REVERSED onto acc (an accumulator: a 200 KB text recursed once per
+# character faulted the JS lane, bb-rvt)
+def folded_go(s: String, acc: String) -> String:
   match s:
     case SNil{}:
-      ""
+      acc
     case SCon{Chr{+c}, rest}:
-      SCon{Chr{lower_char(c, ((c >= 65 : U32) && (c <= 90 : U32)))}, folded(rest)}
+      folded_go(rest, SCon{Chr{lower_char(c, ((c >= 65 : U32) && (c <= 90 : U32)))}, acc})
+
+# S4.105 S4.109 S4.112 (spec twin) a string with the 26 ASCII capitals folded to lower case and every other code point kept
+def folded(s: String) -> String:
+  String.reverse(folded_go(s, ""))
 
 # S4.107 (spec twin) ASCII upper case of one code point
 def upper_char(+c: U32, low: Bool) -> U32:
@@ -443,13 +448,17 @@ def span_parity(+c: U32, lo: U32, hi: U32, odd: Bool) -> Bool:
 def unicode_lower(+c: U32) -> String:
   Bool.pick(String, U32.is_eq(c, 304), "i\u{307}", SCon{Chr{Bool.pick(U32, (((c >= 65 : U32) && (c <= 90 : U32)) || ((c >= 192 : U32) && (c <= 222 : U32) && U32.is_ne(c, 215)) || ((c >= 913 : U32) && (c <= 939 : U32) && U32.is_ne(c, 930)) || ((c >= 1040 : U32) && (c <= 1071 : U32))), (c + 32 : U32), Bool.pick(U32, (span_parity(c, 256, 311, False{}) || span_parity(c, 313, 328, True{}) || span_parity(c, 330, 375, False{}) || span_parity(c, 377, 382, True{}) || span_parity(c, 1120, 1153, False{}) || span_parity(c, 7680, 7828, False{}) || span_parity(c, 7840, 7934, False{})), (c + 1 : U32), Bool.pick(U32, ((c >= 1024 : U32) && (c <= 1039 : U32)), (c + 80 : U32), Bool.pick(U32, U32.is_eq(c, 376), 255, Bool.pick(U32, U32.is_eq(c, 902), 940, Bool.pick(U32, ((c >= 904 : U32) && (c <= 906 : U32)), (c + 37 : U32), Bool.pick(U32, U32.is_eq(c, 908), 972, Bool.pick(U32, ((c >= 910 : U32) && (c <= 911 : U32)), (c + 63 : U32), c))))))))}, ""})
 
-# S4.129 (spec twin) a string through `unicode_lower`
-def unicode_folded(s: String) -> String:
+# S4.129 (spec twin) `unicode_lower` of every code point, REVERSED onto acc (an accumulator, as `folded_go`)
+def unicode_folded_go(s: String, acc: String) -> String:
   match s:
     case SNil{}:
-      ""
+      acc
     case SCon{Chr{+c}, rest}:
-      unicode_lower(c) ++ unicode_folded(rest)
+      unicode_folded_go(rest, String.reverse(unicode_lower(c)) ++ acc)
+
+# S4.129 (spec twin) a string through `unicode_lower`
+def unicode_folded(s: String) -> String:
+  String.reverse(unicode_folded_go(s, ""))
 
 # S4.129 (spec twin) `--desc-contains` and `--notes-contains`: as `has_text`, with Unicode lower-casing on both sides
 def has_text_unicode(needle: Maybe<&2, String>, hay: Maybe<&2, String>) -> Bool:

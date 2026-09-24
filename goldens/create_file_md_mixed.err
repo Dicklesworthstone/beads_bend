@@ -1,0 +1,2 @@
+warning: bulk dependency import failed (Cycle detected in dependencies: proj-ldo -> proj-ldo.1 -> proj-ldo); retrying dependencies one by one
+warning: failed to add dependency proj-ldo.1 → proj-ldo: Cycle detected in dependencies: Adding dependency proj-ldo.1 -> proj-ldo would create a cycle

@@ -35,6 +35,7 @@ type Mode is Data:
   MEsc{}
   MUni{left: Nat, acc: U32}
   MLit{}
+  MStop{}
 
 # S2.24 (data) the lexer's state: mode, bytes consumed, the current text
 # (code points, REVERSED), a pending high surrogate (0 = none), the column the
@@ -126,8 +127,11 @@ def hex_pick(+c: U32, num: Bool, low: Bool, up: Bool) -> U32:
 def hex_val(+c: U32) -> U32:
   hex_pick(c, ((c >= 48 : U32) && (c <= 57 : U32)), ((c >= 97 : U32) && (c <= 102 : U32)), ((c >= 65 : U32) && (c <= 70 : U32)))
 
-# S2.24 S2.25 (spec twin) push a punctuation token, or report `expected value` at the column of the character's FIRST
-# byte (`col` is past its last: a BOM, three bytes, is reported at column 1, `error_jsonl_bom`)
+# S2.24 S2.25 (spec twin) push a punctuation token; any other character is a one-character literal at the column of
+# its FIRST byte (`col` is past its last: a BOM, three bytes, is reported at column 1, `error_jsonl_bom`), and the
+# lexing stops there (`MStop`): serde_json fails at that character, so nothing after it may report first. The parser
+# judges it where it stands: `expected value` in value position, `key must be a string` in key position (a raw
+# U+0001 after `{`, `error_load_dep_meta_lines`; `é` then an open string, `error_load_dep_meta_stray`; OQ-136)
 def punct(+c: U32, +col: U32, toks: List<&2, Tok>, lb: Bool, rb: Bool, lk: Bool, rk: Bool, co: Bool, cm: Bool) -> Lex:
   match lb rb lk rk co cm:
     case True{} _ _ _ _ _:
@@ -143,7 +147,7 @@ def punct(+c: U32, +col: U32, toks: List<&2, Tok>, lb: Bool, rb: Bool, lk: Bool,
     case False{} False{} False{} False{} False{} True{}:
       Lex{MDefault{}, col, Nil{}, 0, 0, Tok{KComma{}, col} <> toks, NoErr{}}
     case False{} False{} False{} False{} False{} False{}:
-      Lex{MDefault{}, col, Nil{}, 0, 0, toks, ErrAt{"expected value", ((col - width(c) : U32) + 1 : U32)}}
+      Lex{MStop{}, col, Nil{}, 0, 0, Tok{KLit{SCon{Chr{c}, ""}}, ((col - width(c) : U32) + 1 : U32)} <> toks, NoErr{}}
 
 # S2.24 (spec twin) between tokens: skip whitespace, open a string or a literal, or take punctuation
 def in_default(+c: U32, +col: U32, toks: List<&2, Tok>, ws: Bool, quote: Bool, lit: Bool) -> Lex:
@@ -153,7 +157,7 @@ def in_default(+c: U32, +col: U32, toks: List<&2, Tok>, ws: Bool, quote: Bool, l
     case False{} True{} _:
       Lex{MStr{}, col, Nil{}, 0, col, toks, NoErr{}}
     case False{} False{} True{}:
-      Lex{MLit{}, col, c <> Nil{}, 0, col, toks, NoErr{}}
+      Lex{MLit{}, col, c <> Nil{}, 0, ((col - width(c) : U32) + 1 : U32), toks, NoErr{}}
     case False{} False{} False{}:
       punct(c, col, toks, U32.is_eq(c, 123), U32.is_eq(c, 125), U32.is_eq(c, 91), U32.is_eq(c, 93), U32.is_eq(c, 58), U32.is_eq(c, 44))
 
@@ -233,12 +237,14 @@ def uni_done(+col: U32, cur: List<&2, U32>, +hi: U32, began: U32, toks: List<&2,
 
 # S2.24 (spec twin) one hex digit of a `\uXXXX` escape; the fourth finishes the unit.
 # The scrutinees lead the parameter list: a match reads its scrutinees in binder order.
-def in_uni(bad: Bool, left: Nat, +col: U32, cur: List<&2, U32>, +hi: U32, began: U32, toks: List<&2, Tok>, +acc: U32) -> Lex:
+# A digit that is not hex is `invalid escape` at `at`, the column of the FOURTH byte after the `u`: serde_json takes
+# the four bytes before it judges them (`\u00zz…`, `\uzzzz…` and `\u0z",` all report the same column; OQ-136)
+def in_uni(bad: Bool, left: Nat, +col: U32, cur: List<&2, U32>, +hi: U32, began: U32, toks: List<&2, Tok>, +acc: U32, at: U32) -> Lex:
   match bad left:
     case True{} _:
-      Lex{MStr{}, col, cur, hi, began, toks, ErrAt{"invalid escape", col}}
+      Lex{MStr{}, col, cur, hi, began, toks, ErrAt{"invalid escape", at}}
     case False{} 0n:
-      Lex{MStr{}, col, cur, hi, began, toks, ErrAt{"invalid escape", col}}
+      Lex{MStr{}, col, cur, hi, began, toks, ErrAt{"invalid escape", at}}
     case False{} 1n+0n:
       uni_done(col, cur, hi, began, toks, acc, ((acc >= 55296 : U32) && (acc <= 56319 : U32)), ((acc >= 56320 : U32) && (acc <= 57343 : U32)), U32.is_ne(hi, 0))
     case False{} 1n+p:
@@ -262,10 +268,12 @@ def step_mode(mode: Mode, +c: U32, +col: U32, cur: List<&2, U32>, +hi: U32, bega
       in_str(c, col, cur, hi, began, toks, U32.is_eq(c, 34), U32.is_eq(c, 92), (c < 32 : U32), U32.is_ne(hi, 0))
     case MEsc{}:
       step_esc(c, col, cur, hi, began, toks)
-    case MUni{left, acc}:
-      in_uni(U32.is_eq(hex_val(c), 16), left, col, cur, hi, began, toks, (((acc * 16 : U32)) + hex_val(c) : U32))
+    case MUni{+left, acc}:
+      in_uni(U32.is_eq(hex_val(c), 16), left, col, cur, hi, began, toks, (((acc * 16 : U32)) + hex_val(c) : U32), (((col - width(c) : U32)) + U32.from_nat(left) : U32))
     case MLit{}:
       in_lit(c, col, cur, began, toks, is_delim(c))
+    case MStop{}:
+      Lex{MStop{}, col, cur, hi, began, toks, NoErr{}}
 
 # S2.27 (spec twin) a set error is sticky: the state passes through unchanged
 def step_err(err: LexErr, mode: Mode, c: U32, col: U32, cur: List<&2, U32>, hi: U32, began: U32, toks: List<&2, Tok>) -> Lex:
@@ -303,12 +311,15 @@ def finish_mode(mode: Mode, +col: U32, cur: List<&2, U32>, began: U32, toks: Lis
       LexBad{"EOF while parsing a string", col}
     case MUni{left, acc}:
       LexBad{"EOF while parsing a string", col}
+    case MStop{}:
+      LexOk{List.reverse(&2, Tok, toks)}
 
-# S2.27 (spec twin) a sticky error wins over the end-of-line verdict
+# S2.27 (spec twin) a sticky error wins over the end-of-line verdict; an error placed past the end (a `\u` escape
+# with fewer than four bytes left) is serde_json's `EOF while parsing a string` at the end instead (OQ-136)
 def finish(st: Lex) -> Lexed:
   match st:
-    case Lex{mode, col, cur, hi, began, toks, ErrAt{msg, at}}:
-      LexBad{msg, at}
+    case Lex{mode, +col, cur, hi, began, toks, ErrAt{msg, +at}}:
+      Bool.pick(Lexed, (at > col : U32), LexBad{"EOF while parsing a string", col}, LexBad{msg, at})
     case Lex{mode, col, cur, hi, began, toks, NoErr{}}:
       finish_mode(mode, col, cur, began, toks)
 
@@ -485,11 +496,12 @@ def sp_end(phase: Phase, out: List<&2, Member>, eof: U32) -> Split:
     case _:
       SplitBad{"EOF while parsing an object", eof}
 
-# S2.27 (spec twin) a sticky error wins over the end-of-input verdict
-def sp_finish(st: Sp, eof: U32) -> Split:
+# S2.27 (spec twin) a sticky error wins over the end-of-input verdict; one placed past the end (a keyword prefix such
+# as `tru` that runs to the end, judged at the delimiter it never reached) is `EOF while parsing a value` at the end
+def sp_finish(st: Sp, +eof: U32) -> Split:
   match st:
-    case Sp{phase, depth, key, kat, cur, out, ErrAt{msg, at}}:
-      SplitBad{msg, at}
+    case Sp{phase, depth, key, kat, cur, out, ErrAt{msg, +at}}:
+      SplitBad{Bool.pick(String, (at > eof : U32), "EOF while parsing a value", msg), Bool.pick(U32, (at > eof : U32), eof, at)}
     case Sp{phase, depth, key, kat, cur, out, NoErr{}}:
       sp_end(phase, out, eof)
 
@@ -812,11 +824,12 @@ def vs_end(want: Want, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool, eo
     case WColon{} _:
       CheckBad{"EOF while parsing an object", eof}
 
-# S4.232 (spec twin) a sticky error wins over the end-of-input verdict
-def vs_finish(st: Vs, eof: U32) -> Checked:
+# S4.232 (spec twin) a sticky error wins over the end-of-input verdict; one placed past the end (`tru`, judged at the
+# delimiter it never reached) is `EOF while parsing a value` at the end (OQ-136)
+def vs_finish(st: Vs, +eof: U32) -> Checked:
   match st:
-    case Vs{want, stack, out, ErrAt{msg, at}, odd}:
-      CheckBad{msg, at}
+    case Vs{want, stack, out, ErrAt{msg, +at}, odd}:
+      CheckBad{Bool.pick(String, (at > eof : U32), "EOF while parsing a value", msg), Bool.pick(U32, (at > eof : U32), eof, at)}
     case Vs{want, stack, out, NoErr{}, odd}:
       vs_end(want, stack, out, odd, eof)
 
@@ -831,4 +844,36 @@ def checked_lexed(l: Lexed, eof: U32) -> Checked:
 # S4.350 S4.232 (spec twin) a whole text judged as ONE JSON value
 def value(+s: String) -> Checked:
   checked_lexed(lex(codes(s)), byte_len(codes(s)))
+
+# S4.350 S2.58 (data) serde_json's position while the first `left` bytes are walked
+type Place is Data:
+  Place{left: U32, line: U32, col: U32}
+
+# S4.350 S2.58 (spec twin) one code point of the walk: while bytes are left, a line feed starts the next line at
+# column 0 and any other code point advances the column by its UTF-8 width, or by the bytes left when the position
+# falls inside it (an error at the first byte of `é` is column 1)
+def place_step(+c: U32, p: Place) -> Place:
+  match p:
+    case Place{+left, +line, +col}:
+      Bool.pick(Place, (left > 0 : U32), Bool.pick(Place, U32.is_eq(c, 10), Place{Bool.pick(U32, (left > width(c) : U32), (left - width(c) : U32), 0), (line + 1 : U32), 0}, Place{Bool.pick(U32, (left > width(c) : U32), (left - width(c) : U32), 0), line, (col + Bool.pick(U32, (left > width(c) : U32), width(c), left) : U32)}), Place{left, line, col})
+
+# S4.350 S2.58 (spec twin) the walk, one tail call per code point
+def place_go(cs: List<&2, U32>, p: Place) -> Place:
+  match cs:
+    case Nil{}:
+      p
+    case Con{+c, rest}:
+      place_go(rest, place_step(c, p))
+
+# S4.350 S2.58 (spec twin) the words
+def place_text(p: Place) -> String:
+  match p:
+    case Place{left, line, col}:
+      "line " ++ U32.show(line) ++ " column " ++ U32.show(col)
+
+# S4.350 S2.58 (spec twin) `line L column C` of the byte column `at` of `value` in a text that may hold line feeds:
+# the line is one more than the line feeds among the first `at` bytes, the column counts the bytes after the last
+# of them (`{` LF ` x` → `key must be a string at line 2 column 2`; a text ending in a line feed → column 0)
+def place(s: String, at: U32) -> String:
+  place_text(place_go(codes(s), Place{at, 1, 0}))
 

@@ -1,0 +1,2 @@
+warning: bulk dependency import failed (Cycle detected in dependencies: proj-5z4 -> proj-lmt -> proj-5z4); retrying dependencies one by one
+warning: failed to add dependency proj-lmt → proj-5z4: Cycle detected in dependencies: Adding dependency proj-lmt -> proj-5z4 would create a cycle

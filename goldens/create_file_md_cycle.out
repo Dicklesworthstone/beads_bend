@@ -1,0 +1,8 @@
+✓ Created 2 issues from md_cycle.md:
+  proj-5z4: Aa
+  proj-lmt: Bb
+--- .beads/issues.jsonl ---
+{"id":"proj-5z4","title":"Aa","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-5z4","depends_on_id":"proj-lmt","type":"blocks","created_at":"2026-01-02T03:04:05Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+{"id":"proj-lmt","title":"Bb","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-lmt
