@@ -147,13 +147,17 @@ def id_chars(s: String) -> Bool:
 def id_word(+s: String) -> Bool:
   Bool.not(String.is_empty(s)) && id_chars(s)
 
-# S2.44 (spec twin) every part is a word
-def id_words(parts: List<&2, String>) -> Bool:
-  match parts:
-    case Nil{}:
+# S2.44 (spec twin) a code point of the part before the hash: a lower-case letter, a digit, `_`, `.` or `-`
+def head_char(+c: U32) -> Bool:
+  (id_char(c) || U32.is_eq(c, 95) || U32.is_eq(c, 46) || U32.is_eq(c, 45))
+
+# S2.44 (spec twin) every code point of the part before the hash is allowed
+def head_chars(s: String) -> Bool:
+  match s:
+    case SNil{}:
       True{}
-    case Con{+p, rest}:
-      (id_word(p) && id_words(rest))
+    case SCon{Chr{+c}, rest}:
+      (head_char(c) && head_chars(rest))
 
 # S2.44 (spec twin) a non-empty run of ASCII digits
 def child_number(s: String) -> Bool:
@@ -171,7 +175,7 @@ def child_numbers(parts: List<&2, String>) -> Bool:
     case Con{p, rest}:
       (child_number(p) && child_numbers(rest))
 
-# S2.44 (spec twin) the last hyphen-separated word of a base, and everything before it
+# S2.44 (spec twin) the last hyphen-separated word of an id
 def last_word(words: List<&2, String>) -> String:
   match words:
     case Nil{}:
@@ -181,20 +185,25 @@ def last_word(words: List<&2, String>) -> String:
     case Con{w, rest}:
       last_word(rest)
 
-# S2.44 (spec twin) the base before the first `.` is at least two hyphen-separated lower-case words, the last (the
-# hash) at most 40 characters and all before the last hyphen at most 64 (`edge_load_id_*`: 40 and 64 load, 41 and
-# 65 are refused; a long middle word is fine); each dotted suffix is a child number (`proj-uly.1`). Measured
-# refusals: a trailing or a leading hyphen, upper case, `_`, a space, a word after the dot (`error_load_id_*`)
-def id_base(+words: List<&2, String>, +base: String) -> Bool:
-  (Nat.is_gt(List.length(&2, String, words), 1n) && id_words(words) && Nat.is_le(String.length(last_word(words)), 40n) && Nat.is_le(Nat.sub(String.length(base), Nat.add(String.length(last_word(words)), 1n)), 64n))
-
-# S2.44 (spec twin) the base and its dotted suffixes
-def id_parts(parts: List<&2, String>) -> Bool:
+# S2.44 (spec twin) the hash and its child numbers: a lower-case alphanumeric word of at most 40 characters (the
+# dotted suffixes not counted), then digits after each `.`
+def hash_parts(parts: List<&2, String>) -> Bool:
   match parts:
     case Nil{}:
       False{}
-    case Con{+base, suffixes}:
-      (id_base(String.split(base, Chr{45}), base) && child_numbers(suffixes))
+    case Con{+h, suffixes}:
+      (id_word(h) && Nat.is_le(String.length(h), 40n) && child_numbers(suffixes))
+
+# S2.44 (spec twin) the part before the last hyphen: not empty, at most 64 characters, lower-case letters, digits, `_`,
+# `.` and `-` (`edge_load_id_prefix_*`: `my_proj`, `_proj`, `a.b`, `p_1` load; `MyProj` is refused)
+def head_ok(+h: String) -> Bool:
+  (Bool.not(String.is_empty(h)) && Nat.is_le(String.length(h), 64n) && head_chars(h))
+
+# S2.44 (spec twin) `prefix-hash`: split at the LAST hyphen. The hash is measured by `edge_load_id_hash*` (40 loads,
+# 41 is refused) and the prefix by `edge_load_id_head*` (64 loads, 65 is refused); refused shapes also include a
+# trailing or leading hyphen, `_` or a space in the hash, and a word after a dot (`error_load_id_*`)
+def id_split(+words: List<&2, String>, +id: String) -> Bool:
+  (Nat.is_gt(List.length(&2, String, words), 1n) && hash_parts(String.split(last_word(words), Chr{46})) && head_ok(String.take(id, Nat.sub(String.length(id), Nat.add(String.length(last_word(words)), 1n)))))
 
 # S2.44 (spec twin) a message when a rule holds
 def msg_if(cond: Bool, +msg: String) -> List<&2, String>:
@@ -202,7 +211,7 @@ def msg_if(cond: Bool, +msg: String) -> List<&2, String>:
 
 # S2.44 (spec twin) `id`: empty; else longer than 105 characters, and not `prefix-hash` shaped (both may be reported)
 def id_msgs(+id: String) -> List<&2, String>:
-  Bool.pick(List<&2, String>, String.is_empty(id), ["id: cannot be empty"], List.append(&2, String, msg_if(Nat.is_gt(String.length(id), 105n), "id: exceeds 105 characters"), msg_if(Bool.not(id_parts(String.split(id, Chr{46}))), "id: invalid format (expected prefix-hash)")))
+  Bool.pick(List<&2, String>, String.is_empty(id), ["id: cannot be empty"], List.append(&2, String, msg_if(Nat.is_gt(String.length(id), 105n), "id: exceeds 105 characters"), msg_if(Bool.not(id_split(String.split(id, Chr{45}), id)), "id: invalid format (expected prefix-hash)")))
 
 # S2.51 (spec twin) does a text hold a NUL
 def has_nul(s: String) -> Bool:

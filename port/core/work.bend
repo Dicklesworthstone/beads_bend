@@ -13,6 +13,7 @@ import ./time.bend as Time
 import ./model.bend as Model
 import ./blocked.bend as Blocked
 import ./query.bend as Query
+import ./float.bend as Float
 
 # S4.167 (data) one row of `blocked`: the issue and the ids that block it, in the relation's normalized order
 type Row is Data:
@@ -474,11 +475,10 @@ def figures_of(+all: List<&2, Model.Issue>, +live: List<&2, String>, t: Tally, r
     case Tally{sum, count}:
       Figures{(U32.from_nat(List.length(&2, Model.Issue, all)) - with_status(all, "tombstone", 0) : U32), with_status(all, "open", 0), with_status(all, "in_progress", 0), with_status(all, "closed", 0), stored_blocked(all, live, U32.from_nat(List.length(&2, String, live))), with_status(all, "deferred", 0), with_status(all, "draft", 0), ready, with_status(all, "tombstone", 0), pinned_count(all, 0), eligible_epics(all, idx, 0), sum, count}
 
-# S4.154 S5.54 S5.170 (data) the average lead time as `stats` prints it: none; one the port cannot print yet
-# (not a whole number of tenths: OQ-078); or its plain text with the unit and its JSON number
+# S4.154 S5.54 S5.170 (data) the average lead time as `stats` prints it: none, or its plain text with the unit and its
+# JSON number
 type Lead is Data:
   NoLead{}
-  LeadBad{}
   LeadOk{plain: String, json: String}
 
 # S5.54 S5.170 (spec twin) a whole number of tenths as `N.d`
@@ -509,33 +509,22 @@ def rounded_tenths(+q0: U32, side: U32, dyadic: Bool, even: Bool) -> Maybe<&2, U
 def tenths(+num: U32, +den: U32) -> Maybe<&2, U32>:
   rounded_tenths((num / den : U32), half_case(((num % den : U32) * 2 : U32), den), U32.is_eq(((num / den : U32) % 5 : U32), 2), U32.is_eq(((num / den : U32) % 2 : U32), 0))
 
-# S5.170 (spec twin) the plain form: hours under 24, days from 24 hours on, one fractional digit each
-def lead_plain(+hours_q: U32, in_hours: Bool, days_q: Maybe<&2, U32>) -> Lead:
-  match in_hours days_q:
-    case True{} _:
-      LeadOk{tenths_text(hours_q) ++ " hours", tenths_text(hours_q)}
-    case False{} Some{+q}:
-      LeadOk{tenths_text(q) ++ " days", tenths_text(hours_q)}
-    case False{} None{}:
-      LeadBad{}
-
-# S4.154 S5.54 S5.170 (spec twin) the average of the whole-hour lead times. The JSON number is printed as tenths,
-# so a mean of hours that is not a whole number of tenths is still refused (it would need binary64's shortest
-# round-trip form: OQ-078); the plain days figure is rounded to tenths
-def lead_of_sum(+sum: U32, +count: U32, none: Bool, exact: Bool) -> Lead:
-  match none exact:
-    case True{} _:
+# S4.154 S5.54 S5.170 OQ-078 (spec twin) the average of the whole-hour lead times, `sum as f64 / count as f64`, from
+# the exact double (core/float): plain `{:.1} hours` under a day and `{:.1} days` (the mean divided by 24.0) from 24
+# hours on; JSON in serde_json's shortest round-trip spelling (`scn_lead_time_third`: 1.3333333333333333). `tenths`
+# above is the earlier rule, kept because laws bind it
+def lead_of_sum(+sum: U32, +count: U32, none: Bool) -> Lead:
+  match none:
+    case True{}:
       NoLead{}
-    case False{} False{}:
-      LeadBad{}
-    case False{} True{}:
-      lead_plain(((sum * 10 : U32) / count : U32), (sum < (count * 24 : U32) : U32), tenths((sum * 10 : U32), (count * 24 : U32)))
+    case False{}:
+      LeadOk{Bool.pick(String, (sum < (count * 24 : U32) : U32), Float.mean_hours(sum, count) ++ " hours", Float.mean_days(sum, count) ++ " days"), Float.mean_json(sum, count)}
 
 # S4.154 (spec twin) the average lead time of the figures; a count of zero is guarded before any division
 def lead(f: Figures) -> Lead:
   match f:
     case Figures{total, open, in_progress, closed, blocked, deferred, draft, ready, tombstone, pinned, epics, +lead_sum, +lead_count}:
-      lead_of_sum(lead_sum, U32.max(lead_count, 1), U32.is_eq(lead_count, 0), U32.is_eq(((lead_sum * 10 : U32) % U32.max(lead_count, 1) : U32), 0))
+      lead_of_sum(lead_sum, U32.max(lead_count, 1), U32.is_eq(lead_count, 0))
 
 # S4.151–S4.155 (spec twin) every figure of `stats`
 def figures_keyed(+all: List<&2, Model.Issue>, +keys: List<&2, String>, now: Maybe<&2, Time.Instant>, spec: Bool) -> Figures:

@@ -312,12 +312,10 @@ def ready_scoped(named: Maybe<&2, String>, +opts: List<&2, Cli.Occ>, +issues: Li
 def ready_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, env: List<&2, Var>, json: Bool, quiet: Bool, prefix: String) -> Outcome:
   ready_scoped(parent_named(Cli.value(opts, "parent"), Cli.value(opts, "epic")), opts, issues, env, json, quiet, prefix)
 
-# S5.53 S5.167–S5.172 (spec twin) `stats` once its lead time is known: one the port cannot print yet answers the
-# port's own failure; `dims` are the breakdowns asked for, counted over `live` (the records that are not tombstones)
+# S5.53 S5.167–S5.172 (spec twin) `stats` once its lead time is known; `dims` are the breakdowns asked for, counted
+# over `live` (the records that are not tombstones)
 def stats_out(f: Work.Figures, l: Work.Lead, json: Bool, quiet: Bool, +dims: List<&2, U32>, +live: List<&2, Model.Issue>) -> Outcome:
   match l json:
-    case Work.LeadBad{} _:
-      failed(Failure.unported(), json)
     case Work.NoLead{} True{}:
       printed(Render.stats_json(f, "", Render.breaks_json(dims, live)), "", quiet)
     case Work.NoLead{} False{}:

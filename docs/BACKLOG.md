@@ -28,9 +28,9 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [ ] B4. ws-run: a directive to set ONE environment variable (`BEADS_DIR`, `BR_OUTPUT_FORMAT`, `BD_ACTOR`; S1/S8 cases)
 - [ ] B5. ws-run: fixture selector for `.beads/` WITHOUT `issues.jsonl`, and binary fixtures (non-UTF-8, OQ-101)
 - [ ] B6. ws-run: stage extra input files in the workspace (`--description-file`, `create -f`, `comments add -f`, `delete --from-file`)
-- [ ] B7. Large fixtures through the oracle: `n163`, `n164` (id-length edge, OQ-006), a 5k-record store (JS-lane depth, performance)
-- [ ] B8. Fixture `leadtime` (non-integer average lead time, OQ-078)
-- [ ] B9. Fixture with a real dependency cycle; diamonds; external blockers; templates; custom statuses (S4b OQs)
+- [~] B7. Large fixtures through the oracle: `n163`, `n164`, `n983`, `n984` built and captured (OQ-006 resolved, 2026-09-22); left: the real stores of this machine, which reach 45 MB (section H1)
+- [x] B8. Non-integer average lead time: scenarios `lead_time_half`, `lead_time_third` (OQ-078 resolved 2026-09-23)
+- [~] B9. Diamonds, external blockers, templates, custom statuses captured (batches 3, 5, 6); left: a real dependency cycle (OQ-129, the owner's call)
 - [ ] B10. Capture the extractors' ~215 `(case to add …)` proposals in batches with `golden-capture.sh --repin`, re-floor
 - [ ] B11. Full four-lane run at HEAD when the machine has memory (last one was stopped by the harness)
 - [x] B12. The parser's surface as cases, three batches under `--repin`: 43 (every command's usage line, the argument syntax forms), 41 (refusal shapes, value checks, exclusions, aliases, hyphen values), 25 (the questions the first two raised: OQ-104…OQ-113). 344 cases
@@ -41,18 +41,18 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 ## C. Phase 1 — spec (first pass done)
 
 - [x] C1. 874 clauses merged; spec-lint 0 findings; blind review 10/10
-- [ ] C2. Reconcile the six contradictions the blind review found (OQ-093…OQ-098): amend the wrong clause to the golden
+- [x] C2. The six contradictions the blind review found (OQ-093…OQ-098) resolved and their clauses amended (2026-09-23)
 - [ ] C3. Reconcile S4.52 vs S8.31 (how often the clock is read, OQ-100)
 - [ ] C4. S10.49 looks misattributed (`where` omits `prefix:` when the prefix is undetectable): verify and amend
 - [ ] C5. Second extraction pass (same prompt, same files) per section; third, case-keyed expansion pass
 - [ ] C6. Second blind self-containment review on ten NEW cases, including mutating ones, after C2
-- [ ] C7. Resolve or exclude every OPEN row of `docs/OPEN_QUESTIONS.md` (95 open)
+- [~] C7. Resolve or exclude every OPEN row of `docs/OPEN_QUESTIONS.md`: 21 open on 2026-09-23 (from 107), most needing a harness mode (B2–B6) or the owner (OQ-129)
 
 ## D. Phase 2 — architecture (done; amendments)
 
 - [x] D1. PROPOSED_ARCHITECTURE, NUMERIC_PLAN, parity skeleton; arch-lint PASS
 - [ ] D2. Amend the architecture: `Sys.remove`, `Sys.rename` effects are planned, not written; `Clock.wall` lives in a probe only
-- [ ] D3. NUMERIC_PLAN S7.20: decide the multi-limb binary64 routine vs a DISC after OQ-078's golden exists
+- [x] D3. S7.20: the multi-limb binary64 routine, `port/core/float.bend` (exact nearest double, ryu's shortest round trip, `{:.1}`); `scn_lead_time_third` passes
 
 ## E. Phase 3 — reference port
 
@@ -84,8 +84,8 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 
 ### E4. Store completeness — `core/store.bend`
 - [x] E4.1 (`Model.repaired`, `Store.model`; `show` keeps the raw records) load repairs S2.31–S2.36: status/type/dep-type folding and aliases; label sort+dedup; duplicate edges; duplicate comments; `-wisp-` ⇒ ephemeral; `closed_at` repairs; `external_ref` trim; `updated_at` ≥ `created_at`
-- [ ] E4.2 duplicate-id refusal (S2.40); tombstone protection (S2.42)
-- [ ] E4.3 validation S2.43–S2.56 with verbatim messages (exit 4)
+- [~] E4.2 duplicate-id refusal (S2.40) done (`error_jsonl_duplicate_id*`); tombstone protection (S2.42) not measured
+- [~] E4.3 validation S2.43–S2.54 done, in the measured order, exit 7 (`error_load_*`); the import check S2.57 done; S2.55 (comments) and S2.56 (dependencies) not measured
 - [x] E4.4 `Store.text`: records by id bytes, `\n` each; S5.9 `""` rule; S5.14 dependency defaults (`import`, `{}`, `""`); S5.16 exclusions
 - [ ] E4.5 laws: `labels_normalize_idempotent`, `store_text_fixpoint_basic`, a closed law for `edge_precision_rewrite`'s lines
 - [ ] E4.6 UTF-8 strictness (overlong, surrogates, > U+10FFFF) after OQ-101
@@ -108,7 +108,7 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
   - [ ] E5.4a-2 `dep cycles` reporting a cycle (S4.187): unreachable through the original, which refuses a blocking cycle
     at `dep add` on every route tried and ignores `related` cycles. A `cycles` fixture would be the first hand-written
     store that is not the original's own output: the owner's call (OQ-129)
-  - [ ] E5.4b `show`: 100-column wrapping (S5.115), `Rollup:`; cases for the plain deferred/estimate/due/ref fields (OQ-120)
+  - [~] E5.4b `show`: wrapping of bodies and comments (S5.115) and the plain deferred/estimate/due/ref fields done; `Rollup:` not captured
 - [ ] E5.5 laws: `counts_sum_to_total`; order laws for the comparators
 
 ### E6. Mutations — `core/mutate.bend`
@@ -118,7 +118,7 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [x] E6.4 `dep add/remove` (cycle refusal exit 5, no-op duplicates) in `core/edges.bend`; `label add/remove/rename` and `comments add` (id = store-wide max + 1) in `core/labels.bend`. Left refused with the port's own failure: a tombstoned endpoint and a `parent-child` edge to an `external:` target (OQ-124), the split of more than two label positionals (OQ-122), a label positional that resolves to nothing (OQ-123), `comments add -f`
   - [x] E6.4a `epic close-eligible` (S4.390–S4.393): six cases captured first (`epic_close_eligible_none`, `…_none_json`, `…_dry_run`, `…_dry_run_json`, `scn_epic_close_eligible`, `scn_epic_close_eligible_plain`), then implemented in `core/status.bend` and `core/run.bend`; all six pass on the first lane run. `--transition-comment` answers the port's own failure
 - [ ] E6.5 the shell's writes: `Sys.rename` temp-file publication, `Sys.remove`, `last-touched` ordering after the flush
-- [ ] E6.6 `Clock.wall` in the shell + `BEADS_BEND_NOW` pin (DISC-001); the `Platform` DISC for JS-lane millisecond precision
+- [~] E6.6 `Clock.wall` read by the shell: an unpinned `create` works (checked on a real store copy, 2026-09-23); the precision difference is DISC-009 (OPEN, the owner's)
 
 ### E7. Rendering — `core/render.bend`
 - [ ] E7.1 plain text per command (S5.100–S5.252): glyphs, padding, pluralization, wrapping at 100 columns
@@ -142,3 +142,60 @@ left is stated) · `(OQ-n)` / `(DISC-n)` cross-reference the registers.
 - [ ] G1. File upstream (bendlang/bend): the foreign-reliance verdict cost (reproducer `port/probe_shell_time.bend`); the `../` import + `( .. : U32)` misresolution; GUIDE.md still saying bare operators default to `Nat`; the JS backend walking a list on the JavaScript call stack, which faults above ~30 KB of input (DISC-008); and the error a multi-scrutinee `match` out of parameter order gives, which names neither the order nor the scrutinee (PLAN §8)
 - [ ] G2. `scripts/version-drift.sh` between 2.0.16 and 2.0.20 now that the port has gates
 - [ ] G3. CI: `assets/github-workflows/port-gates.yml` filled for this port (compiler + oracle placeholders), once a runner with bubblewrap and the pins exists
+
+## H. Reality check, 2026-09-23 — the bridge plan
+
+Written after running the port (the JS bundle of the working tree) on copies of real `.beads/issues.jsonl` stores from
+this machine (136 of them, 37 KB to 45 MB), outside the harness. The corpus says the port matches the original byte for
+byte on 993 captured cases; the real stores said three other things. Each item below is a bead (`br list`).
+
+### H1. Real stores: correctness beyond the corpus
+- [x] H1.1 The id-shape rule of batch 5 refused every real store whose prefix holds `_` (`franken_agent_detection-13w`):
+  shipped in `3eb2ee0`, found by running the port on a real store, re-measured with 8 prefix cases, fixed (split at the
+  LAST hyphen; the prefix allows `_`, `.`, `-`)
+- [ ] H1.2 A real-store sweep through the sandbox: a `ws_inner` directive `@store=<absolute path>` that copies an external
+  store read-only into `/mnt/proj/.beads/`, then `count`, `list --json`, `ready --json`, `blocked --json`, `stats --json`,
+  `show <first id> --json` on the original and the port, compared byte for byte. A probe, not a golden (the stores are
+  not ours to commit); every difference becomes a captured case on a hand-written fixture
+- [ ] H1.3 Every refusal the port raised on a real store explained (the sweep's report)
+- [ ] H1.4 Shrink every divergence the sweep finds to its smallest reproducing store by delta debugging (drop records, then members, while the port and the original still differ), and commit the shrunk store as a hand-written fixture with its case: the real stores become a generator of minimal, reviewable cases instead of a pile of anecdotes
+- [ ] H1.5 The sweep as a standing probe: all 136 stores × the six read-only commands, rerun at every certified commit, its summary line pasted into PORT_STATE beside the lanes
+
+### H2. Performance: the port is not usable on real stores yet
+- [ ] H2.1 Measure the C lane on the real-store copies (the JS lane: 7.4 s for `count` and 18.8 s for `stats` on a 1 MB,
+  966-record store, about 1 GB; no answer within 5 minutes and 7.3 GB on a 25 MB store; `br` answers in milliseconds).
+  An informal timing today, a measurement only through `scripts/incumbent-bench.sh`
+- [ ] H2.2 Profile the load path: the duplicate-id check added in batch 5 is quadratic (`Store.has_id` over the records
+  so far); the decode of a 44-member record per line; `Model.repaired`; the BLOCKED relation's fixed point
+- [ ] H2.3 Phase 5 levers, each with a card, a fast twin, a `{fast == spec}` law and the kill-switch: an id index for
+  the duplicate check, the decode, sorting, the relation
+- [ ] H2.4 The incumbent contract in PLAN (commit, toolchain, flags, threads) and the first `incumbent-bench.sh --pin`
+- [ ] H2.5 The target, stated so it can fail: on the C lane, `count`, `ready` and `stats` on the 45 MB store no slower than `br --no-db` on the same copy (which imports the whole file into SQLite on every call), measured by `incumbent-bench.sh` with the cv gate. The route: a projection twin that decodes only the members a command reads, bound to the full decode followed by the projection by a quantified law; an id index built once per load; the parallel decode that exists (`Store.load_fast`) extended to the repairs
+
+### H3. The law side is mostly unbuilt
+- [ ] H3.1 Of 61 laws only the scaffold's `fast_is_spec` is quantified; every other law is a closed fact. Quantified laws
+  the spec names: the store line round trip (`decode(encode(x)) == x` over a record), label normalization idempotent,
+  `count` groups summing to the total, the comparators being total orders
+- [ ] H3.2 `scripts/law-mutation.sh` STRONG for the two fast twins that exist (`Store.load_fast`, the child table)
+- [ ] H3.3 The flagship law: the store codec round trip quantified over every record the decoder accepts, and `Store.text` idempotent over load (`text(load(text(xs))) == text(xs)`). That is the property every downstream tool (bv, git merges, agents) relies on, and today it rests on the corpus alone
+
+### H4. Evidence gates the method requires
+- [ ] H4.1 The interpreter lane over the whole corpus (BLOCKER: more than 10 GB per case; about 40 hours)
+- [ ] H4.2 The C lanes at every certified commit, sequenced with the other session's heavy jobs
+- [ ] H4.3 `scripts/lanes.sh` itself PASS once (the gate; the lanes have been run one by one with `conform.sh`)
+- [ ] H4.4 An interpreter sample chosen by coverage rather than by hand: one case per core def the corpus reaches (the case that reaches it cheapest), so the interpreter lane checks every def in a few hours instead of 40
+
+### H5. Using the port as a tool
+- [ ] H5.1 `init` (OQ-005): without it the port cannot create a workspace; needs the harness mode that lists `.beads/`
+- [ ] H5.2 The harness modes B2–B6, which 16 of the 21 open questions wait on
+- [ ] H5.3 The markdown import of `create -f` (needs B6)
+
+### H6. Documents that say what is true
+- [ ] H6.1 README: every number (454 cases, 52 laws, "a mutation without `BEADS_BEND_NOW` is refused") is stale
+- [ ] H6.2 AGENTS.md "Current State (2026-09-20)", the fixture list and the 384-case line
+- [ ] H6.3 This backlog reconciled against the evidence (done for the items above, 2026-09-23)
+
+### H7. The owner's decisions
+- [ ] H7.1 DISC-009, DISC-010, DISC-011 (OPEN; convergence waits on them)
+- [ ] H7.2 The scaffold law `fast_is_spec` (arch-lint FAIL, port-lint PL-17)
+- [ ] H7.3 May a hand-written fixture hold a dependency cycle (OQ-042, OQ-074, OQ-081, OQ-129)?

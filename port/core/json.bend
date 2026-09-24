@@ -83,6 +83,33 @@ def is_delim(+c: U32) -> Bool:
 def is_lit_start(+c: U32) -> Bool:
   (U32.is_eq(c, 45) || ((c >= 48 : U32) && (c <= 57 : U32)) || ((c >= 97 : U32) && (c <= 122 : U32)))
 
+# S2.27 (spec twin) how many leading code points two texts share
+def diff_at(a: String, b: String) -> Nat:
+  match a b:
+    case SCon{Chr{+x}, ra} SCon{Chr{+y}, rb}:
+      Bool.pick(Nat, U32.is_eq(x, y), Nat.add(diff_at(ra, rb), 1n), 0n)
+    case _ _:
+      0n
+
+# S2.27 (spec twin) a literal against the keyword its first letter starts: a mismatch inside it is `expected ident` at
+# that byte; a proper prefix (`tru`) is `expected ident` at the delimiter, or `EOF while parsing a value` at the end
+# of the input (`error_jsonl_ident`); a keyword followed by more letters is left to the parser after it
+def keyword_error(+text: String, +kw: String, +began: U32, eof: Bool) -> LexErr:
+  Bool.pick(LexErr, (Nat.is_lt(diff_at(text, kw), String.length(text)) && Nat.is_lt(diff_at(text, kw), String.length(kw))), ErrAt{"expected ident", (began + U32.from_nat(diff_at(text, kw)) : U32)}, Bool.pick(LexErr, Nat.is_lt(String.length(text), String.length(kw)), Bool.pick(LexErr, eof, ErrAt{"EOF while parsing a value", 0}, ErrAt{"expected ident", (began + U32.from_nat(String.length(text)) : U32)}), NoErr{}))
+
+# S2.24 (spec twin) does a text start with an ASCII digit
+def digit_first(s: String) -> Bool:
+  match s:
+    case SNil{}:
+      False{}
+    case SCon{Chr{+c}, rest}:
+      ((c >= 48 : U32) && (c <= 57 : U32))
+
+# S2.27 (spec twin) a finished literal: `t`, `f` and `n` start a keyword; any other letter cannot start a value
+# (`expected value` at its first byte); `-` and a digit start a number, judged by the reader
+def lit_error(+text: String, +began: U32, +eof: Bool) -> LexErr:
+  Bool.pick(LexErr, String.starts_with(text, "t"), keyword_error(text, "true", began, eof), Bool.pick(LexErr, String.starts_with(text, "f"), keyword_error(text, "false", began, eof), Bool.pick(LexErr, String.starts_with(text, "n"), keyword_error(text, "null", began, eof), Bool.pick(LexErr, (String.starts_with(text, "-") || digit_first(text)), NoErr{}, ErrAt{"expected value", began}))))
+
 # S2.24 (spec twin) the value of a hex digit, or 16 when it is not one
 def hex_pick(+c: U32, num: Bool, low: Bool, up: Bool) -> U32:
   match num low up:
@@ -217,7 +244,8 @@ def in_uni(bad: Bool, left: Nat, +col: U32, cur: List<&2, U32>, +hi: U32, began:
     case False{} 1n+p:
       Lex{MUni{p, acc}, col, cur, hi, began, toks, NoErr{}}
 
-# S2.24 (spec twin) inside a literal: a delimiter ends it and is then taken as a default-mode character
+# S2.24 (spec twin) inside a literal: a delimiter ends it and is then taken as a default-mode character (the literal
+# is judged where it stands, by the parser: `lit_error`)
 def in_lit(+c: U32, +col: U32, cur: List<&2, U32>, began: U32, toks: List<&2, Tok>, ends: Bool) -> Lex:
   match ends:
     case True{}:
@@ -352,13 +380,21 @@ def sp_colon(kind: TokKind, at: U32, key: String, kat: U32, out: List<&2, Member
     case _:
       sp_fail("expected `:`", at)
 
+# S2.27 (spec twin) a literal in a value position: the state goes on, or the literal's refusal (`lit_error`) ends it
+def sp_lit(e: LexErr, st: Sp) -> Sp:
+  match e:
+    case NoErr{}:
+      st
+    case ErrAt{msg, at}:
+      sp_fail(msg, at)
+
 # S2.24 (spec twin) the first token of a value: a scalar is the whole value, a bracket opens a nested one
 def sp_val_first(kind: TokKind, +at: U32, key: String, kat: U32, out: List<&2, Member>) -> Sp:
   match kind:
     case KStr{text}:
       Sp{PAfter{}, 0n, key, kat, Tok{KStr{text}, at} <> Nil{}, out, NoErr{}}
-    case KLit{text}:
-      Sp{PAfter{}, 0n, key, kat, Tok{KLit{text}, at} <> Nil{}, out, NoErr{}}
+    case KLit{+text}:
+      sp_lit(lit_error(text, at, False{}), Sp{PAfter{}, 0n, key, kat, Tok{KLit{text}, at} <> Nil{}, out, NoErr{}})
     case KLBrace{}:
       Sp{PVal{}, 1n, key, kat, Tok{KLBrace{}, at} <> Nil{}, out, NoErr{}}
     case KLBrack{}:
@@ -381,6 +417,8 @@ def sp_val_deep(kind: TokKind, +at: U32, depth: Nat, key: String, kat: U32, cur:
       Sp{PVal{}, d, key, kat, Tok{KRBrace{}, at} <> cur, out, NoErr{}}
     case KRBrack{} 1n+d:
       Sp{PVal{}, d, key, kat, Tok{KRBrack{}, at} <> cur, out, NoErr{}}
+    case KLit{+text} d:
+      sp_lit(lit_error(text, at, False{}), Sp{PVal{}, d, key, kat, Tok{KLit{text}, at} <> cur, out, NoErr{}})
     case other d:
       Sp{PVal{}, d, key, kat, Tok{other, at} <> cur, out, NoErr{}}
 
@@ -637,6 +675,14 @@ def v_lit(l: Lit, +at: U32, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Boo
     case LitOdd{}:
       Vs{WAfter{}, stack, out, NoErr{}, True{}}
 
+# S4.232 S2.27 (spec twin) a literal in a value position once judged: its refusal (`lit_error`), or the literal
+def v_checked(e: LexErr, l: Lit, +at: U32, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool) -> Vs:
+  match e:
+    case NoErr{}:
+      v_lit(l, at, stack, out, odd)
+    case ErrAt{msg, col}:
+      vs_fail(msg, col)
+
 # S4.232 (spec twin) `]` in a value position: it closes an empty list; after `,` it is a trailing comma
 def v_close_list(open: Bool, comma: Bool, +at: U32, stack: List<&2, Frame>, out: List<&2, Tok>, odd: Bool) -> Vs:
   match open comma:
@@ -653,7 +699,7 @@ def v_value(kind: TokKind, +at: U32, open: Bool, comma: Bool, stack: List<&2, Fr
     case KStr{text}:
       Vs{WAfter{}, stack, Tok{KStr{text}, at} <> out, NoErr{}, odd}
     case KLit{+text}:
-      v_lit(lit_canon(text), at, stack, out, odd)
+      v_checked(lit_error(text, at, False{}), lit_canon(text), at, stack, out, odd)
     case KLBrace{}:
       Vs{WKey{True{}}, FObj{Nil{}} <> stack, Tok{KLBrace{}, at} <> out, NoErr{}, odd}
     case KLBrack{}:

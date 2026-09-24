@@ -11,10 +11,13 @@ import Base
 import ./json.bend as Json
 import ./time.bend as Time
 import ./model.bend as Model
+import ./failure.bend as Failure
 
-# S2.28 (data) what a value turned out to be, by the shape its member expects
+# S2.28 (data) what a value turned out to be, by the shape its member expects. `GotBad` is reported at the column
+# of the member's value; `GotBadAt` carries its own column (an element of a list, a member of a nested object)
 type Got is Data:
   GotBad{msg: String}
+  GotBadAt{msg: String, at: U32}
   GotStr{v: String}
   GotOptStr{v: Maybe<&2, String>}
   GotTime{v: Time.Instant}
@@ -51,128 +54,215 @@ def neg_ok(s: String) -> Bool:
 def is_int(+s: String) -> Bool:
   (digits_ok(s, False{}) || neg_ok(s))
 
-# S2.28 (spec twin) a required string
+# ---------------------------------------------------------------- serde_json's words for a value of the wrong type
+# Measured by the `error_jsonl_type_*` cases: `invalid type: <what the value is>, expected <what the member takes>`,
+# reported at the column of the value's LAST byte for a scalar and of the byte before `[` or `{` for a container
+# (serde_json has consumed the separator but only peeked the bracket).
+
+# S2.27 (spec twin) `1000.0` → `1000`, `1.5` kept
+def float_trim(+c: String) -> String:
+  Bool.pick(String, String.ends_with(c, ".0"), String.take(c, Nat.sub(String.length(c), 2n)), c)
+
+# S2.27 (spec twin) a float as Rust's `Display` writes it: serde_json's spelling without a trailing `.0`
+def float_of(l: Json.Lit, +text: String) -> String:
+  match l:
+    case Json.LitOk{c}:
+      float_trim(c)
+    case Json.LitOdd{}:
+      text
+
+# S2.27 (spec twin) a float literal as Rust's `Display` writes it
+def float_shown(+text: String) -> String:
+  float_of(Json.lit_canon(text), text)
+
+# S2.27 (spec twin) what a literal is: a boolean, `null`, an integer, or a floating point number
+def lit_found(+t: String) -> String:
+  Bool.pick(String, (String.eq(t, "true") || String.eq(t, "false")), "boolean `" ++ t ++ "`", Bool.pick(String, String.eq(t, "null"), "null", Bool.pick(String, is_int(t), "integer `" ++ t ++ "`", "floating point `" ++ float_shown(t) ++ "`")))
+
+# S2.27 (spec twin) what a value is, by its first token (a string is quoted the way JSON escapes it, which is Rust's
+# debug quoting except for control characters other than tab, line feed and carriage return)
+def found_of(kind: Json.TokKind) -> String:
+  match kind:
+    case Json.KStr{t}:
+      "string " ++ Failure.quoted(t)
+    case Json.KLit{t}:
+      lit_found(t)
+    case Json.KLBrack{}:
+      "sequence"
+    case Json.KLBrace{}:
+      "map"
+    case _:
+      "value"
+
+# S2.27 (spec twin) the column serde_json reports for a value that starts at `at`: a string ends at its closing quote
+# (exact when it holds no escape), a literal at its last byte, a container one byte before its bracket
+def col_of(kind: Json.TokKind, +at: U32) -> U32:
+  match kind:
+    case Json.KStr{t}:
+      ((at + Json.byte_len(Json.codes(t)) : U32) + 1 : U32)
+    case Json.KLit{t}:
+      ((at + Json.byte_len(Json.codes(t)) : U32) - 1 : U32)
+    case _:
+      (at - 1 : U32)
+
+# S2.27 (spec twin) the column of a member's value
+def value_col(value: List<&2, Json.Tok>) -> U32:
+  match value:
+    case Con{Json.Tok{kind, at}, rest}:
+      col_of(kind, at)
+    case Nil{}:
+      0
+
+# S2.27 (spec twin) `invalid type: <found>, expected <expected>`
+def type_msg(value: List<&2, Json.Tok>, +expected: String) -> String:
+  match value:
+    case Con{Json.Tok{kind, at}, rest}:
+      "invalid type: " ++ found_of(kind) ++ ", expected " ++ expected
+    case Nil{}:
+      "invalid type: expected " ++ expected
+
+# S2.27 (spec twin) a magnitude's digits against a limit: fewer digits, or as many and no greater
+def mag_fits(+d: String, +limit: String) -> Bool:
+  (Nat.is_lt(String.length(d), String.length(limit)) || (Nat.is_eq(String.length(d), String.length(limit)) && String.is_le(d, limit)))
+
+# S2.27 (spec twin) does an integer's digit string fit a signed width: at most 2147483647 (i32) or 9223372036854775807
+# (i64); a negative one may reach one further
+def int_fits(+t: String, +wide: Bool) -> Bool:
+  Bool.pick(Bool, String.starts_with(t, "-"), mag_fits(String.drop(t, 1n), Bool.pick(String, wide, "9223372036854775808", "2147483648")), mag_fits(t, Bool.pick(String, wide, "9223372036854775807", "2147483647")))
+
+# S2.27 (spec twin) the name of a signed width
+def width_name(wide: Bool) -> String:
+  Bool.pick(String, wide, "i64", "i32")
+
+# S2.28 S2.27 (spec twin) a required string
 def take_str(value: List<&2, Json.Tok>) -> Got:
   match value:
     case Con{Json.Tok{Json.KStr{text}, _}, Nil{}}:
       GotStr{text}
-    case _:
-      GotBad{"invalid type: expected a string"}
+    case other:
+      GotBad{type_msg(other, "a string")}
 
-# S2.34 (spec twin) route on the integer verdict
-def int_pick(text: String, ok: Bool) -> Got:
-  match ok:
-    case True{}:
+# S2.34 S2.27 (spec twin) route on the integer verdicts: an integer out of the width is `invalid value`, any other
+# literal `invalid type`
+def int_pick(+text: String, whole: Bool, fits: Bool, +wide: Bool) -> Got:
+  match whole fits:
+    case True{} True{}:
       GotStr{text}
-    case False{}:
-      GotBad{"invalid type: expected an integer"}
+    case True{} False{}:
+      GotBad{"invalid value: integer `" ++ text ++ "`, expected " ++ width_name(wide)}
+    case False{} _:
+      GotBad{"invalid type: " ++ lit_found(text) ++ ", expected " ++ width_name(wide)}
 
-# S2.34 (spec twin) a required integer, kept as its digit string
-def take_int(value: List<&2, Json.Tok>) -> Got:
+# S2.34 S2.27 (spec twin) a required integer of a signed width (i32, or i64 when `wide`), kept as its digit string
+def take_int(value: List<&2, Json.Tok>, +wide: Bool) -> Got:
   match value:
     case Con{Json.Tok{Json.KLit{+text}, _}, Nil{}}:
-      int_pick(text, is_int(text))
-    case _:
-      GotBad{"invalid type: expected an integer"}
+      int_pick(text, is_int(text), (is_int(text) && int_fits(text, wide)), wide)
+    case other:
+      GotBad{type_msg(other, width_name(wide))}
 
-# S2.38 (spec twin) a literal where a string may stand: only `null` means "not set"
-def null_str(is_null: Bool) -> Got:
+# S2.38 S2.27 (spec twin) a literal where a string may stand: only `null` means "not set"
+def null_str(is_null: Bool, +text: String) -> Got:
   match is_null:
     case True{}:
       GotOptStr{None{}}
     case False{}:
-      GotBad{"invalid type: expected a string"}
+      GotBad{"invalid type: " ++ lit_found(text) ++ ", expected a string"}
 
 # S2.38 (spec twin) an optional string; `""` is an empty string, not "not set"
 def take_opt_str(value: List<&2, Json.Tok>) -> Got:
   match value:
     case Con{Json.Tok{Json.KStr{text}, _}, Nil{}}:
       GotOptStr{Some{text}}
-    case Con{Json.Tok{Json.KLit{text}, _}, Nil{}}:
-      null_str(String.eq(text, "null"))
-    case _:
-      GotBad{"invalid type: expected a string"}
+    case Con{Json.Tok{Json.KLit{+text}, _}, Nil{}}:
+      null_str(String.eq(text, "null"), text)
+    case other:
+      GotBad{type_msg(other, "a string")}
 
-# S2.34 (spec twin) route on `null` and on the integer verdict
-def opt_int_pick(text: String, is_null: Bool, ok: Bool) -> Got:
-  match is_null ok:
+# S2.34 (spec twin) an optional integer: `null` is "not set"
+def opt_int_pick(is_null: Bool, g: Got) -> Got:
+  match is_null g:
     case True{} _:
       GotOptStr{None{}}
-    case False{} True{}:
-      GotOptStr{Some{text}}
-    case False{} False{}:
-      GotBad{"invalid type: expected an integer"}
+    case False{} GotStr{v}:
+      GotOptStr{Some{v}}
+    case False{} other:
+      other
 
-# S2.34 (spec twin) an optional integer, kept as its digit string
-def take_opt_int(value: List<&2, Json.Tok>) -> Got:
+# S2.34 (spec twin) an optional i32, kept as its digit string
+def take_opt_int(+value: List<&2, Json.Tok>) -> Got:
   match value:
     case Con{Json.Tok{Json.KLit{+text}, _}, Nil{}}:
-      opt_int_pick(text, String.eq(text, "null"), is_int(text))
-    case _:
-      GotBad{"invalid type: expected an integer"}
+      opt_int_pick(String.eq(text, "null"), int_pick(text, is_int(text), (is_int(text) && int_fits(text, False{})), False{}))
+    case other:
+      GotBad{type_msg(other, "i32")}
 
-# S2.35 (spec twin) a parsed timestamp as a required instant
-def time_got(p: Time.Parsed) -> Got:
+# S2.35 S2.27 (spec twin) what the timestamp members expect, in serde_json's words
+def time_expected() -> String:
+  "an RFC 3339 formatted date and time string"
+
+# S2.35 (spec twin) a parsed timestamp as a required instant; a refused spelling is reported in chrono's words
+def time_got(p: Time.Parsed, +text: String) -> Got:
   match p:
     case Time.Good{at}:
       GotTime{at}
     case Time.Bad{}:
-      GotBad{"invalid timestamp"}
+      GotBad{Time.failure(text)}
 
 # S2.35 (spec twin) a required RFC 3339 timestamp
 def take_time(value: List<&2, Json.Tok>) -> Got:
   match value:
-    case Con{Json.Tok{Json.KStr{text}, _}, Nil{}}:
-      time_got(Time.parse(text))
-    case _:
-      GotBad{"invalid type: expected a timestamp string"}
+    case Con{Json.Tok{Json.KStr{+text}, _}, Nil{}}:
+      time_got(Time.parse(text), text)
+    case other:
+      GotBad{type_msg(other, time_expected())}
 
 # S2.35 (spec twin) a parsed timestamp as an optional instant
-def opt_time_got(p: Time.Parsed) -> Got:
+def opt_time_got(p: Time.Parsed, +text: String) -> Got:
   match p:
     case Time.Good{at}:
       GotOptTime{Some{at}}
     case Time.Bad{}:
-      GotBad{"invalid timestamp"}
+      GotBad{Time.failure(text)}
 
 # S2.35 (spec twin) a literal where a timestamp may stand: only `null` means "not set"
-def null_time(is_null: Bool) -> Got:
+def null_time(is_null: Bool, +text: String) -> Got:
   match is_null:
     case True{}:
       GotOptTime{None{}}
     case False{}:
-      GotBad{"invalid type: expected a timestamp string"}
+      GotBad{"invalid type: " ++ lit_found(text) ++ ", expected " ++ time_expected()}
 
 # S2.35 (spec twin) an optional RFC 3339 timestamp
 def take_opt_time(value: List<&2, Json.Tok>) -> Got:
   match value:
-    case Con{Json.Tok{Json.KStr{text}, _}, Nil{}}:
-      opt_time_got(Time.parse(text))
-    case Con{Json.Tok{Json.KLit{text}, _}, Nil{}}:
-      null_time(String.eq(text, "null"))
-    case _:
-      GotBad{"invalid type: expected a timestamp string"}
+    case Con{Json.Tok{Json.KStr{+text}, _}, Nil{}}:
+      opt_time_got(Time.parse(text), text)
+    case Con{Json.Tok{Json.KLit{+text}, _}, Nil{}}:
+      null_time(String.eq(text, "null"), text)
+    case other:
+      GotBad{type_msg(other, time_expected())}
 
 # S3.3 (spec twin) route on `true` and `false`
-def flag_pick(yes: Bool, no: Bool) -> Got:
+def flag_pick(yes: Bool, no: Bool, +text: String) -> Got:
   match yes no:
     case True{} _:
       GotFlag{True{}}
     case False{} True{}:
       GotFlag{False{}}
     case False{} False{}:
-      GotBad{"invalid type: expected a boolean"}
+      GotBad{"invalid type: " ++ lit_found(text) ++ ", expected a boolean"}
 
 # S3.3 (spec twin) a flag
 def take_flag(value: List<&2, Json.Tok>) -> Got:
   match value:
     case Con{Json.Tok{Json.KLit{+text}, _}, Nil{}}:
-      flag_pick(String.eq(text, "true"), String.eq(text, "false"))
-    case _:
-      GotBad{"invalid type: expected a boolean"}
+      flag_pick(String.eq(text, "true"), String.eq(text, "false"), text)
+    case other:
+      GotBad{type_msg(other, "a boolean")}
 
 # S3.1 (spec twin) route on `true`, `false` and `null`
-def opt_flag_pick(yes: Bool, no: Bool, is_null: Bool) -> Got:
+def opt_flag_pick(yes: Bool, no: Bool, is_null: Bool, +text: String) -> Got:
   match yes no is_null:
     case True{} _ _:
       GotOptFlag{Some{True{}}}
@@ -181,62 +271,52 @@ def opt_flag_pick(yes: Bool, no: Bool, is_null: Bool) -> Got:
     case False{} False{} True{}:
       GotOptFlag{None{}}
     case False{} False{} False{}:
-      GotBad{"invalid type: expected a boolean"}
+      GotBad{"invalid type: " ++ lit_found(text) ++ ", expected a boolean"}
 
 # S3.1 (spec twin) an optional boolean
 def take_opt_flag(value: List<&2, Json.Tok>) -> Got:
   match value:
     case Con{Json.Tok{Json.KLit{+text}, _}, Nil{}}:
-      opt_flag_pick(String.eq(text, "true"), String.eq(text, "false"), String.eq(text, "null"))
-    case _:
-      GotBad{"invalid type: expected a boolean"}
+      opt_flag_pick(String.eq(text, "true"), String.eq(text, "false"), String.eq(text, "null"), text)
+    case other:
+      GotBad{type_msg(other, "a boolean")}
 
-# S2.39 (spec twin) the strings of `[ "a" , "b" ]` in file order, duplicates kept; acc is REVERSED.
-# Brackets and commas are skipped; anything else makes the verdict false.
-def strings_go(toks: List<&2, Json.Tok>, acc: List<&2, String>, ok: Bool) -> Got:
-  match toks ok:
-    case Nil{} True{}:
+# S2.39 S2.27 (spec twin) the strings of `[ "a" , "b" ]` in file order, duplicates kept; acc is REVERSED. Commas
+# and the closing bracket are skipped; the first element that is not a string is `invalid type`, at ITS column
+def strings_go(toks: List<&2, Json.Tok>, acc: List<&2, String>) -> Got:
+  match toks:
+    case Nil{}:
       GotStrings{List.reverse(&2, String, acc)}
-    case Nil{} False{}:
-      GotBad{"invalid type: expected an array of strings"}
-    case Con{Json.Tok{Json.KStr{text}, _}, rest} good:
-      strings_go(rest, text <> acc, good)
-    case Con{Json.Tok{Json.KComma{}, _}, rest} good:
-      strings_go(rest, acc, good)
-    case Con{Json.Tok{Json.KLBrack{}, _}, rest} good:
-      strings_go(rest, acc, good)
-    case Con{Json.Tok{Json.KRBrack{}, _}, rest} good:
-      strings_go(rest, acc, good)
-    case Con{other, rest} good:
-      strings_go(rest, acc, False{})
+    case Con{Json.Tok{Json.KStr{text}, _}, rest}:
+      strings_go(rest, text <> acc)
+    case Con{Json.Tok{Json.KComma{}, _}, rest}:
+      strings_go(rest, acc)
+    case Con{Json.Tok{Json.KRBrack{}, _}, rest}:
+      strings_go(rest, acc)
+    case Con{Json.Tok{+kind, +at}, rest}:
+      GotBadAt{"invalid type: " ++ found_of(kind) ++ ", expected a string", col_of(kind, at)}
 
-# S2.39 (spec twin) an array of strings
+# S2.39 S2.27 (spec twin) an array of strings; anything but an array is `invalid type: …, expected a sequence`
 def take_strings(value: List<&2, Json.Tok>) -> Got:
-  strings_go(value, Nil{}, True{})
+  match value:
+    case Con{Json.Tok{Json.KLBrack{}, _}, rest}:
+      strings_go(rest, Nil{})
+    case other:
+      GotBad{type_msg(other, "a sequence")}
 
 # S3.1 (spec twin) an array of strings as an optional member
 def opt_list_got(g: Got) -> Got:
   match g:
     case GotStrings{v}:
       GotOptList{Some{v}}
-    case GotBad{msg}:
-      GotBad{msg}
-    case _:
-      GotBad{"invalid type: expected an array of strings"}
-
-# S3.1 (spec twin) a literal where a list may stand: only `null` means "not set"
-def null_list(is_null: Bool) -> Got:
-  match is_null:
-    case True{}:
-      GotOptList{None{}}
-    case False{}:
-      GotBad{"invalid type: expected an array of strings"}
+    case other:
+      other
 
 # S3.1 (spec twin) `null` is "not set"; anything else must be an array of strings
 def take_opt_list(value: List<&2, Json.Tok>) -> Got:
   match value:
-    case Con{Json.Tok{Json.KLit{text}, _}, Nil{}}:
-      null_list(String.eq(text, "null"))
+    case Con{Json.Tok{Json.KLit{+text}, _}, Nil{}}:
+      Bool.pick(Got, String.eq(text, "null"), GotOptList{None{}}, GotBad{"invalid type: " ++ lit_found(text) ++ ", expected a sequence"})
     case other:
       opt_list_got(take_strings(other))
 
@@ -322,7 +402,7 @@ def elements(toks: List<&2, Json.Tok>) -> Elements:
 
 # S3.5 (data) a dependency being read, or the refusal
 type DepDec is Data:
-  DepBad{msg: String}
+  DepBad{msg: String, at: U32}
   DepOk{dep: Model.Dependency}
 
 # S2.37 (spec twin) a `metadata` string that is empty or only whitespace loads as "not set"
@@ -341,8 +421,34 @@ def metadata_of(v: Maybe<&2, String>) -> Maybe<&2, String>:
     case Some{+text}:
       metadata_pick(text, String.is_empty(String.trim(text)))
 
-# S3.5 (spec twin) one member of a dependency, by its index in the seven names
-def dep_put(idx: U32, d: Model.Dependency, got_str: Got, got_opt: Got, got_time: Got) -> DepDec:
+# S2.27 (spec twin) the message of a refused value
+def got_msg(g: Got, +fallback: String) -> String:
+  match g:
+    case GotBad{m}:
+      m
+    case GotBadAt{m, at}:
+      m
+    case _:
+      fallback
+
+# S3.5 S2.27 (spec twin) the message of the reader a dependency member's index uses: the three strings, the
+# timestamp, or the optional strings
+def dep_bad(idx: U32, s: Got, o: Got, t: Got) -> String:
+  match idx:
+    case 0:
+      got_msg(s, "invalid dependency member")
+    case 1:
+      got_msg(s, "invalid dependency member")
+    case 2:
+      got_msg(s, "invalid dependency member")
+    case 3:
+      got_msg(t, "invalid dependency member")
+    case _:
+      got_msg(o, "invalid dependency member")
+
+# S3.5 (spec twin) one member of a dependency, by its index in the seven names; a refused value is reported at
+# `col`, the column of the member's value
+def dep_put(idx: U32, d: Model.Dependency, got_str: Got, got_opt: Got, got_time: Got, col: U32) -> DepDec:
   match idx d got_str got_opt got_time:
     case 0 Model.Dependency{_, b, c, e, f, g, h} GotStr{v} _ _:
       DepOk{Model.Dependency{v, b, c, e, f, g, h}}
@@ -360,8 +466,8 @@ def dep_put(idx: U32, d: Model.Dependency, got_str: Got, got_opt: Got, got_time:
       DepOk{Model.Dependency{a, b, c, e, f, g, v}}
     case 999 keep _ _ _:
       DepOk{keep}
-    case _ _ _ _ _:
-      DepBad{"invalid dependency member"}
+    case i _ s o t:
+      DepBad{dep_bad(i, s, o, t), col}
 
 # S3.5 (spec twin) the seven member names of a dependency, in wire order
 def dep_names() -> List<&2, String>:
@@ -370,10 +476,10 @@ def dep_names() -> List<&2, String>:
 # S3.5 (spec twin) a refusal is sticky; otherwise read one member
 def dep_member(st: DepDec, key: String, +value: List<&2, Json.Tok>) -> DepDec:
   match st:
-    case DepBad{msg}:
-      DepBad{msg}
+    case DepBad{msg, at}:
+      DepBad{msg, at}
     case DepOk{d}:
-      dep_put(index_of(dep_names(), key), d, take_str(value), take_opt_str(value), take_time(value))
+      dep_put(index_of(dep_names(), key), d, take_str(value), take_opt_str(value), take_time(value), value_col(value))
 
 # S3.5 (spec twin) the loop over a dependency's members
 def dep_go(ms: List<&2, Json.Member>, st: DepDec) -> DepDec:
@@ -386,18 +492,19 @@ def dep_go(ms: List<&2, Json.Member>, st: DepDec) -> DepDec:
 # S3.5 (spec twin) a dependency from the members of its object
 def dep_of(sp: Json.Split) -> DepDec:
   match sp:
-    case Json.SplitBad{msg, _}:
-      DepBad{msg}
+    case Json.SplitBad{msg, at}:
+      DepBad{msg, at}
     case Json.SplitOk{ms}:
       dep_go(ms, DepOk{Model.Dependency{"", "", "blocks", Time.Instant{0, 0, 0}, None{}, None{}, None{}}})
 
-# S3.5 (spec twin) fold one decoded dependency into the list being built (REVERSED); a refusal is sticky
+# S3.5 (spec twin) fold one decoded dependency into the list being built (REVERSED); a refusal is sticky and keeps
+# its own column
 def deps_push(acc: Got, one: DepDec) -> Got:
   match acc one:
     case GotDeps{sofar} DepOk{d}:
       GotDeps{d <> sofar}
-    case GotDeps{sofar} DepBad{msg}:
-      GotBad{msg}
+    case GotDeps{sofar} DepBad{msg, at}:
+      GotBadAt{msg, at}
     case bad _:
       bad
 
@@ -417,27 +524,37 @@ def deps_done(g: Got) -> Got:
     case other:
       other
 
-# S3.5 (spec twin) route on the element split
-def deps_from(els: Elements, eof: U32) -> Got:
+# S3.5 S2.27 (spec twin) route on the element split: anything but an array is `invalid type: …, expected a sequence`
+def deps_from(els: Elements, value: List<&2, Json.Tok>, eof: U32) -> Got:
   match els:
     case ElsBad{}:
-      GotBad{"invalid type: expected an array of dependencies"}
+      GotBad{type_msg(value, "a sequence")}
     case ElsOk{items}:
       deps_done(deps_go(items, GotDeps{Nil{}}, eof))
 
 # S3.5 (spec twin) the `dependencies` member
-def take_deps(value: List<&2, Json.Tok>, eof: U32) -> Got:
-  deps_from(elements(value), eof)
+def take_deps(+value: List<&2, Json.Tok>, eof: U32) -> Got:
+  deps_from(elements(value), value, eof)
 
 # ---------------------------------------------------------------- comments
 
 # S3.6 (data) a comment being read, or the refusal
 type ComDec is Data:
-  ComBad{msg: String}
+  ComBad{msg: String, at: U32}
   ComOk{com: Model.Comment}
 
-# S3.6 (spec twin) one member of a comment, by its index in the five names
-def com_put(idx: U32, c: Model.Comment, got_str: Got, got_int: Got, got_time: Got) -> ComDec:
+# S3.6 S2.27 (spec twin) the message of the reader a comment member's index uses: the i64 id, the timestamp, the strings
+def com_bad(idx: U32, s: Got, n: Got, t: Got) -> String:
+  match idx:
+    case 0:
+      got_msg(n, "invalid comment member")
+    case 4:
+      got_msg(t, "invalid comment member")
+    case _:
+      got_msg(s, "invalid comment member")
+
+# S3.6 (spec twin) one member of a comment, by its index in the five names; a refused value is reported at `col`
+def com_put(idx: U32, c: Model.Comment, got_str: Got, got_int: Got, got_time: Got, col: U32) -> ComDec:
   match idx c got_str got_int got_time:
     case 0 Model.Comment{_, b, d, e, f} _ GotStr{v} _:
       ComOk{Model.Comment{v, b, d, e, f}}
@@ -451,8 +568,8 @@ def com_put(idx: U32, c: Model.Comment, got_str: Got, got_int: Got, got_time: Go
       ComOk{Model.Comment{a, b, d, e, v}}
     case 999 keep _ _ _:
       ComOk{keep}
-    case _ _ _ _ _:
-      ComBad{"invalid comment member"}
+    case i _ s n t:
+      ComBad{com_bad(i, s, n, t), col}
 
 # S3.6 (spec twin) the five member names of a comment, in wire order
 def com_names() -> List<&2, String>:
@@ -461,10 +578,10 @@ def com_names() -> List<&2, String>:
 # S3.6 (spec twin) a refusal is sticky; otherwise read one member
 def com_member(st: ComDec, key: String, +value: List<&2, Json.Tok>) -> ComDec:
   match st:
-    case ComBad{msg}:
-      ComBad{msg}
+    case ComBad{msg, at}:
+      ComBad{msg, at}
     case ComOk{c}:
-      com_put(index_of(com_names(), key), c, take_str(value), take_int(value), take_time(value))
+      com_put(index_of(com_names(), key), c, take_str(value), take_int(value, True{}), take_time(value), value_col(value))
 
 # S3.6 (spec twin) the loop over a comment's members
 def com_go(ms: List<&2, Json.Member>, st: ComDec) -> ComDec:
@@ -477,8 +594,8 @@ def com_go(ms: List<&2, Json.Member>, st: ComDec) -> ComDec:
 # S3.6 (spec twin) a comment from the members of its object
 def com_of(sp: Json.Split) -> ComDec:
   match sp:
-    case Json.SplitBad{msg, _}:
-      ComBad{msg}
+    case Json.SplitBad{msg, at}:
+      ComBad{msg, at}
     case Json.SplitOk{ms}:
       com_go(ms, ComOk{Model.Comment{"0", "", "", "", Time.Instant{0, 0, 0}}})
 
@@ -487,8 +604,8 @@ def coms_push(acc: Got, one: ComDec) -> Got:
   match acc one:
     case GotComments{sofar} ComOk{c}:
       GotComments{c <> sofar}
-    case GotComments{sofar} ComBad{msg}:
-      GotBad{msg}
+    case GotComments{sofar} ComBad{msg, at}:
+      GotBadAt{msg, at}
     case bad _:
       bad
 
@@ -509,16 +626,16 @@ def coms_done(g: Got) -> Got:
       other
 
 # S3.6 (spec twin) route on the element split
-def coms_from(els: Elements, eof: U32) -> Got:
+def coms_from(els: Elements, value: List<&2, Json.Tok>, eof: U32) -> Got:
   match els:
     case ElsBad{}:
-      GotBad{"invalid type: expected an array of comments"}
+      GotBad{type_msg(value, "a sequence")}
     case ElsOk{items}:
       coms_done(coms_go(items, GotComments{Nil{}}, eof))
 
 # S3.6 (spec twin) the `comments` member
-def take_comments(value: List<&2, Json.Tok>, eof: U32) -> Got:
-  coms_from(elements(value), eof)
+def take_comments(+value: List<&2, Json.Tok>, eof: U32) -> Got:
+  coms_from(elements(value), value, eof)
 
 # ---------------------------------------------------------------- the three collections
 
@@ -529,6 +646,8 @@ def put_labels(i: Model.Issue, got: Got, at: U32) -> Dec:
       DecOk{Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, v, dependencies, comments}}
     case _ GotBad{msg}:
       DecBad{msg, at}
+    case _ GotBadAt{msg, col}:
+      DecBad{msg, col}
     case _ _:
       DecBad{"invalid type", at}
 
@@ -539,6 +658,8 @@ def put_dependencies(i: Model.Issue, got: Got, at: U32) -> Dec:
       DecOk{Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, v, comments}}
     case _ GotBad{msg}:
       DecBad{msg, at}
+    case _ GotBadAt{msg, col}:
+      DecBad{msg, col}
     case _ _:
       DecBad{"invalid type", at}
 
@@ -549,6 +670,8 @@ def put_comments(i: Model.Issue, got: Got, at: U32) -> Dec:
       DecOk{Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, dependencies, v}}
     case _ GotBad{msg}:
       DecBad{msg, at}
+    case _ GotBadAt{msg, col}:
+      DecBad{msg, col}
     case _ _:
       DecBad{"invalid type", at}
 
@@ -1017,6 +1140,8 @@ def put_policy_gates_fired(i: Model.Issue, got: Got, at: U32) -> Dec:
       DecOk{set_policy_gates_fired(i, v)}
     case GotBad{msg}:
       DecBad{msg, at}
+    case GotBadAt{msg, col}:
+      DecBad{msg, col}
     case _:
       DecBad{"invalid type", at}
 
@@ -1234,7 +1359,7 @@ def put(idx: U32, i: Model.Issue, value: List<&2, Json.Tok>, at: U32, +eof: U32)
     case 7:
       put_status(i, take_str(value), at)
     case 8:
-      put_priority(i, take_int(value), at)
+      put_priority(i, take_int(value, False{}), at)
     case 9:
       put_issue_type(i, take_str(value), at)
     case 10:
@@ -1310,13 +1435,14 @@ def put(idx: U32, i: Model.Issue, value: List<&2, Json.Tok>, at: U32, +eof: U32)
 
 # ---------------------------------------------------------------- one line
 
-# S2.27 (spec twin) a refusal is sticky; otherwise apply one member
-def member_step(st: Dec, key: String, value: List<&2, Json.Tok>, at: U32, eof: U32) -> Dec:
+# S2.27 (spec twin) a refusal is sticky; otherwise apply one member. A refused value is reported at the column of the
+# VALUE (serde_json's position after reading it: `error_jsonl_type_*`), not of its key
+def member_step(st: Dec, key: String, +value: List<&2, Json.Tok>, at: U32, eof: U32) -> Dec:
   match st:
     case DecBad{msg, col}:
       DecBad{msg, col}
     case DecOk{i}:
-      put(index_of(known(), key), i, value, at, eof)
+      put(index_of(known(), key), i, value, value_col(value), eof)
 
 # S2.28 (spec twin) the loop over the line's members
 def members_go(ms: List<&2, Json.Member>, st: Dec, +eof: U32) -> Dec:
@@ -1365,12 +1491,27 @@ def from_split(sp: Json.Split, eof: U32) -> Dec:
       checked(ms, missing_pick(has_key(ms, "id"), has_key(ms, "title"), has_key(ms, "created_at"), has_key(ms, "updated_at")), eof)
 
 # S2.27 (spec twin) the record of a lexed line
+# S2.27 (spec twin) a line that is an ARRAY: serde_json fills the record's members from its elements in order, and
+# the first, `id`, takes a string, so a first element that is not one is `invalid type: …, expected a string` at its
+# column (`error_jsonl_array`: `[1]`); any other array, and every object, goes to the member splitter
+def from_toks(toks: List<&2, Json.Tok>, +eof: U32) -> Dec:
+  match toks:
+    case Con{Json.Tok{Json.KLBrack{}, _}, Con{Json.Tok{Json.KLit{+t}, +at}, rest}}:
+      DecBad{"invalid type: " ++ lit_found(t) ++ ", expected a string", col_of(Json.KLit{t}, at)}
+    case Con{Json.Tok{Json.KLBrack{}, _}, Con{Json.Tok{Json.KLBrace{}, +at}, rest}}:
+      DecBad{"invalid type: map, expected a string", (at - 1 : U32)}
+    case Con{Json.Tok{Json.KLBrack{}, _}, Con{Json.Tok{Json.KLBrack{}, +at}, rest}}:
+      DecBad{"invalid type: sequence, expected a string", (at - 1 : U32)}
+    case other:
+      from_split(Json.members(other, eof), eof)
+
+# S2.24 S2.27 (spec twin) a lexed line as a record, or the lexer's refusal
 def from_lexed(lx: Json.Lexed, +eof: U32) -> Dec:
   match lx:
     case Json.LexBad{msg, at}:
       DecBad{msg, at}
     case Json.LexOk{toks}:
-      from_split(Json.members(toks, eof), eof)
+      from_toks(toks, eof)
 
 # S2.24 S2.27 S2.28 (spec twin) one trimmed line's code points as an issue record.
 # `eof` is the line's byte length: the column serde_json reports when the text ends too early.

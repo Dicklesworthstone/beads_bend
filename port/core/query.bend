@@ -433,6 +433,34 @@ def has_text(needle: Maybe<&2, String>, hay: Maybe<&2, String>) -> Bool:
     case Some{n} Some{h}:
       String.contains(folded(h), folded(n))
 
+# S4.129 (spec twin) is a code point in `lo..=hi` with the parity `odd` (even when false)
+def span_parity(+c: U32, lo: U32, hi: U32, odd: Bool) -> Bool:
+  ((c >= lo : U32) && (c <= hi : U32) && U32.is_eq((c % 2 : U32), Bool.pick(U32, odd, 1, 0)))
+
+# S4.129 (spec twin) Rust's `to_lowercase` of one code point, for the scripts the port folds: ASCII, Latin-1, Latin
+# Extended-A, Latin Extended Additional, Greek and Cyrillic (`list_desc_contains_nonascii`: `école` finds `ÉCOLE`).
+# `İ` (U+0130) lower-cases to `i` and U+0307. Other scripts are kept as they are (OQ-117 names the gap)
+def unicode_lower(+c: U32) -> String:
+  Bool.pick(String, U32.is_eq(c, 304), "i\u{307}", SCon{Chr{Bool.pick(U32, (((c >= 65 : U32) && (c <= 90 : U32)) || ((c >= 192 : U32) && (c <= 222 : U32) && U32.is_ne(c, 215)) || ((c >= 913 : U32) && (c <= 939 : U32) && U32.is_ne(c, 930)) || ((c >= 1040 : U32) && (c <= 1071 : U32))), (c + 32 : U32), Bool.pick(U32, (span_parity(c, 256, 311, False{}) || span_parity(c, 313, 328, True{}) || span_parity(c, 330, 375, False{}) || span_parity(c, 377, 382, True{}) || span_parity(c, 1120, 1153, False{}) || span_parity(c, 7680, 7828, False{}) || span_parity(c, 7840, 7934, False{})), (c + 1 : U32), Bool.pick(U32, ((c >= 1024 : U32) && (c <= 1039 : U32)), (c + 80 : U32), Bool.pick(U32, U32.is_eq(c, 376), 255, Bool.pick(U32, U32.is_eq(c, 902), 940, Bool.pick(U32, ((c >= 904 : U32) && (c <= 906 : U32)), (c + 37 : U32), Bool.pick(U32, U32.is_eq(c, 908), 972, Bool.pick(U32, ((c >= 910 : U32) && (c <= 911 : U32)), (c + 63 : U32), c))))))))}, ""})
+
+# S4.129 (spec twin) a string through `unicode_lower`
+def unicode_folded(s: String) -> String:
+  match s:
+    case SNil{}:
+      ""
+    case SCon{Chr{+c}, rest}:
+      unicode_lower(c) ++ unicode_folded(rest)
+
+# S4.129 (spec twin) `--desc-contains` and `--notes-contains`: as `has_text`, with Unicode lower-casing on both sides
+def has_text_unicode(needle: Maybe<&2, String>, hay: Maybe<&2, String>) -> Bool:
+  match needle hay:
+    case None{} _:
+      True{}
+    case Some{n} None{}:
+      String.is_empty(n)
+    case Some{n} Some{h}:
+      String.contains(unicode_folded(h), unicode_folded(n))
+
 # S4.107 S4.130 (spec twin) a stored priority as a number; anything that is not a small number compares as 255
 def priority_number(digits: String) -> U32:
   Maybe.default(&2, U32, U32.read(digits), 255)
@@ -441,7 +469,7 @@ def priority_number(digits: String) -> U32:
 def keeps(f: Filter, +i: Model.Issue) -> Bool:
   match f:
     case Filter{statuses, drop_closed, drop_tombstone, drop_deferred, types, priorities, assignee, unassigned, ids, labels_all, labels_any, pmin, pmax, title_has, desc_has, notes_has, templates}:
-      (visible(folded(Model.status_of(i)), drop_closed, drop_tombstone, drop_deferred) && (templates || Bool.not(Model.is_template(i))) && word_ok(statuses, folded(Model.status_of(i))) && word_ok(types, folded(Model.type_of(i))) && priority_ok(priorities, priority_number(Model.priority_of(i))) && assignee_ok(assignee, Model.assignee_of(i)) && unassigned_ok(unassigned, Model.assignee_of(i)) && word_ok(ids, Model.id_of(i)) && labels_all_ok(labels_all, Model.labels_of(i)) && labels_any_ok(labels_any, Model.labels_of(i)) && (priority_number(Model.priority_of(i)) >= pmin : U32) && (priority_number(Model.priority_of(i)) <= pmax : U32) && has_text(title_has, Some{Model.title_of(i)}) && has_text(desc_has, Model.description_of(i)) && has_text(notes_has, Model.notes_of(i)))
+      (visible(folded(Model.status_of(i)), drop_closed, drop_tombstone, drop_deferred) && (templates || Bool.not(Model.is_template(i))) && word_ok(statuses, folded(Model.status_of(i))) && word_ok(types, folded(Model.type_of(i))) && priority_ok(priorities, priority_number(Model.priority_of(i))) && assignee_ok(assignee, Model.assignee_of(i)) && unassigned_ok(unassigned, Model.assignee_of(i)) && word_ok(ids, Model.id_of(i)) && labels_all_ok(labels_all, Model.labels_of(i)) && labels_any_ok(labels_any, Model.labels_of(i)) && (priority_number(Model.priority_of(i)) >= pmin : U32) && (priority_number(Model.priority_of(i)) <= pmax : U32) && has_text(title_has, Some{Model.title_of(i)}) && has_text_unicode(desc_has, Model.description_of(i)) && has_text_unicode(notes_has, Model.notes_of(i)))
 
 # S4.114 (spec twin) keep an issue the filter keeps
 def kept_put(i: Model.Issue, keep: Bool, rest: List<&2, Model.Issue>) -> List<&2, Model.Issue>:

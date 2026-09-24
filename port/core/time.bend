@@ -272,6 +272,96 @@ def parse_codes(cs: List<&2, U32>) -> Parsed:
 def parse(s: String) -> Parsed:
   parse_codes(codes(s))
 
+# ---------------------------------------------------------------- chrono's words for a refused spelling (S2.35)
+# A stored timestamp that `parse` refuses is reported with the words chrono's RFC 3339 parser uses, measured by the
+# `error_jsonl_ts_*` cases: the text walked against `YYYY-MM-DD?HH:MM:SS`, an optional `.fraction`, then `Z` or
+# `±HH:MM`; running out first is `premature end of input`, a character of the wrong class is `input contains invalid
+# characters`, text after a complete zone is `trailing input`, and a well-formed spelling with a field out of range
+# (month 13, February 30, hour 25) is `input is out of range`.
+
+# S2.35 (data) the verdict of one step of the walk: still going (at this index), or the words
+type Walk is Data:
+  WalkAt{next: Nat}
+  WalkEnd{words: String}
+
+# S2.35 (spec twin) the class a position of `YYYY-MM-DD?HH:MM:SS` wants: 0 a digit, 1 `-`, 2 the separator, 3 `:`
+def class_at(+i: Nat) -> U32:
+  Bool.pick(U32, (Nat.is_eq(i, 4n) || Nat.is_eq(i, 7n)), 1, Bool.pick(U32, Nat.is_eq(i, 10n), 2, Bool.pick(U32, (Nat.is_eq(i, 13n) || Nat.is_eq(i, 16n)), 3, 0)))
+
+# S2.35 (spec twin) does a code point belong to a class
+def fits(+c: U32, +class: U32) -> Bool:
+  match class:
+    case 0:
+      is_dig(c)
+    case 1:
+      U32.is_eq(c, 45)
+    case 2:
+      (U32.is_eq(c, 84) || U32.is_eq(c, 116) || U32.is_eq(c, 32))
+    case _:
+      U32.is_eq(c, 58)
+
+# S2.35 (spec twin) the fixed part, position by position: the 19 code points of `YYYY-MM-DD?HH:MM:SS`
+def fixed_go(cs: List<&2, U32>, +i: Nat) -> Walk:
+  match cs:
+    case Nil{}:
+      Bool.pick(Walk, Nat.is_lt(i, 19n), WalkEnd{"premature end of input"}, WalkAt{i})
+    case Con{+c, rest}:
+      Bool.pick(Walk, Nat.is_ge(i, 19n), WalkAt{i}, Bool.pick(Walk, fits(c, class_at(i)), fixed_go(rest, Nat.add(i, 1n)), WalkEnd{"input contains invalid characters"}))
+
+# S2.35 (spec twin) the digits of a fraction, counted
+def digit_run(cs: List<&2, U32>) -> Nat:
+  match cs:
+    case Nil{}:
+      0n
+    case Con{+c, rest}:
+      Bool.pick(Nat, is_dig(c), Nat.add(digit_run(rest), 1n), 0n)
+
+# S2.35 (spec twin) an offset `±HH:MM` after its sign: two digits, `:`, two digits
+def offset_ok(cs: List<&2, U32>) -> Walk:
+  match cs:
+    case Con{+a, Con{+b, Con{+k, Con{+d, Con{+e, +rest}}}}}:
+      Bool.pick(Walk, (is_dig(a) && is_dig(b) && U32.is_eq(k, 58) && is_dig(d) && is_dig(e)), Bool.pick(Walk, List.is_empty(&2, U32, rest), WalkEnd{""}, WalkEnd{"trailing input"}), WalkEnd{"input contains invalid characters"})
+    case _:
+      WalkEnd{"premature end of input"}
+
+# S2.35 (spec twin) the zone: `Z`/`z` and nothing after, or a signed offset
+def zone_walk(cs: List<&2, U32>) -> Walk:
+  match cs:
+    case Nil{}:
+      WalkEnd{"premature end of input"}
+    case Con{+c, +rest}:
+      Bool.pick(Walk, (U32.is_eq(c, 90) || U32.is_eq(c, 122)), Bool.pick(Walk, List.is_empty(&2, U32, rest), WalkEnd{""}, WalkEnd{"trailing input"}), Bool.pick(Walk, (U32.is_eq(c, 43) || U32.is_eq(c, 45)), offset_ok(rest), WalkEnd{"input contains invalid characters"}))
+
+# S2.35 (spec twin) after the seconds: an optional `.` with at least one digit, then the zone
+def after_seconds(cs: List<&2, U32>) -> Walk:
+  match cs:
+    case Con{46, +rest}:
+      Bool.pick(Walk, Nat.is_eq(digit_run(rest), 0n), Bool.pick(Walk, List.is_empty(&2, U32, rest), WalkEnd{"premature end of input"}, WalkEnd{"input contains invalid characters"}), zone_walk(List.drop(&2, U32, rest, digit_run(rest))))
+    case other:
+      zone_walk(other)
+
+# S2.35 (spec twin) the tail's verdict: its words, or `input is out of range` when every part was well formed
+def failure_tail(w: Walk) -> String:
+  match w:
+    case WalkEnd{SNil{}}:
+      "input is out of range"
+    case WalkEnd{SCon{h, t}}:
+      SCon{h, t}
+    case WalkAt{i}:
+      "input is out of range"
+
+# S2.35 (spec twin) the walk's verdict once the fixed part passed; a clean walk means a field was out of range
+def walked(w: Walk, +cs: List<&2, U32>) -> String:
+  match w:
+    case WalkEnd{words}:
+      words
+    case WalkAt{i}:
+      failure_tail(after_seconds(List.drop(&2, U32, cs, 19n)))
+
+# S2.35 (spec twin) chrono's words for a spelling `parse` refused
+def failure(+s: String) -> String:
+  walked(fixed_go(codes(s), 0n), codes(s))
+
 # S4.54 (spec twin) re-serialize a stored spelling; a malformed one is reported as the empty string
 def reprint(p: Parsed, suffix: String) -> String:
   match p:
