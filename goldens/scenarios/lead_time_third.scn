@@ -1,0 +1,15 @@
+# lead_time_third: lead times of 1 h, 1 h and 2 h, a mean of 4/3 (OQ-078)
+@time=2026-01-02 00:00:00
+["create","A","--silent"]
+@time=2026-01-02 01:00:00
+["close"]
+@time=2026-01-02 00:00:00
+["create","B","--silent"]
+@time=2026-01-02 01:00:00
+["close"]
+@time=2026-01-02 00:00:00
+["create","C","--silent"]
+@time=2026-01-02 02:00:00
+["close"]
+["stats"]
+["stats","--json"]

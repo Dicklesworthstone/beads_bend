@@ -1,10 +1,10 @@
-captured: 2026-09-23T23:15:17.999773+00:00
+captured: 2026-09-23T23:23:25.559646+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (913 cases)
-provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"a0c3ec8f1199cfc4d5bdd56b8237708cbeb4b25efbdec0d0196c0007fe82163f"},"case_files":[],"stdin_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/plan.md","sha256":"37408972901f8596ed696ffbc7955502e868cce2e45bbb4c571688cf5e6e5703"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/two_lines.txt","sha256":"793d49044e660c5c0fc164516e0121a17241eec91a81fcc504ccd1084e4e0da9"}]}
-recapture: repin: open questions, batch 5: the id shape's length bound (13 cases)
+cases: goldens/cases.tsv (925 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"4b9d24c949dc24e53a1bf53025d3135d93f2fc02a2f6ad4ea35214ccdd4b9ee4"},"case_files":[],"stdin_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/plan.md","sha256":"37408972901f8596ed696ffbc7955502e868cce2e45bbb4c571688cf5e6e5703"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/two_lines.txt","sha256":"793d49044e660c5c0fc164516e0121a17241eec91a81fcc504ccd1084e4e0da9"}]}
+recapture: repin: open questions, batch 5: the id shape's bounds, 40 for the hash and 64 before it (12 cases)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -2745,3 +2745,39 @@ sha256:
   53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  edge_load_id_slug_child.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_slug_child.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_load_id_slug_child.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_hash41.out
+  43b8a85ae25b1279e08947d8e640df722c6290f9eb990e285d5920de09c41baf  edge_load_id_hash41.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_hash41.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_hash42.out
+  8571438503b3b0a3ff62015b69d7bcb61375ed560055104a2f3e1337f07f3568  edge_load_id_hash42.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_hash42.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_hash43.out
+  3c6521b3adb21eec89947b2324ad944f9a05ead0827069310600297ff7943c8a  edge_load_id_hash43.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_hash43.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_hash44.out
+  2847bcce42cfcde847769d2fc35a4a9bf906bfd1de293eb4fc036284275b43c5  edge_load_id_hash44.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_hash44.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_hash45.out
+  be5bebae6bcde6ebb5b145295c47f86f5662b8c946d8ebd523feea12ea785265  edge_load_id_hash45.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_hash45.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_hash46.out
+  cb8885ecaea739259d4617e7db3d6c8ea2d92bdb6751e3431f0af0ebe13d5b35  edge_load_id_hash46.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_hash46.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_hash47.out
+  3752d074837b6ed44d52536c9607b6dea13006b8f4b7d739f6e7af66ebb02bda  edge_load_id_hash47.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_hash47.exit
+  53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  edge_load_id_head64.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_head64.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_load_id_head64.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_head65.out
+  9cbcb7dc6a39181334f2ae7e1bec6d2fa76472988640e4b7ebd055559d5140b3  edge_load_id_head65.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_head65.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_head80.out
+  95f2f36827d026d9810fa24cd2ce61cbcb1c58bb4cd4ad1e104c4ea25d6d9fcf  edge_load_id_head80.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_head80.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_head100.out
+  5b3d9fc7b9a881c961095d999db85a4bd6d2d0ecc399cdf0baf6f3064878dd82  edge_load_id_head100.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  edge_load_id_head100.exit
+  53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  edge_load_id_hyphens11.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_hyphens11.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_load_id_hyphens11.exit

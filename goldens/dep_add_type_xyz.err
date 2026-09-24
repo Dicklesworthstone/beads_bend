@@ -1,0 +1,2 @@
+Error: Validation failed: type: Unknown dependency type: 'xyz'. Allowed types: blocks, parent-child, conditional-blocks, waits-for, related, discovered-from, replies-to, relates-to, duplicates, supersedes, caused-by
+Hint: Use --type with one of: blocks, parent-child, conditional-blocks, waits-for, related, discovered-from, replies-to, relates-to, duplicates, supersedes, caused-by.

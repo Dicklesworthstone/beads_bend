@@ -1,0 +1,2 @@
+Error: Validation failed: type: Unknown dependency type: 'Parent_Child'. Allowed types: blocks, parent-child, conditional-blocks, waits-for, related, discovered-from, replies-to, relates-to, duplicates, supersedes, caused-by
+Hint: Did you mean --type parent-child?

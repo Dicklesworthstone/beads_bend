@@ -1,0 +1,6 @@
+$ ["create", "A", "--silent"]
+$ ["close"]
+$ ["create", "B", "--silent"]
+$ ["close"]
+$ ["stats"]
+$ ["stats", "--json"]

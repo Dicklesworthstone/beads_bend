@@ -1,0 +1,1 @@
+Error: Configuration error: Invalid JSON at line 2: control character (\u0000-\u001F) found while parsing a string at line 1 column 9

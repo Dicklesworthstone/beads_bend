@@ -1,0 +1,11 @@
+# lead_time_half: lead times of 1 h and 2 h, a mean of 1.5 (OQ-078)
+@time=2026-01-02 00:00:00
+["create","A","--silent"]
+@time=2026-01-02 01:00:00
+["close"]
+@time=2026-01-02 00:00:00
+["create","B","--silent"]
+@time=2026-01-02 02:00:00
+["close"]
+["stats"]
+["stats","--json"]
