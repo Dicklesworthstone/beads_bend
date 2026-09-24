@@ -520,3 +520,240 @@ def make(+r: Request, +w: World) -> Made:
   match r w:
     case Request{+title, seed_description, seed_creator, description, kind, rank, status, assignee, owner, +labels, parent, deps, estimate, due_text, defer_text, external_ref, acceptance, prerequisites, slug, ephemeral, quick, context} World{ids, actor, +now, nanos, prefix, repo_path}:
       checked(rank_of(rank), date_of(due_text, now, "date"), date_of(defer_text, now, "date"), context_of(context), parent_of(parent, w), String.is_empty(String.trim(title)), Nat.is_gt(String.length(title), 500n), Bool.not(labels_ok(Query.comma_split(labels))), Nat.is_gt(List.length(&2, String, Model.dedup(List.sort(~String, ~String.is_le, Query.comma_split(labels)))), 64n), r, w, title, slug_of(slug), seed_description, seed_creator, deps)
+
+# ---------------------------------------------------------------- the markdown import of `create -f` (S4.237)
+
+# S4.237 (data) one `### ` section of an issue: its name (trimmed, lowercased) and its lines, REVERSED
+type MdSection is Data:
+  MdSection{name: String, lines: List<&2, String>}
+
+# S4.237 (data) one `## ` heading: its title, the first non-blank line before any section, its sections (REVERSED)
+type MdIssue is Data:
+  MdIssue{title: String, first: Maybe<&2, String>, sections: List<&2, MdSection>}
+
+# S4.237 (data) the parse so far: the finished issues (REVERSED) and the one being read
+type MdState is Data:
+  MdState{done: List<&2, MdIssue>, cur: Maybe<&2, MdIssue>}
+
+# S4.237 (spec twin) the issue being read gets one more line: before any section its first non-blank line is kept
+# (the description unless a `### Description` section says otherwise) and the rest is dropped; inside a section
+# the line joins that section
+def md_text(i: MdIssue, +line: String) -> MdIssue:
+  match i:
+    case MdIssue{title, None{}, Nil{}}:
+      MdIssue{title, Bool.pick(Maybe<&2, String>, String.is_empty(String.trim(line)), None{}, Some{String.trim(line)}), Nil{}}
+    case MdIssue{title, Some{f}, Nil{}}:
+      MdIssue{title, Some{f}, Nil{}}
+    case MdIssue{title, first, Con{MdSection{name, lines}, rest}}:
+      MdIssue{title, first, MdSection{name, line <> lines} <> rest}
+
+# S4.237 (spec twin) a new section in the issue being read
+def md_section(i: MdIssue, +name: String) -> MdIssue:
+  match i:
+    case MdIssue{title, first, sections}:
+      MdIssue{title, first, MdSection{Model.lowered(String.trim(name)), Nil{}} <> sections}
+
+# S4.237 (spec twin) the issue being read, finished
+def md_close(done: List<&2, MdIssue>, cur: Maybe<&2, MdIssue>) -> List<&2, MdIssue>:
+  match cur:
+    case None{}:
+      done
+    case Some{i}:
+      i <> done
+
+# S4.237 (spec twin) one line: `## ` starts an issue (the heading trimmed), `### ` a section of it, `# ` is ignored,
+# anything else is text of the issue being read (text before the first `## ` is ignored)
+def md_line(st: MdState, +line: String) -> MdState:
+  match st:
+    case MdState{+done, None{}}:
+      Bool.pick(MdState, String.starts_with(line, "## "), MdState{done, Some{MdIssue{String.trim(String.drop(line, 3n)), None{}, Nil{}}}}, MdState{done, None{}})
+    case MdState{+done, Some{+i}}:
+      Bool.pick(MdState, String.starts_with(line, "## "), MdState{i <> done, Some{MdIssue{String.trim(String.drop(line, 3n)), None{}, Nil{}}}}, Bool.pick(MdState, String.starts_with(line, "### "), MdState{done, Some{md_section(i, String.drop(line, 4n))}}, Bool.pick(MdState, String.starts_with(line, "# "), MdState{done, Some{i}}, MdState{done, Some{md_text(i, line)}})))
+
+# S4.237 (spec twin) every line in order
+def md_lines(ls: List<&2, String>, st: MdState) -> MdState:
+  match ls:
+    case Nil{}:
+      st
+    case Con{+l, rest}:
+      md_lines(rest, md_line(st, l))
+
+# S4.237 (spec twin) the parse's issues once the last one is finished, in heading order
+def md_finish(st: MdState) -> List<&2, MdIssue>:
+  match st:
+    case MdState{done, cur}:
+      List.reverse(&2, MdIssue, md_close(done, cur))
+
+# S4.237 (spec twin) the issues of a markdown file, in heading order
+def md_parse(+text: String) -> List<&2, MdIssue>:
+  md_finish(md_lines(String.split(text, Chr{10}), MdState{Nil{}, None{}}))
+
+# S4.237 (spec twin) a section's value: its lines in order, joined, trimmed as one text; "" when it is empty
+def md_value(lines: List<&2, String>) -> String:
+  String.trim(String.join(List.reverse(&2, String, lines), "\n"))
+
+# S4.237 (spec twin) the value of the LAST section of that name (the list is REVERSED), when it is not empty
+def md_find(sections: List<&2, MdSection>, +name: String) -> Maybe<&2, String>:
+  match sections:
+    case Nil{}:
+      None{}
+    case Con{MdSection{n, +lines}, rest}:
+      Bool.pick(Maybe<&2, String>, (String.eq(n, name) && Bool.not(String.is_empty(md_value(lines)))), Some{md_value(lines)}, md_find(rest, name))
+
+# S4.237 (spec twin) does the issue name a parent or dependencies, which the port does not import yet
+def md_linked(sections: List<&2, MdSection>) -> Bool:
+  match sections:
+    case Nil{}:
+      False{}
+    case Con{MdSection{+n, lines}, rest}:
+      (String.eq(n, "parent") || String.eq(n, "dependencies") || String.eq(n, "deps") || md_linked(rest))
+
+# S4.237 (spec twin) an ASCII upper-case copy (the priority's echo in its refusal)
+def md_upper(s: String) -> String:
+  match s:
+    case SNil{}:
+      SNil{}
+    case SCon{Chr{+c}, rest}:
+      SCon{Chr{Bool.pick(U32, ((c >= 97 : U32) && (c <= 122 : U32)), (c - 32 : U32), c)}, md_upper(rest)}
+
+# S4.237 (spec twin) a priority's text: trimmed, upper-cased, one leading `P` dropped
+def md_priority_text(+raw: String) -> String:
+  Bool.pick(String, String.starts_with(md_upper(String.trim(raw)), "P"), String.drop(md_upper(String.trim(raw)), 1n), md_upper(String.trim(raw)))
+
+# S4.237 (spec twin) is a priority's text one digit from 0 to 4
+def md_priority_ok(+t: String) -> Bool:
+  (String.eq(t, "0") || String.eq(t, "1") || String.eq(t, "2") || String.eq(t, "3") || String.eq(t, "4"))
+
+# S4.237 (spec twin) one line of a `### Labels` section: a `-` or `*` bullet dropped, then its comma-separated names
+def md_label_line(+line: String) -> List<&2, String>:
+  Query.comma_split(Bool.pick(String, (String.starts_with(String.trim(line), "- ") || String.starts_with(String.trim(line), "* ")), String.trim(String.drop(String.trim(line), 2n)), String.trim(line)) <> Nil{})
+
+# S4.237 (spec twin) the labels of a `### Labels` section
+def md_labels(lines: List<&2, String>) -> List<&2, String>:
+  match lines:
+    case Nil{}:
+      Nil{}
+    case Con{l, rest}:
+      List.append(&2, String, md_label_line(l), md_labels(rest))
+
+# S4.237 (spec twin) the lines of the last `### Labels` section, in order
+def md_label_section(sections: List<&2, MdSection>) -> List<&2, String>:
+  match sections:
+    case Nil{}:
+      Nil{}
+    case Con{MdSection{+n, lines}, rest}:
+      Bool.pick(List<&2, String>, String.eq(n, "labels"), List.reverse(&2, String, lines), md_label_section(rest))
+
+# S4.237 (data) what one heading asks for: a request and its design text; a refusal of that heading alone (printed
+# as `✗ Failed to create <title>: <reason>`); or a heading the port does not import (a parent or dependencies)
+type MdPlan is Data:
+  MdPlanOk{request: Request, design: Maybe<&2, String>}
+  MdPlanBad{title: String, reason: String}
+  MdPlanLinked{}
+
+# S4.237 (spec twin) a `### Type` section's value, lowercased (any word is kept)
+def md_kind(t: Maybe<&2, String>) -> Maybe<&2, String>:
+  match t:
+    case None{}:
+      None{}
+    case Some{+k}:
+      Some{Model.lowered(k)}
+
+# S4.237 (spec twin) the request of a heading whose priority passed: the id seed is the title, the final description
+# and an EMPTY creator (the imported records carry no `created_by`)
+def md_request(+title: String, +description: Maybe<&2, String>, +sections: List<&2, MdSection>, +priority: Maybe<&2, String>) -> MdPlan:
+  MdPlanOk{Request{title, Maybe.default(&2, String, description, ""), "", description, md_kind(md_find(sections, "type")), priority, None{}, md_find(sections, "assignee"), None{}, Query.comma_split(md_labels(md_label_section(sections))), None{}, Nil{}, None{}, None{}, None{}, None{}, md_find(sections, "acceptance criteria"), None{}, None{}, False{}, False{}, None{}}, md_find(sections, "design")}
+
+# S4.237 (spec twin) route on the priority: absent is the default, a digit 0–4 is kept, anything else refuses the heading
+def md_ranked(+title: String, +description: Maybe<&2, String>, +sections: List<&2, MdSection>, priority: Maybe<&2, String>) -> MdPlan:
+  match priority:
+    case None{}:
+      md_request(title, description, sections, None{})
+    case Some{+p}:
+      Bool.pick(MdPlan, md_priority_ok(md_priority_text(p)), md_request(title, description, sections, Some{md_priority_text(p)}), MdPlanBad{title, "Priority must be 0-4, got: " ++ md_priority_text(p)})
+
+# S4.237 (spec twin) one heading's plan: a `### Description` section, else the first line, is the description
+def md_plan(i: MdIssue) -> MdPlan:
+  match i:
+    case MdIssue{+title, first, +sections}:
+      Bool.pick(MdPlan, md_linked(sections), MdPlanLinked{}, md_ranked(title, Bool.pick(Maybe<&2, String>, Maybe.is_some(&2, String, md_find(sections, "description")), md_find(sections, "description"), first), sections, md_find(sections, "priority")))
+
+# S4.237 (spec twin) the plans of a file's headings, in order
+def md_plans(issues: List<&2, MdIssue>) -> List<&2, MdPlan>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{i, rest}:
+      md_plan(i) <> md_plans(rest)
+
+# S4.237 (spec twin) does any heading name a parent or dependencies (the import is then not ported)
+def md_any_linked(plans: List<&2, MdPlan>) -> Bool:
+  match plans:
+    case Nil{}:
+      False{}
+    case Con{MdPlanLinked{}, rest}:
+      True{}
+    case Con{other, rest}:
+      md_any_linked(rest)
+
+# S4.237 (spec twin) an issue with its `### Design` text
+def with_design(i: Model.Issue, d: Maybe<&2, String>) -> Model.Issue:
+  match i d:
+    case other None{}:
+      other
+    case Model.Issue{head, Model.Texts{a, b, c, e, f}, people, times, closing, source, deletion, compaction, meta, flags, labels, deps, comments} Some{+text}:
+      Model.Issue{head, Model.Texts{a, Some{text}, c, e, f}, people, times, closing, source, deletion, compaction, meta, flags, labels, deps, comments}
+
+# S4.237 (spec twin) the world of an import: no creator (the imported records carry no `created_by`)
+def md_world(w: World) -> World:
+  match w:
+    case World{ids, actor, now, nanos, prefix, repo_path}:
+      World{ids, "", now, nanos, prefix, repo_path}
+
+# S4.237 (spec twin) the world once an id is taken
+def taken(w: World, +id: String) -> World:
+  match w:
+    case World{ids, actor, now, nanos, prefix, repo_path}:
+      World{List.append(&2, String, ids, id <> Nil{}), actor, now, nanos, prefix, repo_path}
+
+# S4.237 (data) the import so far: the world (its ids grow), the made records (REVERSED), the refusals (REVERSED)
+type MdBatch is Data:
+  MdBatch{world: World, made: List<&2, Model.Issue>, fails: List<&2, String>}
+
+# S4.237 (spec twin) a failure's message
+def failure_message(f: Failure.Failure) -> String:
+  match f:
+    case Failure.Failure{code, message, hint, retryable, context, exit}:
+      message
+
+# S4.237 (spec twin) one made (or refused) heading joins the batch
+def md_made(m: Made, +title: String, d: Maybe<&2, String>, w: World, ms: List<&2, Model.Issue>, fails: List<&2, String>) -> MdBatch:
+  match m:
+    case MadeBad{f}:
+      MdBatch{w, ms, ("✗ Failed to create " ++ title ++ ": " ++ failure_message(f)) <> fails}
+    case MadeOk{+issue, built}:
+      MdBatch{taken(w, Model.id_of(issue)), with_design(issue, d) <> ms, fails}
+
+# S4.237 (spec twin) the title a request asks for
+def request_title(r: Request) -> String:
+  match r:
+    case Request{title, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, s, t, u, v}:
+      title
+
+# S4.237 (spec twin) one heading's plan applied to the batch
+def md_step(b: MdBatch, p: MdPlan) -> MdBatch:
+  match b p:
+    case MdBatch{+w, ms, fails} MdPlanOk{+r, d}:
+      md_made(make(r, w), request_title(r), d, w, ms, fails)
+    case MdBatch{w, ms, fails} MdPlanBad{title, reason}:
+      MdBatch{w, ms, ("✗ Failed to create " ++ title ++ ": " ++ reason) <> fails}
+    case MdBatch{w, ms, fails} MdPlanLinked{}:
+      MdBatch{w, ms, fails}
+
+# S4.237 (spec twin) every heading in order
+def md_steps(plans: List<&2, MdPlan>, b: MdBatch) -> MdBatch:
+  match plans:
+    case Nil{}:
+      b
+    case Con{p, rest}:
+      md_steps(rest, md_step(b, p))

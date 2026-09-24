@@ -20,6 +20,7 @@
 #              @env=NAME=VALUE (repeatable): one more environment variable for the step, both sides alike
 #              @cwd=<relative dir>: run the step from that directory below /mnt/proj (created)
 #              @ls: after the step, `--- ls .beads ---` and every path under `.beads/` (a file with its size)
+#              @file=<name>: goldens/stdin/<name> staged as /mnt/proj/<name> (the markdown import of `create -f`)
 # Capture:  scripts/golden-capture.sh goldens/cases.tsv goldens -- scripts/ws-run.sh --oracle br --no-db ::
 # Lanes:    LANE_WRAP=scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend"
 # exit: the CLI's exit code (single step) or 0 (scenario; each step prints its

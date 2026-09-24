@@ -250,7 +250,7 @@ def main():
         die("WS_ROOT does not name the port root")
 
     fixture, stamp, scenario, store = "empty", DEFAULT_TIME, None, None
-    extra_env, sub, ls = [], "", False
+    extra_env, sub, ls, staged = [], "", False, []
     while case and case[0].startswith("@"):
         key, _, value = case.pop(0)[1:].partition("=")
         if key == "fx":
@@ -263,8 +263,8 @@ def main():
             store = value
         elif key == "env":
             name, eq, setting = value.partition("=")
-            if not eq or not re.fullmatch(r"[A-Z_][A-Z0-9_]*", name) or name in PASSED_ENV or name == "BEADS_BEND_NOW":
-                die(f"@env wants NAME=VALUE with a new upper-case NAME, got {value!r}")
+            if not eq or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) or name in PASSED_ENV or name == "BEADS_BEND_NOW":
+                die(f"@env wants NAME=VALUE with a NAME not already set by the sandbox, got {value!r}")
             extra_env.append((name, setting))
         elif key == "cwd":
             if not re.fullmatch(r"[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*", value) or ".." in value.split("/"):
@@ -272,6 +272,12 @@ def main():
             sub = value
         elif key == "ls" and not value:
             ls = True
+        elif key == "file":
+            # @file=<name>: goldens/stdin/<name> staged as /mnt/proj/<name> (the markdown import of
+            # `create -f`, OQ-051)
+            if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", value) or not (root / "goldens" / "stdin" / value).is_file():
+                die(f"@file wants the name of a file under goldens/stdin/, got {value!r}")
+            staged.append(value)
         else:
             die(f"unknown directive @{key}")
 
@@ -279,14 +285,16 @@ def main():
         setup(root, fixture, store)
         if sub:
             (WS / sub).mkdir(parents=True, exist_ok=True)
+        for name in staged:
+            shutil.copyfile(root / "goldens" / "stdin" / name, WS / name)
         before = snapshot()
         code = run(inner, case, stamp, oracle, root, extra_env, sub)
         dump_changes(before)
         if ls:
             listing()
         sys.exit(code)
-    if extra_env or sub or ls:
-        die("@env, @cwd and @ls apply to a single step, not to @scn")
+    if extra_env or sub or ls or staged:
+        die("@env, @cwd, @ls and @file apply to a single step, not to @scn")
 
     path = root / "goldens" / "scenarios" / f"{scenario}.scn"
     if not path.is_file():

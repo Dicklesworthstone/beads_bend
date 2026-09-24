@@ -654,32 +654,89 @@ def quick(m: Create.Made, model: List<&2, Model.Issue>, +json: Bool, quiet: Bool
     case Create.MadeOk{+issue, built}:
       wrote(Bool.pick(String, json, "{\"id\":" ++ Failure.quoted(Model.id_of(issue)) ++ ",\"title\":" ++ Failure.quoted(Model.title_of(issue)) ++ "}\n", Model.id_of(issue) ++ "\n"), changes(Some{Store.text(List.append(&2, Model.Issue, model, issue <> Nil{}))}, Model.id_of(issue)), quiet)
 
-# S4.237 (spec twin) the file of `create -f` once its name passed: a file that is not there is refused; reading a
-# present one is the markdown import, which is not ported (no case can reach it: the sandbox stages no `.md` file)
-def create_file_read(+path: String, file: Maybe<&2, Read>, +json: Bool) -> Outcome:
-  match file:
-    case Some{ReadBad{why}}:
+# S4.237 (spec twin) the created records of an import as `--json` prints them: one compact array, heading order
+def md_json(made: List<&2, Model.Issue>) -> List<&2, String>:
+  match made:
+    case Nil{}:
+      Nil{}
+    case Con{i, rest}:
+      Model.line(Model.written(i)) <> md_json(rest)
+
+# S4.237 (spec twin) the created records of an import as plain text: `  <id>: <title>` each
+def md_listed(made: List<&2, Model.Issue>) -> String:
+  match made:
+    case Nil{}:
+      ""
+    case Con{+i, rest}:
+      "  " ++ Render.inline(Model.id_of(i)) ++ ": " ++ Render.inline(Model.title_of(i)) ++ "\n" ++ md_listed(rest)
+
+# S4.237 (spec twin) the refused headings, one `✗ Failed to create …` line each, on stderr
+def md_errs(fails: List<&2, String>) -> String:
+  match fails:
+    case Nil{}:
+      ""
+    case Con{f, rest}:
+      f ++ "\n" ++ md_errs(rest)
+
+# S4.237 (spec twin) what an import prints and writes: nothing created prints an empty JSON array (or nothing) and
+# writes nothing; otherwise `✓ Created <n> issues from <path>:` and the list (or the JSON array), one write-back of
+# the whole store and `last-touched` = the last created id
+def md_done(+made: List<&2, Model.Issue>, fails: List<&2, String>, +path: String, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
+  match made:
+    case Nil{}:
+      Outcome{Bool.pick(String, (json && Bool.not(quiet)), "[]\n", ""), md_errs(fails), 0, Nil{}}
+    case Con{h, t}:
+      Outcome{Bool.pick(String, quiet, "", Bool.pick(String, json, "[" ++ String.join(md_json(made), ",") ++ "]\n", "✓ Created " ++ Nat.show(List.length(&2, Model.Issue, made)) ++ " issues from " ++ path ++ ":\n" ++ md_listed(made))), md_errs(fails), 0, changes(Some{Store.text(List.append(&2, Model.Issue, model, made))}, Model.id_of(Maybe.default(&2, Model.Issue, List.last(&2, Model.Issue, made), h)))}
+
+# S4.237 (spec twin) the batch of an import, rendered
+def md_out(b: Create.MdBatch, +path: String, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
+  match b:
+    case Create.MdBatch{w, made, fails}:
+      md_done(List.reverse(&2, Model.Issue, made), List.reverse(&2, String, fails), path, model, json, quiet)
+
+# S4.237 (spec twin) the markdown import of a read file: a heading that names a parent or dependencies keeps the
+# port's own refusal (not ported yet: bead bb-y4p); otherwise every heading is created in order
+def md_import(+text: String, +path: String, w: Create.World, +model: List<&2, Model.Issue>, +json: Bool, quiet: Bool) -> Outcome:
+  Bool.pick(Outcome, Create.md_any_linked(Create.md_plans(Create.md_parse(text))), failed(Failure.unported(), json), md_out(Create.md_steps(Create.md_plans(Create.md_parse(text)), Create.MdBatch{Create.md_world(w), Nil{}, Nil{}}), path, model, json, quiet))
+
+# S4.237 (spec twin) the file of `create -f` once its name passed: a file that is not there is refused; a read one is
+# imported (without the pinned instant, the port refuses as `create` does)
+def create_file_read(+path: String, file: Maybe<&2, Read>, +json: Bool, w: Maybe<&2, Create.World>, +model: List<&2, Model.Issue>, quiet: Bool) -> Outcome:
+  match file w:
+    case Some{ReadBad{why}} _:
       Bool.pick(Outcome, String.eq(why, "No such file or directory (os error 2)"), failed(Create.invalid("file", "file not found: " ++ path), json), failed(Failure.unported(), json))
-    case _:
+    case Some{ReadOk{text}} Some{world}:
+      md_import(text, path, world, model, json, quiet)
+    case Some{ReadOk{text}} None{}:
+      failed(no_clock(), json)
+    case None{} _:
       failed(Failure.unported(), json)
 
 # S4.237 S4.238 (spec twin) `create -f/--file`: a title beside it, then `--external-ref`, then a name without the
 # `.md` or `.markdown` extension are refused before anything else
-def create_file(+path: String, titled: Bool, ext_ref: Bool, file: Maybe<&2, Read>, +json: Bool) -> Outcome:
+def create_file(+path: String, titled: Bool, ext_ref: Bool, file: Maybe<&2, Read>, +json: Bool, w: Maybe<&2, Create.World>, +model: List<&2, Model.Issue>, quiet: Bool) -> Outcome:
   match titled ext_ref:
     case True{} _:
       failed(Create.invalid("file", "cannot be combined with title arguments"), json)
     case False{} True{}:
       failed(Create.invalid("external_ref", "--external-ref is not supported with --file"), json)
     case False{} False{}:
-      Bool.pick(Outcome, (String.ends_with(path, ".md") || String.ends_with(path, ".markdown")), create_file_read(path, file, json), failed(Create.invalid("file", "must have .md or .markdown extension"), json))
+      Bool.pick(Outcome, (String.ends_with(path, ".md") || String.ends_with(path, ".markdown")), create_file_read(path, file, json, w, model, quiet), failed(Create.invalid("file", "must have .md or .markdown extension"), json))
+
+# S4.237 (spec twin) the world of an import, when there is an instant
+def md_world_of(now: Maybe<&2, Time.Instant>, +digits: String, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, +env: List<&2, Var>, +cwd: String) -> Maybe<&2, Create.World>:
+  match now:
+    case None{}:
+      None{}
+    case Some{at}:
+      Some{world_of(at, digits, opts, raw, env, cwd)}
 
 # S4.237 S4.238 S4.225 (spec twin) `create` and `q`: `create -f` is judged first; then, without the pinned instant,
 # the port refuses (no clock effect yet)
-def create_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, +env: List<&2, Var>, cwd: String, +json: Bool, quiet: Bool, filed: Bool, is_q: Bool) -> Outcome:
+def create_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, +env: List<&2, Var>, +cwd: String, +json: Bool, quiet: Bool, filed: Bool, is_q: Bool) -> Outcome:
   match now filed is_q:
-    case _ True{} _:
-      create_file(Maybe.default(&2, String, Cli.value(opts, "file"), ""), (Nat.is_gt(List.length(&2, String, words), 0n) || Cli.given(opts, "title")), Cli.given(opts, "external-ref"), file_read(env, Cli.value(opts, "file")), json)
+    case +at True{} _:
+      create_file(Maybe.default(&2, String, Cli.value(opts, "file"), ""), (Nat.is_gt(List.length(&2, String, words), 0n) || Cli.given(opts, "title")), Cli.given(opts, "external-ref"), file_read(env, Cli.value(opts, "file")), json, md_world_of(at, now_of(env), opts, raw, env, cwd), Store.model(raw), quiet)
     case None{} False{} _:
       failed(no_clock(), json)
     case Some{at} False{} False{}:

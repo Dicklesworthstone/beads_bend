@@ -1,0 +1,10 @@
+✓ Created 3 issues from plan.md:
+  proj-jnv: First task
+  proj-c36: Second task
+  proj-ofy: Third task
+--- .beads/issues.jsonl ---
+{"id":"proj-c36","title":"Second task","description":"Described here.","status":"open","priority":1,"issue_type":"bug","assignee":"carol","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["alpha","beta"]}
+{"id":"proj-jnv","title":"First task","description":"The first paragraph","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ofy","title":"Third task","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-ofy

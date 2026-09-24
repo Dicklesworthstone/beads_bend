@@ -1072,3 +1072,8 @@ env_beads_dir_where	["@env=BEADS_DIR=/mnt/proj/.beads", "@fx=basic", "@cwd=sub",
 env_beads_dir_list	["@env=BEADS_DIR=/mnt/proj/.beads", "@fx=basic", "@cwd=sub", "list"]
 env_beads_dir_missing	["@env=BEADS_DIR=/mnt/other/.beads", "@fx=basic", "list"]
 env_serial_export	["@env=BR_DISABLE_PARALLEL_JSONL_EXPORT=1", "@fx=large", "update", "proj-x000", "--priority", "1"]
+create_file_md	["@file=plan.md", "create", "-f", "plan.md"]
+create_file_md_json	["@file=plan.md", "create", "-f", "plan.md", "--json"]
+create_file_md_edges	["@file=md_edges.md", "create", "-f", "md_edges.md"]
+create_file_md_rules	["@file=md_probe2.md", "create", "-f", "md_probe2.md", "--json"]
+create_file_md_one	["@file=md_one.md", "@fx=basic", "create", "-f", "md_one.md"]

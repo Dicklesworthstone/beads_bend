@@ -1,0 +1,10 @@
+✓ Created 3 issues from md_edges.md:
+  proj-kp5: Blank first
+  proj-7ql: Labels mixed
+  proj-7w7: Spaced title
+--- .beads/issues.jsonl ---
+{"id":"proj-7ql","title":"Labels mixed","design":"Line one.\nLine two.","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0,"labels":["w","x","y","z"]}
+{"id":"proj-7w7","title":"Spaced title","description":"body","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-kp5","title":"Blank first","description":"Explicit\nmulti-line description.","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","updated_at":"2026-01-02T03:04:05Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-7w7
