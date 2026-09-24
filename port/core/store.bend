@@ -467,28 +467,70 @@ def steps_par(+depth: Nat, +ls: List<&2, List<&2, U32>>, +n: Nat) -> List<&2, St
       a b = steps_par(d, List.take(&2, List<&2, U32>, ls, Nat.div(n, 2n)), Nat.div(n, 2n)) steps_par(d, List.drop(&2, List<&2, U32>, ls, Nat.div(n, 2n)), Nat.sub(n, Nat.div(n, 2n)))
       List.append(&2, Step, a, b)
 
+# S2.40 (data) the fast fold's state: the spec fold's, and the ids loaded so far as a Map (a crit-bit trie), so a
+# repeated id is found by one lookup instead of a scan of every earlier record
+type Held is Data:
+  Held{st: Loaded, ids: Map<&2, Bool>}
+
+# S2.40 (fast twin) `accepted`'s duplicate verdict from the lookup's answer
+def seen_pick(seen: Bool, ids: Map<&2, Bool>, +sofar: List<&2, Model.Issue>, +i: Model.Issue, n: U32, path: String) -> Held:
+  match seen:
+    case True{}:
+      Held{LoadBad{duplicate(Model.id_of(i), path, n)}, ids}
+    case False{}:
+      Held{LoadOk{i <> sofar}, Map.set(&2, Bool, ids, Model.id_of(i), True{})}
+
+# S2.40 (fast twin) the lookup's pair taken apart
+def seen_of(r: Map<&2, Bool> & Bool, +sofar: List<&2, Model.Issue>, +i: Model.Issue, n: U32, path: String) -> Held:
+  (ids, seen) = r
+  seen_pick(seen, ids, sofar, i, n, path)
+
+# S2.30 S2.40 (fast twin) `accepted` with the id index
+def accepted_held(+sofar: List<&2, Model.Issue>, +i: Model.Issue, n: U32, path: String, msgs: List<&2, String>, ids: Map<&2, Bool>) -> Held:
+  match msgs:
+    case Con{m, rest}:
+      Held{LoadBad{invalid_record(Model.id_of(i), n, m <> rest)}, ids}
+    case Nil{}:
+      seen_of(Map.has(&2, Bool, ids, Model.id_of(i)), sofar, i, n, path)
+
+# S2.27 S2.30 S2.40 (fast twin) `keep` with the id index
+def keep_held(st: Loaded, d: Decode.Dec, +n: U32, path: String, +strict: Bool, ids: Map<&2, Bool>) -> Held:
+  match st d:
+    case LoadBad{f} _:
+      Held{LoadBad{f}, ids}
+    case LoadOk{sofar} Decode.DecOk{+i}:
+      accepted_held(sofar, i, n, path, Bool.pick(List<&2, String>, strict, violations(i), Nil{}), ids)
+    case LoadOk{sofar} Decode.DecBad{msg, col}:
+      Held{LoadBad{invalid_json(n, msg, col)}, ids}
+
 # S2.24 S2.27 (fast twin) one decoded line folded in: a blank line counts but adds nothing
-def step_keep(st: Loaded, s: Step, n: U32, path: String, strict: Bool) -> Loaded:
-  match s:
-    case Blank{}:
-      st
-    case Line{d}:
-      keep(st, d, n, path, strict)
+def step_keep(h: Held, s: Step, n: U32, path: String, strict: Bool) -> Held:
+  match h s:
+    case Held{st, ids} Blank{}:
+      Held{st, ids}
+    case Held{st, ids} Line{d}:
+      keep_held(st, d, n, path, strict, ids)
 
 # S2.24 S2.27 (fast twin) the fold over the decoded lines, exactly the spec loop's: a refusal is sticky and names
 # its 1-based line
-def fold_steps(steps: List<&2, Step>, +n: U32, st: Loaded, +path: String, +strict: Bool) -> Loaded:
+def fold_steps(steps: List<&2, Step>, +n: U32, h: Held, +path: String, +strict: Bool) -> Held:
   match steps:
     case Nil{}:
-      st
+      h
     case Con{s, rest}:
-      fold_steps(rest, (n + 1 : U32), step_keep(st, s, n, path, strict), path, strict)
+      fold_steps(rest, (n + 1 : U32), step_keep(h, s, n, path, strict), path, strict)
+
+# S2.24 (fast twin) the fold's records, without the index
+def held_st(h: Held) -> Loaded:
+  match h:
+    case Held{st, ids}:
+      st
 
 # S2.26 S2.57 (fast twin) as `guarded`, the lines decoded in parallel before the fold (16 tasks)
 def guarded_fast(+ls: List<&2, List<&2, U32>>, +path: String, report: String, +strict: Bool) -> Loaded:
   match report:
     case SNil{}:
-      imported(in_file_order(fold_steps(steps_par(4n, ls, List.length(&2, List<&2, U32>, ls)), 1, LoadOk{Nil{}}, path, strict)), strict)
+      imported(in_file_order(held_st(fold_steps(steps_par(4n, ls, List.length(&2, List<&2, U32>, ls)), 1, Held{LoadOk{Nil{}}, Map.new(&2, Bool)}, path, strict))), strict)
     case SCon{h, t}:
       LoadBad{conflict(path, SCon{h, t})}
 

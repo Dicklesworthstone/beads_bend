@@ -254,6 +254,22 @@ def Laws.work_child_index_epic():
 def Laws.work_child_index_leaf():
   {==}
 
+# S2.40 both loaders refuse the repeated id on line 3
+def Laws.store_load_fast_duplicate():
+  {==}
+
+# S4.157–S4.169 the id table and the scan give the same rows of `blocked`
+def Laws.work_blocked_rows_table():
+  {==}
+
+# S4.151–S4.156 the tables and the scans give the same figures
+def Laws.work_figures_table():
+  {==}
+
+# S4.171–S4.176 the id set and the list give the same ready issues
+def Laws.work_ready_table():
+  {==}
+
 # S5.115 the greedy wrap of a small body
 def Laws.show_wrap_closed():
   {==}

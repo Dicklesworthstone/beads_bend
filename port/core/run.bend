@@ -231,16 +231,16 @@ def blocked_page(+rows: List<&2, Work.Row>, +limit: Nat, json: Bool, quiet: Bool
       printed(Render.blocked_plain(limited_rows(rows, limit), List.length(&2, Work.Row, rows), detailed, all), Render.blocked_note(List.length(&2, Work.Row, limited_rows(rows, limit)), List.length(&2, Work.Row, rows)), quiet)
 
 # S4.107 S4.168 (spec twin) `blocked` once its priorities were judged; its limit is 50 unless told otherwise
-def blocked_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, detailed: Bool) -> Outcome:
+def blocked_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, detailed: Bool, spec: Bool) -> Outcome:
   match p:
     case Query.PickBad{f}:
       failed(f, json)
     case Query.PickOk{values}:
-      blocked_page(Work.blocked_rows(issues, Query.folded_all(Cli.values(opts, "type")), values, Cli.values(opts, "label")), Query.search_limit(Cli.value(opts, "limit")), json, quiet, detailed, issues)
+      blocked_page(Work.blocked_rows(spec, issues,Query.folded_all(Cli.values(opts, "type")), values, Cli.values(opts, "label")), Query.search_limit(Cli.value(opts, "limit")), json, quiet, detailed, issues)
 
 # S4.167–S4.170 S5.254 (spec twin) `blocked`, plain, `--detailed` or JSON
-def blocked_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, detailed: Bool) -> Outcome:
-  blocked_picked(Query.pick_go(Query.comma_split(Cli.values(opts, "priority")), Query.PickOk{Nil{}}), opts, issues, json, quiet, detailed)
+def blocked_cmd(+opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, detailed: Bool, spec: Bool) -> Outcome:
+  blocked_picked(Query.pick_go(Query.comma_split(Cli.values(opts, "priority")), Query.PickOk{Nil{}}), opts, issues, json, quiet, detailed, spec)
 
 # S4.177 S5.36 S5.130–S5.134 (spec twin) `ready` once its issues are ordered: the header counts the rows SHOWN, the note the rows found
 def ready_page(+found: List<&2, Model.Issue>, +limit: Nat, any_active: Bool, filtered: Bool, json: Bool, quiet: Bool) -> Outcome:
@@ -282,7 +282,7 @@ def ready_picked(p: Query.Picked, +opts: List<&2, Cli.Occ>, +issues: List<&2, Mo
     case Query.PickBad{f}:
       failed(f, json)
     case Query.PickOk{values}:
-      ready_page(Work.scoped(scope, Work.ready_issues(issues, Show.pinned(now_of(env)), Cli.given(opts, "include-deferred"), ready_assignee(Cli.value(opts, "assignee"), actor_of(Cli.value(opts, "actor"), env_of(env, "USER"))), Cli.given(opts, "unassigned"), Cli.values(opts, "label"), Cli.values(opts, "label-any"), Query.folded_all(Cli.values(opts, "type")), values, Work.policy_of(Cli.value(opts, "sort")))), Query.count_of(Cli.value(opts, "limit")), Work.any_active(issues), (Cli.given(opts, "assignee") || Cli.given(opts, "unassigned") || Cli.given(opts, "label") || Cli.given(opts, "label-any") || Cli.given(opts, "type") || Cli.given(opts, "priority") || Cli.given(opts, "parent") || Cli.given(opts, "epic")), json, quiet)
+      ready_page(Work.scoped(scope, Work.ready_issues(spec_of(env), issues, Show.pinned(now_of(env)), Cli.given(opts, "include-deferred"), ready_assignee(Cli.value(opts, "assignee"), actor_of(Cli.value(opts, "actor"), env_of(env, "USER"))), Cli.given(opts, "unassigned"), Cli.values(opts, "label"), Cli.values(opts, "label-any"), Query.folded_all(Cli.values(opts, "type")), values, Work.policy_of(Cli.value(opts, "sort")))), Query.count_of(Cli.value(opts, "limit")), Work.any_active(issues), (Cli.given(opts, "assignee") || Cli.given(opts, "unassigned") || Cli.given(opts, "label") || Cli.given(opts, "label-any") || Cli.given(opts, "type") || Cli.given(opts, "priority") || Cli.given(opts, "parent") || Cli.given(opts, "epic")), json, quiet)
 
 # S4.173 (spec twin) the id `--parent` or `--epic` names (the parser refuses the two together, S1.49)
 def parent_named(parent: Maybe<&2, String>, epic: Maybe<&2, String>) -> Maybe<&2, String>:
@@ -1507,7 +1507,7 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) 
     case 5 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       ready_cmd(opts, Store.model(issues), env, json, quiet, prefix)
     case 6 Call{path, +opts, words, json, quiet, touched, env, cwd}:
-      blocked_cmd(opts, Store.model(issues), json, quiet, Cli.given(opts, "detailed"))
+      blocked_cmd(opts, Store.model(issues), json, quiet, Cli.given(opts, "detailed"), spec_of(env))
     case 7 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       stats_cmd(opts, Store.model(issues), env, json, quiet, Cli.given(opts, "activity"))
     case 8 Call{path, opts, words, json, quiet, touched, env, cwd}:

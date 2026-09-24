@@ -38,6 +38,78 @@ def lookup(issues: List<&2, Model.Issue>, +id: String) -> Maybe<&2, Model.Issue>
     case Con{+i, rest}:
       Bool.pick(Maybe<&2, Model.Issue>, String.eq(Model.id_of(i), id), Some{i}, lookup(rest, id))
 
+# S4.157 (data) how the relation finds a record by id: the scan of the store (the spec twin; `BEADS_RUST_SPEC=1`), or
+# a table built once (the fast twin: a crit-bit trie, so a store whose ids share a long prefix is not compared
+# character by character against every record)
+type Index is Data:
+  ByList{all: List<&2, Model.Issue>}
+  ByMap{table: Map<&2, Maybe<&2, Model.Issue>>}
+
+# S4.157 (fast twin) the table of the records by id, filled from the store REVERSED so that the first record of an id
+# wins, as in `lookup`
+def table_go(rev: List<&2, Model.Issue>, m: Map<&2, Maybe<&2, Model.Issue>>) -> Map<&2, Maybe<&2, Model.Issue>>:
+  match rev:
+    case Nil{}:
+      m
+    case Con{+i, rest}:
+      table_go(rest, Map.set(&2, Maybe<&2, Model.Issue>, m, Model.id_of(i), Some{i}))
+
+# S4.157 (spec twin) the index a command uses: the scan when the spec switch is on, the table otherwise
+def index(spec: Bool, +all: List<&2, Model.Issue>) -> Index:
+  match spec:
+    case True{}:
+      ByList{all}
+    case False{}:
+      ByMap{table_go(List.reverse(&2, Model.Issue, all), Map.new(&2, Maybe<&2, Model.Issue>))}
+
+# S4.157 (fast twin) the value half of a table lookup
+def found_value(mv: Map<&2, Maybe<&2, Model.Issue>> & Maybe<&2, Model.Issue>) -> Maybe<&2, Model.Issue>:
+  (m, v) = mv
+  v
+
+# S4.157 (spec twin) the record with this id, through the index
+def find(+idx: Index, +id: String) -> Maybe<&2, Model.Issue>:
+  match idx:
+    case ByList{all}:
+      lookup(all, id)
+    case ByMap{table}:
+      found_value(Map.get(Maybe<&2, Model.Issue>, None{}, table, id))
+
+# S4.157 (data) a set of ids asked "is this one of them" once per record: the list scanned (spec twin), or a set
+# built once (fast twin)
+type Keys is Data:
+  KeyList{ids: List<&2, String>}
+  KeySet{set: Map<&2, Bool>}
+
+# S4.157 (fast twin) the set of a list of ids
+def set_go(ids: List<&2, String>, m: Map<&2, Bool>) -> Map<&2, Bool>:
+  match ids:
+    case Nil{}:
+      m
+    case Con{+id, rest}:
+      set_go(rest, Map.set(&2, Bool, m, id, True{}))
+
+# S4.157 (spec twin) the ids as the command asks them: the list when the spec switch is on, the set otherwise
+def keyed(spec: Bool, +ids: List<&2, String>) -> Keys:
+  match spec:
+    case True{}:
+      KeyList{ids}
+    case False{}:
+      KeySet{set_go(ids, Map.new(&2, Bool))}
+
+# S4.157 (fast twin) the answer half of a set lookup
+def set_answer(mb: Map<&2, Bool> & Bool) -> Bool:
+  (m, b) = mb
+  b
+
+# S4.157 (spec twin) is this id one of the keys
+def is_key(+ks: Keys, +id: String) -> Bool:
+  match ks:
+    case KeyList{ids}:
+      among(ids, id)
+    case KeySet{set}:
+      set_answer(Map.has(&2, Bool, set, id))
+
 # S4.157 S4.160 (spec twin) is a status terminal: `closed` or `tombstone`
 def terminal(+status: String) -> Bool:
   (String.eq(status, "closed") || String.eq(status, "tombstone"))
@@ -103,20 +175,20 @@ def add_some(entries: List<&2, Entry>, id: String, ref: String) -> List<&2, Entr
       entries_of(add(entries, id, SCon{h, t}))
 
 # S4.157 S4.158 (spec twin) step 1 over one issue's edges: a blocking edge to a local target that still blocks
-def direct_edges(edges: List<&2, Model.Dependency>, +source: String, +all: List<&2, Model.Issue>, entries: List<&2, Entry>) -> List<&2, Entry>:
+def direct_edges(edges: List<&2, Model.Dependency>, +source: String, +idx: Index, entries: List<&2, Entry>) -> List<&2, Entry>:
   match edges:
     case Nil{}:
       entries
     case Con{+e, rest}:
-      direct_edges(rest, source, all, add_some(entries, source, Bool.pick(String, (blocking(Model.dep_type_of(e)) && Bool.not(external(Model.target_of(e)))), direct_ref(Model.target_of(e), lookup(all, Model.target_of(e))), "")))
+      direct_edges(rest, source, idx, add_some(entries, source, Bool.pick(String, (blocking(Model.dep_type_of(e)) && Bool.not(external(Model.target_of(e)))), direct_ref(Model.target_of(e), find(idx, Model.target_of(e))), "")))
 
 # S4.157 (spec twin) step 1 over every issue, in store order
-def direct(issues: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, entries: List<&2, Entry>) -> List<&2, Entry>:
+def direct(issues: List<&2, Model.Issue>, +idx: Index, entries: List<&2, Entry>) -> List<&2, Entry>:
   match issues:
     case Nil{}:
       entries
     case Con{+i, rest}:
-      direct(rest, all, direct_edges(Model.deps_of(i), Model.id_of(i), all, entries))
+      direct(rest, idx, direct_edges(Model.deps_of(i), Model.id_of(i), idx, entries))
 
 # S4.159 (spec twin) keep a link
 def link_put(l: Link, keep: Bool, later: List<&2, Link>) -> List<&2, Link>:
@@ -213,12 +285,12 @@ def rolls_up(child: Maybe<&2, Model.Issue>, parent: Maybe<&2, Model.Issue>) -> B
       False{}
 
 # S4.160 (spec twin) step 3: an epic is blocked by each of its open children, `<child>:child-open`
-def epics(ls: List<&2, Link>, +all: List<&2, Model.Issue>, entries: List<&2, Entry>) -> List<&2, Entry>:
+def epics(ls: List<&2, Link>, +idx: Index, entries: List<&2, Entry>) -> List<&2, Entry>:
   match ls:
     case Nil{}:
       entries
     case Con{Link{+child, +parent}, rest}:
-      epics(rest, all, add_some(entries, parent, Bool.pick(String, rolls_up(lookup(all, child), lookup(all, parent)), child ++ ":child-open", "")))
+      epics(rest, idx, add_some(entries, parent, Bool.pick(String, rolls_up(find(idx, child), find(idx, parent)), child ++ ":child-open", "")))
 
 # S4.166 (spec twin) the external overlay over one issue's edges: a blocking edge to `external:…` always blocks
 # (no external project is configured, so no target is ever satisfied); a terminal issue is not added
@@ -265,8 +337,17 @@ def normalized(entries: List<&2, Entry>) -> List<&2, Entry>:
 
 # S4.157–S4.166 (spec twin) the BLOCKED relation of a store: step 1, step 2 to its fixed point, step 3 (in THIS order,
 # S4.161), the overlay, the normalization. The fuel is one unit per issue plus one per parent-child link, plus one
+def relation_in(+all: List<&2, Model.Issue>, +idx: Index) -> List<&2, Entry>:
+  normalized(overlay(all, epics(links(all), idx, propagate(Nat.add(Nat.add(List.length(&2, Model.Issue, all), List.length(&2, Link, links(all))), 1n), Wave{direct(all, idx, Nil{}), keys(direct(all, idx, Nil{}))}, links(all), Nil{}))))
+
+# S4.157–S4.166 (spec twin) the relation with the store scanned for every lookup
 def relation(+all: List<&2, Model.Issue>) -> List<&2, Entry>:
-  normalized(overlay(all, epics(links(all), all, propagate(Nat.add(Nat.add(List.length(&2, Model.Issue, all), List.length(&2, Link, links(all))), 1n), Wave{direct(all, all, Nil{}), keys(direct(all, all, Nil{}))}, links(all), Nil{}))))
+  relation_in(all, ByList{all})
+
+# S4.157–S4.166 (fast twin) the relation with the records found through the table; `spec` (BEADS_RUST_SPEC=1) selects
+# the scan. Bound to `relation` by the closed law `blocked_relation_table`
+def relation_by(spec: Bool, +all: List<&2, Model.Issue>) -> List<&2, Entry>:
+  relation_in(all, index(spec, all))
 
 # S4.163 (spec twin) what follows the first `:` of a REVERSED ref (every ref has one: `<id>:<why>`)
 def ref_tail(rev: String) -> String:

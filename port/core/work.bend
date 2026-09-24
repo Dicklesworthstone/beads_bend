@@ -36,12 +36,12 @@ def row_put(found: Maybe<&2, Model.Issue>, refs: List<&2, String>, +rest: List<&
       Bool.pick(List<&2, Row>, Blocked.terminal(Model.status_of(i)), rest, Row{i, ref_ids(refs)} <> rest)
 
 # S4.167 (spec twin) the rows of `blocked` before its filters, in the relation's order
-def rows(entries: List<&2, Blocked.Entry>, +all: List<&2, Model.Issue>) -> List<&2, Row>:
+def rows(entries: List<&2, Blocked.Entry>, +idx: Blocked.Index) -> List<&2, Row>:
   match entries:
     case Nil{}:
       Nil{}
     case Con{Blocked.Entry{id, refs}, rest}:
-      row_put(Blocked.lookup(all, id), refs, rows(rest, all))
+      row_put(Blocked.find(idx, id), refs, rows(rest, idx))
 
 # S4.168 (spec twin) does a row pass the filters of `blocked`: type (any of), priority (any of), label (all of)
 def row_keeps(+i: Model.Issue, types: List<&2, String>, priorities: List<&2, U32>, labels: List<&2, String>) -> Bool:
@@ -75,8 +75,13 @@ def row_le(x: Row, y: Row) -> Bool:
       row_le_keys(Query.priority_number(Model.priority_of(xi)), Query.priority_number(Model.priority_of(yi)), List.length(&2, String, xb), List.length(&2, String, yb), Model.created_of(xi), Model.created_of(yi), Model.id_of(xi), Model.id_of(yi))
 
 # S4.167–S4.169 (spec twin) the rows of `blocked`: the live keys of the relation, filtered, in the command's order
-def blocked_rows(+all: List<&2, Model.Issue>, types: List<&2, String>, priorities: List<&2, U32>, labels: List<&2, String>) -> List<&2, Row>:
-  List.sort(~Row, ~row_le, rows_kept(rows(Blocked.relation(all), all), types, priorities, labels))
+def blocked_rows_in(+all: List<&2, Model.Issue>, +idx: Blocked.Index, types: List<&2, String>, priorities: List<&2, U32>, labels: List<&2, String>) -> List<&2, Row>:
+  List.sort(~Row, ~row_le, rows_kept(rows(Blocked.relation_in(all, idx), idx), types, priorities, labels))
+
+# S4.167–S4.169 (spec twin) the rows of `blocked`; `spec` (BEADS_RUST_SPEC=1) selects the store scan for every
+# lookup over the table (Blocked.index)
+def blocked_rows(spec: Bool, +all: List<&2, Model.Issue>, types: List<&2, String>, priorities: List<&2, U32>, labels: List<&2, String>) -> List<&2, Row>:
+  blocked_rows_in(all, Blocked.index(spec, all), types, priorities, labels)
 
 # ---------------------------------------------------------------- ready (S4.171–S4.178)
 
@@ -93,8 +98,8 @@ def gate_open(until: Maybe<&2, Time.Instant>, now: Maybe<&2, Time.Instant>) -> B
 # S4.171 S4.172 (spec twin) is an issue a `ready` candidate: its status is in the ready group (`open`, and `deferred`
 # under `--include-deferred`, which also drops the defer gate); it is not a key of the BLOCKED relation; it is not
 # pinned, not ephemeral, not a template, and its id holds no `-wisp-`
-def candidate(+i: Model.Issue, +blocked_ids: List<&2, String>, now: Maybe<&2, Time.Instant>, +with_deferred: Bool) -> Bool:
-  ((String.eq(Model.status_of(i), "open") || (with_deferred && String.eq(Query.folded(Model.status_of(i)), "deferred"))) && Bool.not(Blocked.among(blocked_ids, Model.id_of(i))) && (with_deferred || gate_open(Model.defer_of(i), now)) && Bool.not(Model.is_pinned(i)) && Bool.not(Model.is_ephemeral(i)) && Bool.not(String.contains(Model.id_of(i), "-wisp-")) && Bool.not(Model.is_template(i)))
+def candidate(+i: Model.Issue, +blocked_ids: Blocked.Keys, now: Maybe<&2, Time.Instant>, +with_deferred: Bool) -> Bool:
+  ((String.eq(Model.status_of(i), "open") || (with_deferred && String.eq(Query.folded(Model.status_of(i)), "deferred"))) && Bool.not(Blocked.is_key(blocked_ids, Model.id_of(i))) && (with_deferred || gate_open(Model.defer_of(i), now)) && Bool.not(Model.is_pinned(i)) && Bool.not(Model.is_ephemeral(i)) && Bool.not(String.contains(Model.id_of(i), "-wisp-")) && Bool.not(Model.is_template(i)))
 
 # S4.171 (spec twin) keep a candidate
 def ready_put(i: Model.Issue, keep: Bool, rest: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
@@ -105,7 +110,7 @@ def ready_put(i: Model.Issue, keep: Bool, rest: List<&2, Model.Issue>) -> List<&
       rest
 
 # S4.171 (spec twin) the candidates of a store, in store order
-def candidates(issues: List<&2, Model.Issue>, +blocked_ids: List<&2, String>, +now: Maybe<&2, Time.Instant>, +with_deferred: Bool) -> List<&2, Model.Issue>:
+def candidates(issues: List<&2, Model.Issue>, +blocked_ids: Blocked.Keys,+now: Maybe<&2, Time.Instant>, +with_deferred: Bool) -> List<&2, Model.Issue>:
   match issues:
     case Nil{}:
       Nil{}
@@ -162,8 +167,8 @@ def policy_of(given: Maybe<&2, String>) -> U32:
       Bool.pick(U32, String.eq(word, "priority"), 1, Bool.pick(U32, String.eq(word, "oldest"), 2, 0))
 
 # S4.171–S4.176 (spec twin) the ready issues of a store, filtered and ordered, before any limit
-def ready_issues(+all: List<&2, Model.Issue>, now: Maybe<&2, Time.Instant>, with_deferred: Bool, assignee: Maybe<&2, String>, unassigned: Bool, labels_all: List<&2, String>, labels_any: List<&2, String>, types: List<&2, String>, priorities: List<&2, U32>, policy: U32) -> List<&2, Model.Issue>:
-  Query.issues_of(ready_sorted(Query.rows_of(ready_kept(candidates(all, Blocked.keys(Blocked.relation(all)), now, with_deferred), assignee, unassigned, labels_all, labels_any, types, priorities), 1), policy))
+def ready_issues(+spec: Bool, +all: List<&2, Model.Issue>, now: Maybe<&2, Time.Instant>, with_deferred: Bool, assignee: Maybe<&2, String>, unassigned: Bool, labels_all: List<&2, String>, labels_any: List<&2, String>, types: List<&2, String>, priorities: List<&2, U32>, policy: U32) -> List<&2, Model.Issue>:
+  Query.issues_of(ready_sorted(Query.rows_of(ready_kept(candidates(all, Blocked.keyed(spec, Blocked.keys(Blocked.relation_by(spec, all))), now, with_deferred), assignee, unassigned, labels_all, labels_any, types, priorities), 1), policy))
 
 # S4.132 (spec twin) is a due date strictly before the instant
 def due_before(due: Maybe<&2, Time.Instant>, +now: Time.Instant) -> Bool:
@@ -337,20 +342,20 @@ def live_put(id: String, found: Maybe<&2, Model.Issue>, +rest: List<&2, String>)
       Bool.pick(List<&2, String>, Blocked.terminal(Model.status_of(i)), rest, id <> rest)
 
 # S4.152 (spec twin) the ids of the relation's keys whose issue is stored and not terminal
-def live_keys(ids: List<&2, String>, +all: List<&2, Model.Issue>) -> List<&2, String>:
+def live_keys(ids: List<&2, String>, +idx: Blocked.Index) -> List<&2, String>:
   match ids:
     case Nil{}:
       Nil{}
     case Con{+id, rest}:
-      live_put(id, Blocked.lookup(all, id), live_keys(rest, all))
+      live_put(id, Blocked.find(idx, id), live_keys(rest, idx))
 
 # S4.152 (spec twin) the issues whose stored status is literally `blocked` and that are not already counted
-def stored_blocked(issues: List<&2, Model.Issue>, +counted: List<&2, String>, acc: U32) -> U32:
+def stored_blocked(issues: List<&2, Model.Issue>, +counted: Blocked.Keys, acc: U32) -> U32:
   match issues:
     case Nil{}:
       acc
     case Con{+i, rest}:
-      stored_blocked(rest, counted, (acc + Bool.to_u32((String.eq(Model.status_of(i), "blocked") && Bool.not(Blocked.among(counted, Model.id_of(i))))) : U32))
+      stored_blocked(rest, counted, (acc + Bool.to_u32((String.eq(Model.status_of(i), "blocked") && Bool.not(Blocked.is_key(counted, Model.id_of(i))))) : U32))
 
 # S4.190 (data) the children of one epic: how many, and how many of them are closed or tombstoned
 type Children is Data:
@@ -470,10 +475,10 @@ def eligible_epics(issues: List<&2, Model.Issue>, +idx: ChildIndex, acc: U32) ->
 
 # S4.151–S4.155 (spec twin) the figures from their parts: `live` is the live keys of the BLOCKED relation, `t` the
 # lead times, `ready` the number of ready issues. `total` leaves the tombstones out
-def figures_of(+all: List<&2, Model.Issue>, +live: List<&2, String>, t: Tally, ready: U32, +idx: ChildIndex) -> Figures:
+def figures_of(+all: List<&2, Model.Issue>, +live: List<&2, String>, spec: Bool, t: Tally, ready: U32, +idx: ChildIndex) -> Figures:
   match t:
     case Tally{sum, count}:
-      Figures{(U32.from_nat(List.length(&2, Model.Issue, all)) - with_status(all, "tombstone", 0) : U32), with_status(all, "open", 0), with_status(all, "in_progress", 0), with_status(all, "closed", 0), stored_blocked(all, live, U32.from_nat(List.length(&2, String, live))), with_status(all, "deferred", 0), with_status(all, "draft", 0), ready, with_status(all, "tombstone", 0), pinned_count(all, 0), eligible_epics(all, idx, 0), sum, count}
+      Figures{(U32.from_nat(List.length(&2, Model.Issue, all)) - with_status(all, "tombstone", 0) : U32), with_status(all, "open", 0), with_status(all, "in_progress", 0), with_status(all, "closed", 0), stored_blocked(all, Blocked.keyed(spec, live), U32.from_nat(List.length(&2, String, live))), with_status(all, "deferred", 0), with_status(all, "draft", 0), ready, with_status(all, "tombstone", 0), pinned_count(all, 0), eligible_epics(all, idx, 0), sum, count}
 
 # S4.154 S5.54 S5.170 (data) the average lead time as `stats` prints it: none, or its plain text with the unit and its
 # JSON number
@@ -527,11 +532,16 @@ def lead(f: Figures) -> Lead:
       lead_of_sum(lead_sum, U32.max(lead_count, 1), U32.is_eq(lead_count, 0))
 
 # S4.151–S4.155 (spec twin) every figure of `stats`
-def figures_keyed(+all: List<&2, Model.Issue>, +keys: List<&2, String>, now: Maybe<&2, Time.Instant>, spec: Bool) -> Figures:
-  figures_of(all, live_keys(keys, all), leads(all, Tally{0, 0}), U32.from_nat(List.length(&2, Model.Issue, candidates(all, keys, now, False{}))), child_index(spec, all))
+def figures_in(+all: List<&2, Model.Issue>, +keys: List<&2, String>, +bidx: Blocked.Index, now: Maybe<&2, Time.Instant>, +spec: Bool) -> Figures:
+  figures_of(all, live_keys(keys, bidx), spec, leads(all, Tally{0, 0}), U32.from_nat(List.length(&2, Model.Issue, candidates(all, Blocked.keyed(spec, keys), now, False{}))), child_index(spec, all))
+
+# S4.151–S4.155 (spec twin) every figure of `stats` from the keys of the relation
+def figures_keyed(+all: List<&2, Model.Issue>, +keys: List<&2, String>, now: Maybe<&2, Time.Instant>, +spec: Bool) -> Figures:
+  figures_in(all, keys, Blocked.index(spec, all), now, spec)
 
 # S4.151–S4.156 (spec twin) the figures of `stats`; the BLOCKED relation is computed once (Bend shares no common
-# subexpression) and `spec` selects the children scan over the table (BEADS_RUST_SPEC)
-def figures(+all: List<&2, Model.Issue>, now: Maybe<&2, Time.Instant>, spec: Bool) -> Figures:
-  figures_keyed(all, Blocked.keys(Blocked.relation(all)), now, spec)
+# subexpression) and `spec` (BEADS_RUST_SPEC) selects the scans over the tables: the children (child_index), the
+# records by id (Blocked.index) and the sets of ids (Blocked.keyed)
+def figures(+all: List<&2, Model.Issue>, now: Maybe<&2, Time.Instant>, +spec: Bool) -> Figures:
+  figures_keyed(all, Blocked.keys(Blocked.relation_by(spec, all)), now, spec)
 

@@ -304,6 +304,26 @@ law work_child_index_epic:
 law work_child_index_leaf:
   {Work.children_in(Work.child_index(False{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl"))), "proj-170") == Work.children_in(Work.child_index(True{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl"))), "proj-170") : Work.Children}
 
+# S2.40 fast == spec, closed: a repeated id (`proj-aaa` again on line 3, as fixture `dup_id`) is refused alike by
+# the fast loader's id table (Store.Held, a Map) and by the spec loop's scan of the records loaded so far
+law store_load_fast_duplicate:
+  {Store.load_fast(Time.codes("{\"id\":\"proj-aaa\",\"title\":\"first copy\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n{\"id\":\"proj-aab\",\"title\":\"other\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n{\"id\":\"proj-aaa\",\"title\":\"second copy\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n"), "/mnt/proj/.beads/issues.jsonl") == Store.load(Time.codes("{\"id\":\"proj-aaa\",\"title\":\"first copy\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n{\"id\":\"proj-aab\",\"title\":\"other\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n{\"id\":\"proj-aaa\",\"title\":\"second copy\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n"), "/mnt/proj/.beads/issues.jsonl") : Store.Loaded}
+
+# S4.157–S4.169 fast == spec, closed: the rows of `blocked` over fixture `basic` with the records found through the
+# id table (Blocked.index, the default) equal the rows with the store scanned per lookup (`BEADS_RUST_SPEC=1`)
+law work_blocked_rows_table:
+  {Work.blocked_rows(False{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl")), [], [], []) == Work.blocked_rows(True{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl")), [], [], []) : List<&2, Work.Row>}
+
+# S4.151–S4.156 fast == spec, closed: every figure of `stats` over fixture `basic` with the tables (the id table, the
+# id sets of Blocked.keyed, the children table) equals the figures with the scans
+law work_figures_table:
+  {Work.figures(Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl")), None{}, False{}) == Work.figures(Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl")), None{}, True{}) : Work.Figures}
+
+# S4.171–S4.176 fast == spec, closed: the ready issues of fixture `basic`, unfiltered, in the default order, with the
+# set of blocked ids equal those with the list scanned
+law work_ready_table:
+  {Work.ready_issues(False{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl")), None{}, False{}, None{}, False{}, [], [], [], [], 0) == Work.ready_issues(True{}, Store.issues_of(Store.load(Time.codes(Fixtures.basic()), "/mnt/proj/.beads/issues.jsonl")), None{}, False{}, None{}, False{}, [], [], [], [], 0) : List<&2, Model.Issue>}
+
 # S5.115 closed: a body wraps greedily at spaces, never inside a word, and a line that fits comes back unchanged
 law show_wrap_closed:
   {Show.wrapped("Word Word Word\nWord", 9n) == "Word Word\nWord\nWord" : String}
