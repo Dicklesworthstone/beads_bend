@@ -1696,11 +1696,22 @@ def decoded(d: Bytes.Decoded, path: String, +c: Call) -> Outcome:
     case Bytes.Utf8{codes}:
       loaded(load_chosen(spec_call(c), String.eq(path_of(c), "show"), codes, path), c)
 
+# S2.1 (spec twin) the environment of a call
+def call_env(c: Call) -> List<&2, Var>:
+  match c:
+    case Call{path, opts, words, json, quiet, touched, env, cwd}:
+      env
+
+# S1.57 S2.8 S9.8 (spec twin) no workspace: NOT_INITIALIZED, or, when `BEADS_DIR` is set and not blank, CONFIG_ERROR
+# exit 7 naming it (`env_beads_dir_missing`)
+def no_workspace(+beads_dir: String) -> Failure.Failure:
+  Bool.pick(Failure.Failure, String.is_empty(String.trim(beads_dir)), Failure.not_initialized(), Failure.Failure{"CONFIG_ERROR", "Configuration error: BEADS_DIR not found or not a .beads directory: " ++ String.trim(beads_dir), None{}, False{}, Nil{}, 7})
+
 # S2.1 S9.8 (spec twin) route on the workspace verdict; the store path the messages quote is absolute
 def routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
   match workspace:
     case False{}:
-      failed(Failure.not_initialized(), wants_json(c))
+      failed(no_workspace(env_of(call_env(c), "BEADS_DIR")), wants_json(c))
     case True{}:
       decoded(Bytes.decode(store), cwd ++ "/.beads/issues.jsonl", c)
 
@@ -1748,9 +1759,27 @@ def version_flag() -> Outcome:
 def outside(word: String) -> Outcome:
   Outcome{"", "Error: `" ++ word ++ "` is outside beads_bend's --no-db surface (docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md §3)\n", 1, Nil{}}
 
+# S1.61 (spec twin) an output-format variable's word, trimmed and lowercased, when it is one of the five the original
+# recognizes; "" otherwise (an unrecognized value is ignored entirely)
+def format_word(+raw: String) -> String:
+  Bool.pick(String, Model.listed_word(["text", "plain", "json", "csv", "toon"], Model.lowered(String.trim(raw))), Model.lowered(String.trim(raw)), "")
+
+# S1.61 (spec twin) `BR_OUTPUT_FORMAT` first, `TOON_DEFAULT_FORMAT` second
+def format_first(+first: String, second: String) -> String:
+  Bool.pick(String, String.is_empty(first), second, first)
+
+# S1.6 S1.61 (spec twin) does the environment ask for JSON
+def env_json(+env: List<&2, Var>) -> Bool:
+  String.eq(format_first(format_word(env_of(env, "BR_OUTPUT_FORMAT")), format_word(env_of(env, "TOON_DEFAULT_FORMAT"))), "json")
+
+# S1.6 (spec twin) JSON mode: `--json` or a command's `--robot`; else, unless `--quiet`, the environment's format
+# (`env_output_format_count`, `env_output_format_where`, `env_output_format_error`)
+def json_mode(+opts: List<&2, Cli.Occ>, +env: List<&2, Var>) -> Bool:
+  (Cli.given(opts, "json") || Cli.given(opts, "robot") || (Bool.not(Cli.given(opts, "quiet")) && env_json(env)))
+
 # S1.30 S1.6 (spec twin) the argument parser's answer decides first: its refusals never reach the
-# workspace (exit 2, stderr only, whatever the output mode). JSON mode is `--json` or a command's `--robot`
-def ran(p: Cli.Parsed, workspace: Bool, +cwd: String, store: List<&2, U32>, touched: List<&2, U32>, env: List<&2, Var>) -> Outcome:
+# workspace (exit 2, stderr only, whatever the output mode, `usage_limit_bad_env_json`). JSON mode is `json_mode`
+def ran(p: Cli.Parsed, workspace: Bool, +cwd: String, store: List<&2, U32>, touched: List<&2, U32>, +env: List<&2, Var>) -> Outcome:
   match p:
     case Cli.Refused{err}:
       Outcome{"", err, 2, Nil{}}
@@ -1763,7 +1792,7 @@ def ran(p: Cli.Parsed, workspace: Bool, +cwd: String, store: List<&2, U32>, touc
     case Cli.Outside{word}:
       outside(word)
     case Cli.Command{+path, +opts, words}:
-      Bool.pick(Outcome, String.eq(path, "version"), version_out((Cli.given(opts, "json") || Cli.given(opts, "robot")), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot"))))), routed(workspace, Call{path, opts, words, (Cli.given(opts, "json") || Cli.given(opts, "robot")), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot")))), touched, env, cwd}, cwd, store))
+      Bool.pick(Outcome, String.eq(path, "version"), version_out(json_mode(opts, env), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot"))))), routed(workspace, Call{path, opts, words, json_mode(opts, env), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot")))), touched, env, cwd}, cwd, store))
 
 # S1 S4 S5 S9 (spec twin, dispatcher) the single entry the shell calls
 def outcome(inputs: Inputs) -> Outcome:

@@ -1,0 +1,3 @@
+/mnt/proj/.beads
+  database: /mnt/proj/.beads/beads.db
+  jsonl: /mnt/proj/.beads/issues.jsonl

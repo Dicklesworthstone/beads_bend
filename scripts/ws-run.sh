@@ -15,6 +15,11 @@
 #   case args  [@fx=<fixture>] [@time=<YYYY-MM-DD hh:mm:ss[.fraction]>] <argv of the CLI…>
 #              or  @scn=<scenario>  (goldens/scenarios/<scenario>.scn, multi-step)
 #              @store=<absolute path> instead of @fx: an external store (the real-store sweep, never a golden)
+#              @fx=nostore: a `.beads/` directory with nothing in it; a fixture's `<name>.redirect` sidecar is
+#              copied as `.beads/redirect`
+#              @env=NAME=VALUE (repeatable): one more environment variable for the step, both sides alike
+#              @cwd=<relative dir>: run the step from that directory below /mnt/proj (created)
+#              @ls: after the step, `--- ls .beads ---` and every path under `.beads/` (a file with its size)
 # Capture:  scripts/golden-capture.sh goldens/cases.tsv goldens -- scripts/ws-run.sh --oracle br --no-db ::
 # Lanes:    LANE_WRAP=scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend"
 # exit: the CLI's exit code (single step) or 0 (scenario; each step prints its

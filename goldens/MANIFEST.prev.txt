@@ -1,10 +1,10 @@
-captured: 2026-09-24T08:29:24.529717+00:00
+captured: 2026-09-24T09:18:41.269493+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (1044 cases)
-provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"f159618887a2ce105d1b78769d568660047fd49aa416484ef657ebcbb3607c48"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"356e82ab669d546beffccd42d7fce455d222d5b8c68773474e9807c2826b2c46"},"case_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/.beads/issues.jsonl","sha256":"0fa6bff637f81e712d3c4a1bca3f5a0e391be075cf3ff98e33670ffecb445370"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/.beads/last-touched","sha256":"6af30064012a0dcd8db293a97bbbfe9ad3d59c547af364f482007a88f5f9f21c"}],"stdin_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/plan.md","sha256":"37408972901f8596ed696ffbc7955502e868cce2e45bbb4c571688cf5e6e5703"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/two_lines.txt","sha256":"793d49044e660c5c0fc164516e0121a17241eec91a81fcc504ccd1084e4e0da9"}]}
-recapture: repin: round 12 (non-author): 35 cases over S2.57-S2.58, S4.151-S4.178, S5.151
+cases: goldens/cases.tsv (1062 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"a01ffe9ea391bb9816eded472c71b37ac3f77b7201e4c8c13501d8cc0b163b64"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"fc7ec11d2099e86040072ee898579d258e64dc335be45876ffb6775d5e49f30d"},"case_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/.beads/issues.jsonl","sha256":"bfbe8ccfbbc89ba60376aa7d149a4bb45c4db877352967ca343992c96596d52e"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/.beads/last-touched","sha256":"9080a207a59cec8e0b42d05e1c5e7c19e31e9552f462d1da50d5d90b157147e9"}],"stdin_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/plan.md","sha256":"37408972901f8596ed696ffbc7955502e868cce2e45bbb4c571688cf5e6e5703"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/two_lines.txt","sha256":"793d49044e660c5c0fc164516e0121a17241eec91a81fcc504ccd1084e4e0da9"}]}
+recapture: repin: harness (bb-sfm): ws_inner.py gains @env, @cwd, @ls and @fx=nostore, a .redirect sidecar; 18 new cases (OQ-008, OQ-011, OQ-014, OQ-023, OQ-084, OQ-085, OQ-086, OQ-087, OQ-103)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -3138,3 +3138,57 @@ sha256:
   0d92d99a6467381c9401f86139c363363329e77b8f043e33cdd2536d476cb1a0  r12_dep_to_template_blocked.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  r12_dep_to_template_blocked.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  r12_dep_to_template_blocked.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_nostore_list.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_nostore_list.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_nostore_list.exit
+  3108e15dfc911f1a730106ee1e44c941639e0b7add838d095680425e86d086c3  edge_nostore_count_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_nostore_count_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_nostore_count_json.exit
+  fa53673d57f15d736c04afc9e9c968db44d867e2ee9923939d9bcab36fb9f501  edge_nostore_where.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_nostore_where.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_nostore_where.exit
+  c1c1740383d7aabf84e9a1b17b063bcf76ddca47707a26ea8249d12aa92431b2  edge_nostore_create.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_nostore_create.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_nostore_create.exit
+  b084d476f155a1c5e791d1e0f38f48e28d385c0083ea20203f274dd92eb65a21  where_from_subdir.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  where_from_subdir.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  where_from_subdir.exit
+  b87a62ce53e869aa880be71c40880ce012d00635c4a34aed15cdc2d87c2b26cb  list_from_subdir.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  list_from_subdir.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  list_from_subdir.exit
+  573876bb718eae857fcf027d750f9a52a68549ef7b5ab2e1b8225dd423dc5247  create_from_subdir.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  create_from_subdir.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  create_from_subdir.exit
+  1fcf77e8488b9577eafaf5020fb6f61a48d27203e455706848781b837d8407ac  ls_read_list.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ls_read_list.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ls_read_list.exit
+  152518fe9e709fc21ef7191f1595849678b9d83b324c716140afa02ebc79ba95  ls_read_show.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ls_read_show.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ls_read_show.exit
+  e3a7a95e171c98c1a062b11861e173f96de1a5aadb87aa9967cba08d21921edd  ls_nostore_list.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ls_nostore_list.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ls_nostore_list.exit
+  3108e15dfc911f1a730106ee1e44c941639e0b7add838d095680425e86d086c3  env_output_format_count.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  env_output_format_count.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  env_output_format_count.exit
+  52bbae91d7fcb07ae23613035f8db0cb37a4ad4221d7924c1e93254841c1bf91  env_output_format_where.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  env_output_format_where.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  env_output_format_where.exit
+  bf1bafc2fd16ff1126de85491f78593576bffa74e08aadd1de71a27f045ae201  env_output_format_error.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  env_output_format_error.err
+  1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2  env_output_format_error.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_limit_bad_env_json.out
+  75f49bdeee4432c46398ab720e5e07077e2b4096e7116c680c74f9ad6bf09afb  usage_limit_bad_env_json.err
+  53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  usage_limit_bad_env_json.exit
+  b084d476f155a1c5e791d1e0f38f48e28d385c0083ea20203f274dd92eb65a21  env_beads_dir_where.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  env_beads_dir_where.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  env_beads_dir_where.exit
+  b87a62ce53e869aa880be71c40880ce012d00635c4a34aed15cdc2d87c2b26cb  env_beads_dir_list.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  env_beads_dir_list.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  env_beads_dir_list.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  env_beads_dir_missing.out
+  b67886f5bb32c38575acd5b539004b2a4b2a8bcb613902decb6543130b0c266d  env_beads_dir_missing.err
+  10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58  env_beads_dir_missing.exit
+  7542d7ca3ba733526441084ce98a6d734c4800014dce7d7102d786d92af19e56  env_serial_export.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  env_serial_export.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  env_serial_export.exit

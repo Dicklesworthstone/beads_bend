@@ -71,6 +71,9 @@ def setup(root, fixture, store=None):
         return
     beads = WS / ".beads"
     beads.mkdir()
+    if fixture == "nostore" and store is None:
+        # @fx=nostore: a `.beads/` directory with nothing in it (OQ-011, OQ-103)
+        return
     if store is not None:
         # @store=<absolute path>: an external store copied in as issues.jsonl (the
         # real-store sweep; a probe, never a golden). The root filesystem is bound
@@ -84,17 +87,21 @@ def setup(root, fixture, store=None):
     if not source.is_file():
         die(f"no fixture {source}")
     shutil.copyfile(source, beads / "issues.jsonl")
-    for extra in ("config.yaml", "last-touched"):
+    for extra in ("config.yaml", "last-touched", "redirect"):
         side = root / "goldens" / "fixtures" / f"{fixture}.{extra}"
         if side.is_file():
             shutil.copyfile(side, beads / extra)
 
 
-def run(inner, argv, stamp, oracle, root):
+def run(inner, argv, stamp, oracle, root, extra_env=(), sub=""):
     # The child inherits this process's environment, which ws-run.sh built
     # with `bwrap --clearenv --setenv …`: that list is the one allowlist. Only
-    # the pinned instant is added here (it can change between scenario steps).
+    # the pinned instant is added here (it can change between scenario steps),
+    # and the case's own `@env=NAME=VALUE` directives, identically for the
+    # original and the port (OQ-014, OQ-023, OQ-085, OQ-086, OQ-087).
     os.environ["BEADS_BEND_NOW"] = str(epoch(stamp))
+    for name, value in extra_env:
+        os.environ[name] = value
     if oracle:
         lib = root / FAKETIME_LIB
         if not lib.is_file():
@@ -109,7 +116,7 @@ def run(inner, argv, stamp, oracle, root):
     # harness, argv is a list (no shell), the environment is cleared and the
     # run is time-bounded. UBS python.taint.command flags it by design.
     try:
-        done = subprocess.run(inner + argv, cwd=WS, timeout=STEP_TIMEOUT, check=False, capture_output=True)  # ubs:ignore[python.taint.command] Running the command named on our own command line is this wrapper's contract (as for env(1) and timeout(1)): list argv, no shell, cleared environment, bounded time. Accepted by the repository owner 2026-09-20.
+        done = subprocess.run(inner + argv, cwd=WS / sub, timeout=STEP_TIMEOUT, check=False, capture_output=True)  # ubs:ignore[python.taint.command] Running the command named on our own command line is this wrapper's contract (as for env(1) and timeout(1)): list argv, no shell, cleared environment, bounded time. Accepted by the repository owner 2026-09-20.
     except subprocess.TimeoutExpired:
         die(f"step exceeded {STEP_TIMEOUT}s: {argv}")
     except OSError as exc:
@@ -211,6 +218,22 @@ def dump_changes(before):
     return after
 
 
+def listing():
+    # @ls: every path under `.beads/` after the step, sorted, a directory with a
+    # trailing `/`, a file with its size in bytes (OQ-005, OQ-008, OQ-084)
+    beads = WS / ".beads"
+    sys.stdout.flush()
+    sys.stdout.buffer.write(b"--- ls .beads ---\n")
+    if not beads.is_dir():
+        sys.stdout.buffer.write(b"(absent)\n")
+    else:
+        for path in sorted(beads.rglob("*")):
+            rel = path.relative_to(beads).as_posix()
+            line = f"{rel}/" if path.is_dir() else f"{rel} {path.stat().st_size}"
+            sys.stdout.buffer.write(line.encode() + b"\n")
+    sys.stdout.buffer.flush()
+
+
 def main():
     args = sys.argv[1:]
     oracle = bool(args) and args[0] == "--oracle"
@@ -227,6 +250,7 @@ def main():
         die("WS_ROOT does not name the port root")
 
     fixture, stamp, scenario, store = "empty", DEFAULT_TIME, None, None
+    extra_env, sub, ls = [], "", False
     while case and case[0].startswith("@"):
         key, _, value = case.pop(0)[1:].partition("=")
         if key == "fx":
@@ -237,15 +261,32 @@ def main():
             scenario = value
         elif key == "store":
             store = value
+        elif key == "env":
+            name, eq, setting = value.partition("=")
+            if not eq or not re.fullmatch(r"[A-Z_][A-Z0-9_]*", name) or name in PASSED_ENV or name == "BEADS_BEND_NOW":
+                die(f"@env wants NAME=VALUE with a new upper-case NAME, got {value!r}")
+            extra_env.append((name, setting))
+        elif key == "cwd":
+            if not re.fullmatch(r"[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*", value) or ".." in value.split("/"):
+                die(f"@cwd wants a relative path below the workspace, got {value!r}")
+            sub = value
+        elif key == "ls" and not value:
+            ls = True
         else:
             die(f"unknown directive @{key}")
 
     if scenario is None:
         setup(root, fixture, store)
+        if sub:
+            (WS / sub).mkdir(parents=True, exist_ok=True)
         before = snapshot()
-        code = run(inner, case, stamp, oracle, root)
+        code = run(inner, case, stamp, oracle, root, extra_env, sub)
         dump_changes(before)
+        if ls:
+            listing()
         sys.exit(code)
+    if extra_env or sub or ls:
+        die("@env, @cwd and @ls apply to a single step, not to @scn")
 
     path = root / "goldens" / "scenarios" / f"{scenario}.scn"
     if not path.is_file():
