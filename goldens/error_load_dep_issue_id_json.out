@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: dependency.issue_id: dependency issue_id 'proj-b1' does not match import issue 'proj-a1'",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "dependency.issue_id",
+      "reason": "dependency issue_id 'proj-b1' does not match import issue 'proj-a1'"
+    }
+  }
+}

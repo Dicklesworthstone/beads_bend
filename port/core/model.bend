@@ -385,6 +385,12 @@ def target_of(d: Dependency) -> String:
     case Dependency{_, depends_on_id, _, _, _, _, _}:
       depends_on_id
 
+# S2.58 (spec twin) the record a dependency says it belongs to
+def dep_issue_of(d: Dependency) -> String:
+  match d:
+    case Dependency{issue_id, _, _, _, _, _, _}:
+      issue_id
+
 # ---------------------------------------------------------------- the load repairs (S2.31–S2.36, S5.9)
 
 # S2.31 (spec twin) ASCII lower case of one code point

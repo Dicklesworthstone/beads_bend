@@ -299,11 +299,14 @@ def pinned_count(issues: List<&2, Model.Issue>, acc: U32) -> U32:
     case Con{+i, rest}:
       pinned_count(rest, (acc + Bool.to_u32((Model.is_pinned(i) || String.eq(Model.status_of(i), "pinned"))) : U32))
 
-# S4.154 (spec twin) whole hours from `created_at` to `closed_at`, truncated toward zero; 0 when the close is not after the creation
+# S4.154 (spec twin) whole hours from `created_at` to `closed_at`, truncated toward zero; 0 when the close is not after
+# the creation. The fractions count: a close 3599.78 s after the creation is 0 hours, not the 1 its whole seconds
+# (02:09:22 to 03:09:22) would give (`stats_lead_subsecond`, found by the real-store sweep), so a second is borrowed
+# when the close's fraction is below the creation's
 def whole_hours(from: Time.Instant, to: Time.Instant) -> U32:
   match from to:
-    case Time.Instant{+fd, +fs, fn} Time.Instant{+td, +ts, tn}:
-      Bool.pick(U32, Time.le(Time.Instant{td, ts, 0}, Time.Instant{fd, fs, 0}), 0, ((((((td - fd : U32) * 86400 : U32) + ts : U32) - fs : U32)) / 3600 : U32))
+    case Time.Instant{+fd, +fs, +fn} Time.Instant{+td, +ts, +tn}:
+      Bool.pick(U32, Time.le(Time.Instant{td, ts, tn}, Time.Instant{fd, fs, fn}), 0, (((((((td - fd : U32) * 86400 : U32) + ts : U32) - fs : U32) - Bool.to_u32((tn < fn : U32)) : U32)) / 3600 : U32))
 
 # S4.154 (spec twin) the lead time of one issue joins the sum when it is `closed` and carries a `closed_at`
 def lead_of(closed: Bool, from: Time.Instant, to: Maybe<&2, Time.Instant>) -> Maybe<&2, U32>:

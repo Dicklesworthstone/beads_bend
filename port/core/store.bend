@@ -213,13 +213,18 @@ def msg_if(cond: Bool, +msg: String) -> List<&2, String>:
 def id_msgs(+id: String) -> List<&2, String>:
   Bool.pick(List<&2, String>, String.is_empty(id), ["id: cannot be empty"], List.append(&2, String, msg_if(Nat.is_gt(String.length(id), 105n), "id: exceeds 105 characters"), msg_if(Bool.not(id_split(String.split(id, Chr{45}), id)), "id: invalid format (expected prefix-hash)")))
 
-# S2.51 (spec twin) does a text hold a NUL
-def has_nul(s: String) -> Bool:
+# S2.51 (spec twin) does a text hold a NUL, or was one found already. An accumulator, not `hit || has_nul(rest)`:
+# the operator waits for the recursion, and a member as long as a real store holds made the JS lane fault (bb-rvt)
+def nul_go(s: String, found: Bool) -> Bool:
   match s:
     case SNil{}:
-      False{}
+      found
     case SCon{Chr{+c}, rest}:
-      (U32.is_eq(c, 0) || has_nul(rest))
+      nul_go(rest, (found || U32.is_eq(c, 0)))
+
+# S2.51 (spec twin) does a text hold a NUL
+def has_nul(s: String) -> Bool:
+  nul_go(s, False{})
 
 # S2.51 (spec twin) the NUL rule of one member
 def nul_msg(+field: String, s: String) -> List<&2, String>:
@@ -245,13 +250,17 @@ def person_msgs(+field: String, v: Maybe<&2, String>) -> List<&2, String>:
 def is_space(+c: U32) -> Bool:
   (((c >= 9 : U32) && (c <= 13 : U32)) || U32.is_eq(c, 32) || U32.is_eq(c, 133) || U32.is_eq(c, 160) || U32.is_eq(c, 5760) || ((c >= 8192 : U32) && (c <= 8202 : U32)) || U32.is_eq(c, 8232) || U32.is_eq(c, 8233) || U32.is_eq(c, 8239) || U32.is_eq(c, 8287) || U32.is_eq(c, 12288))
 
-# S2.50 (spec twin) does a text hold white space
-def has_space(s: String) -> Bool:
+# S2.50 (spec twin) does a text hold white space, or was some found already (an accumulator, as `nul_go`)
+def space_go(s: String, found: Bool) -> Bool:
   match s:
     case SNil{}:
-      False{}
+      found
     case SCon{Chr{+c}, rest}:
-      (is_space(c) || has_space(rest))
+      space_go(rest, (found || is_space(c)))
+
+# S2.50 (spec twin) does a text hold white space
+def has_space(s: String) -> Bool:
+  space_go(s, False{})
 
 # S2.50 S2.51 (spec twin) `external_ref`: more than 200 BYTES, white space, a NUL
 def ref_msgs(v: Maybe<&2, String>) -> List<&2, String>:
@@ -356,11 +365,64 @@ def empty_put(+name: String, v: Maybe<&2, String>, rest: List<&2, String>) -> Li
     case _:
       rest
 
-# S2.57 (spec twin) thediffering members of one record
-def differing(i: Model.Issue) -> List<&2, String>:
+# S2.57 (data) the ids of the store as the import asks "is this target stored": the records scanned (the spec
+# twin, `load`) or a set built once (the fast twin, `load_fast`)
+type Ids is Data:
+  IdScan{issues: List<&2, Model.Issue>}
+  IdSet{set: Map<&2, Bool>}
+
+# S2.57 (fast twin) the set of the stored ids
+def id_set_go(issues: List<&2, Model.Issue>, m: Map<&2, Bool>) -> Map<&2, Bool>:
+  match issues:
+    case Nil{}:
+      m
+    case Con{+i, rest}:
+      id_set_go(rest, Map.set(&2, Bool, m, Model.id_of(i), True{}))
+
+# S2.57 (spec twin) the ids the import asks: the scan for the spec loop, the set for the fast one
+def ids_of(fast: Bool, +issues: List<&2, Model.Issue>) -> Ids:
+  match fast:
+    case False{}:
+      IdScan{issues}
+    case True{}:
+      IdSet{id_set_go(issues, Map.new(&2, Bool))}
+
+# S2.57 (fast twin) the answer half of a set lookup
+def id_answer(mb: Map<&2, Bool> & Bool) -> Bool:
+  (m, b) = mb
+  b
+
+# S2.57 (spec twin) is this id one of a stored record
+def stored(+ids: Ids, +id: String) -> Bool:
+  match ids:
+    case IdScan{issues}:
+      has_id(issues, id)
+    case IdSet{set}:
+      id_answer(Map.has(&2, Bool, set, id))
+
+# S2.57 (spec twin) does any dependency name a target that is neither `external:…` nor stored (a tombstone is stored);
+# an accumulator, as `nul_go`
+def dangling_go(ds: List<&2, Model.Dependency>, +ids: Ids, found: Bool) -> Bool:
+  match ds:
+    case Nil{}:
+      found
+    case Con{+d, rest}:
+      dangling_go(rest, ids, (found || (Bool.not(String.starts_with(Model.target_of(d), "external:")) && Bool.not(stored(ids, Model.target_of(d))))))
+
+# S2.57 (spec twin) a member name put in front when the verdict says so
+def name_if(hit: Bool, +name: String, rest: List<&2, String>) -> List<&2, String>:
+  match hit:
+    case True{}:
+      name <> rest
+    case False{}:
+      rest
+
+# S2.57 (spec twin) the differing members of one record, in alphabetical order: the four members whose `""` the import
+# does not carry through, and `dependencies` when one of them has no stored target (OQ-131)
+def differing(i: Model.Issue, +ids: Ids) -> List<&2, String>:
   match i:
     case Model.Issue{head, texts, people, times, Model.Closing{a, b, c, bypass_reason, e}, Model.Source{f, g, source_repo, source_repo_path, agent_context}, deletion, compaction, meta, flags, labels, dependencies, comments}:
-      empty_put("agent_context", agent_context, empty_put("bypass_reason", bypass_reason, empty_put("source_repo", source_repo, empty_put("source_repo_path", source_repo_path, Nil{}))))
+      empty_put("agent_context", agent_context, empty_put("bypass_reason", bypass_reason, name_if(dangling_go(dependencies, ids, False{}), "dependencies", empty_put("source_repo", source_repo, empty_put("source_repo_path", source_repo_path, Nil{})))))
 
 # S2.57 S9 (spec twin) the import's refusal: SYNC_CONFLICT, exit 6, the message again as the context
 def sync_failure(+inner: String) -> Failure.Failure:
@@ -370,23 +432,108 @@ def sync_failure(+inner: String) -> Failure.Failure:
 def sync_conflict(id: String, fields: List<&2, String>) -> Failure.Failure:
   sync_failure("Import semantic verification failed: issue " ++ id ++ " does not match its normalized JSONL payload (differing fields: " ++ String.join(fields, ", ") ++ "); rolling back the import")
 
-# S2.57 (spec twin) thefirst record, in file order, the import refuses
-def first_conflict(issues: List<&2, Model.Issue>, +all: List<&2, Model.Issue>) -> Loaded:
+# S2.57 (spec twin) one record's refusal, if it has differing members
+def conflict_of(fields: List<&2, String>, +i: Model.Issue) -> Maybe<&2, Failure.Failure>:
+  match fields:
+    case Nil{}:
+      None{}
+    case Con{h, t}:
+      Some{sync_conflict(Model.id_of(i), h <> t)}
+
+# S2.57 S2.58 (spec twin) a refusal found already is kept; otherwise this record is asked
+def conflict_keep(found: Maybe<&2, Failure.Failure>, +i: Model.Issue, +ids: Ids) -> Maybe<&2, Failure.Failure>:
+  match found:
+    case Some{f}:
+      Some{f}
+    case None{}:
+      conflict_of(differing(i, ids), i)
+
+# S2.57 (spec twin) the first record, in file order, the import refuses (with several, the original names one at
+# random: DISC-012); an accumulator, so a store of thousands of records does not recurse once per record
+def first_conflict(issues: List<&2, Model.Issue>, +ids: Ids, found: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:
   match issues:
     case Nil{}:
-      LoadOk{all}
+      found
     case Con{+i, rest}:
-      Bool.pick(Loaded, List.is_empty(&2, String, differing(i)), first_conflict(rest, all), LoadBad{sync_conflict(Model.id_of(i), differing(i))})
+      first_conflict(rest, ids, conflict_keep(found, i, ids))
 
-# S2.57 (spec twin) a loaded store through the import check; `show` reads the file directly and skips it
-def imported(st: Loaded, strict: Bool) -> Loaded:
+# S2.58 (spec twin) a dependency whose `issue_id` is another record's: VALIDATION_FAILED, exit 4
+def dep_other(+issue: String, +id: String) -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: dependency.issue_id: dependency issue_id '" ++ issue ++ "' does not match import issue '" ++ id ++ "'", None{}, True{}, [Failure.CtxMember{"field", Failure.CStr{"dependency.issue_id"}}, Failure.CtxMember{"reason", Failure.CStr{"dependency issue_id '" ++ issue ++ "' does not match import issue '" ++ id ++ "'"}}], 4}
+
+# S2.58 (spec twin) a dependency on the record itself: SELF_DEPENDENCY, exit 5 (the words of S4.356)
+def dep_self(+id: String) -> Failure.Failure:
+  Failure.Failure{"SELF_DEPENDENCY", "Issue cannot depend on itself: " ++ id, Some{"An issue cannot depend on itself"}, False{}, [Failure.CtxMember{"id", Failure.CStr{id}}], 5}
+
+# S2.58 (spec twin) the rule one dependency breaks: the `issue_id` first, then the target
+def dep_pick(other: Bool, self: Bool, +issue: String, +id: String) -> Maybe<&2, Failure.Failure>:
+  match other self:
+    case True{} _:
+      Some{dep_other(issue, id)}
+    case False{} True{}:
+      Some{dep_self(id)}
+    case False{} False{}:
+      None{}
+
+# S2.58 (spec twin) a refusal found already is kept; otherwise this dependency is asked
+def dep_keep(found: Maybe<&2, Failure.Failure>, +d: Model.Dependency, +id: String) -> Maybe<&2, Failure.Failure>:
+  match found:
+    case Some{f}:
+      Some{f}
+    case None{}:
+      dep_pick(Bool.not(String.eq(Model.dep_issue_of(d), id)), String.eq(Model.target_of(d), id), Model.dep_issue_of(d), id)
+
+# S2.58 (spec twin) the first dependency of a record that breaks a rule, in order
+def deps_rule(ds: List<&2, Model.Dependency>, +id: String, found: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:
+  match ds:
+    case Nil{}:
+      found
+    case Con{+d, rest}:
+      deps_rule(rest, id, dep_keep(found, d, id))
+
+# S2.58 (spec twin) a refusal found already is kept; otherwise this record's dependencies are asked
+def record_keep(found: Maybe<&2, Failure.Failure>, +i: Model.Issue) -> Maybe<&2, Failure.Failure>:
+  match found:
+    case Some{f}:
+      Some{f}
+    case None{}:
+      deps_rule(Model.deps_of(i), Model.id_of(i), None{})
+
+# S2.58 (spec twin) the first record, in file order, with a dependency that breaks a rule
+def records_rule(issues: List<&2, Model.Issue>, found: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:
+  match issues:
+    case Nil{}:
+      found
+    case Con{+i, rest}:
+      records_rule(rest, record_keep(found, i))
+
+# S2.57 S2.58 (spec twin) the store, or the refusal the import found
+def verdict_of(found: Maybe<&2, Failure.Failure>, +issues: List<&2, Model.Issue>) -> Loaded:
+  match found:
+    case Some{f}:
+      LoadBad{f}
+    case None{}:
+      LoadOk{issues}
+
+# S2.57 S2.58 (spec twin) the import's checks in their order: every record's dependency edges (S2.58), then the
+# members each record would not carry through (S2.57)
+def checked(edges: Maybe<&2, Failure.Failure>, +issues: List<&2, Model.Issue>, +ids: Ids) -> Loaded:
+  match edges:
+    case Some{f}:
+      LoadBad{f}
+    case None{}:
+      verdict_of(first_conflict(issues, ids, None{}), issues)
+
+# S2.57 S2.58 (spec twin) a loaded store through the import; `show` reads the file directly and skips it. `fast`
+# picks the id set over the scan (`load_fast` against `load`)
+def imported(st: Loaded, strict: Bool, +fast: Bool) -> Loaded:
   match st strict:
     case LoadBad{f} _:
       LoadBad{f}
     case LoadOk{issues} False{}:
       LoadOk{issues}
     case LoadOk{+issues} True{}:
-      first_conflict(issues, issues)
+      checked(records_rule(issues, None{}), issues, ids_of(fast, issues))
 
 # ---------------------------------------------------------------- the record loop
 
@@ -530,7 +677,7 @@ def held_st(h: Held) -> Loaded:
 def guarded_fast(+ls: List<&2, List<&2, U32>>, +path: String, report: String, +strict: Bool) -> Loaded:
   match report:
     case SNil{}:
-      imported(in_file_order(held_st(fold_steps(steps_par(4n, ls, List.length(&2, List<&2, U32>, ls)), 1, Held{LoadOk{Nil{}}, Map.new(&2, Bool)}, path, strict))), strict)
+      imported(in_file_order(held_st(fold_steps(steps_par(4n, ls, List.length(&2, List<&2, U32>, ls)), 1, Held{LoadOk{Nil{}}, Map.new(&2, Bool)}, path, strict))), strict, True{})
     case SCon{h, t}:
       LoadBad{conflict(path, SCon{h, t})}
 
@@ -548,7 +695,7 @@ def load_fast(cs: List<&2, U32>, +path: String) -> Loaded:
 def guarded(+ls: List<&2, List<&2, U32>>, +path: String, report: String, +strict: Bool) -> Loaded:
   match report:
     case SNil{}:
-      imported(in_file_order(records_go(ls, 1, LoadOk{Nil{}}, path, strict)), strict)
+      imported(in_file_order(records_go(ls, 1, LoadOk{Nil{}}, path, strict)), strict, False{})
     case SCon{h, t}:
       LoadBad{conflict(path, SCon{h, t})}
 

@@ -1,10 +1,10 @@
-captured: 2026-09-24T02:29:07.726050+00:00
+captured: 2026-09-24T06:03:25.860251+00:00
 original: scripts/ws-run.sh --oracle br --no-db ::
 original_argv: ["scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
 original_identity: ["/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh", "--oracle", "br", "--no-db", "::"]
-cases: goldens/cases.tsv (993 cases)
-provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"8e529210222e9f4eb4318752d8bb662c4e6b36a6e6e4b5aedaf7685ade939ee1"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"432a3bdc56bac4da8b6ec59e638f1be2cc704c41837841f21438ae00ff71343b"},"case_files":[],"stdin_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/plan.md","sha256":"37408972901f8596ed696ffbc7955502e868cce2e45bbb4c571688cf5e6e5703"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/two_lines.txt","sha256":"793d49044e660c5c0fc164516e0121a17241eec91a81fcc504ccd1084e4e0da9"}]}
-recapture: repin: the id prefix: underscores, dots and a leading underscore load, upper case is refused (8 cases, found by running the port on real stores)
+cases: goldens/cases.tsv (1008 cases)
+provenance: {"cwd":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb","executable":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/scripts/ws-run.sh","sha256":"f159618887a2ce105d1b78769d568660047fd49aa416484ef657ebcbb3607c48"},"command_files":[],"case_manifest":{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/cases.tsv","sha256":"533adffd82d2a4eeb02d5e3172910e0cd97fc7a041e52564f97822f17cec459a"},"case_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/.beads/issues.jsonl","sha256":"0f9f391cb30c436997161c814b1771e7b9f900265287875ce8b4d4913ec515a2"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/.beads/last-touched","sha256":"fa3134e478aa5c790202a5ec9871ab5cb3e447f10de2cd29ead6f3cb54f57e6b"}],"stdin_files":[{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/plan.md","sha256":"37408972901f8596ed696ffbc7955502e868cce2e45bbb4c571688cf5e6e5703"},{"path":"/data/tmp/claude-1000/-data-projects-beads-bend/3f5aee7b-2a21-4618-b9ab-688e03ea1058/scratchpad/bb/goldens/stdin/two_lines.txt","sha256":"793d49044e660c5c0fc164516e0121a17241eec91a81fcc504ccd1084e4e0da9"}]}
+recapture: repin: new cases: show of a dependency whose target is not stored (OQ-132)
 sha256:
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  usage_none.out
   5aeda28d5a4dbb022d517757f17ad760684b10b28cc8881c6bae863181ffdcce  usage_none.err
@@ -1401,7 +1401,7 @@ sha256:
   33c2af4b405ea7f0c89d67f5d5db98e99a8eeb1c845bbb257d1d8401182e8f50  prefix_config_nested.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_nested.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_nested.exit
-  07bbf8f5f45acb259c7962eb3c9bba01344626c54b2e82d944953692a5fac699  prefix_config_both.out
+  2815415d064df2b6e8198c34c55589f026df346189972d37e7c53fd37e34d3f6  prefix_config_both.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  prefix_config_both.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  prefix_config_both.exit
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_prefix_config_bad.out
@@ -1794,7 +1794,7 @@ sha256:
   5b901780df63af03b7785c360be7936f5b9e54b4e84afede380febb7e149155c  delete_hard_force_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_force_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_force_json.exit
-  17ebd38a3919c99d296ab73fbde849a050d589affe31e5347c64ea7826dce8fe  delete_hard_cascade_json.out
+  422056cffdfd2d4bbccb504c841fe05084ba7a972dcb6def8bffbeb38e9094b7  delete_hard_cascade_json.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  delete_hard_cascade_json.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  delete_hard_cascade_json.exit
   77c8c846694dd370c92a17b3e29a6201601c3f3a42fd0fee94b1980f08e27233  delete_hard_preview.out
@@ -2985,3 +2985,48 @@ sha256:
   53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  edge_load_id_prefix_digits_underscore.out
   e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_id_prefix_digits_underscore.err
   9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_load_id_prefix_digits_underscore.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_dangling.out
+  35b94fee914b9dfc829f3a30b5be3ac5f176989334f301efdb1b8e25ab27ad9b  error_load_dep_dangling.err
+  06e9d52c1720fca412803e3b07c4b228ff113e303f4c7ab94665319d832bbfb7  error_load_dep_dangling.exit
+  06ed63fb88b4e275272e80d96268bae2468c380c6b752e9d7c1d31f8b7852bfc  error_load_dep_dangling_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_dangling_json.err
+  06e9d52c1720fca412803e3b07c4b228ff113e303f4c7ab94665319d832bbfb7  error_load_dep_dangling_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_dangling_related.out
+  35b94fee914b9dfc829f3a30b5be3ac5f176989334f301efdb1b8e25ab27ad9b  error_load_dep_dangling_related.err
+  06e9d52c1720fca412803e3b07c4b228ff113e303f4c7ab94665319d832bbfb7  error_load_dep_dangling_related.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_dangling_empty.out
+  cec5de7bf19f5e393bbeda6fc88ff5dc37b22b61c0f080e11e3d15ffe0cc926f  error_load_dep_dangling_empty.err
+  06e9d52c1720fca412803e3b07c4b228ff113e303f4c7ab94665319d832bbfb7  error_load_dep_dangling_empty.exit
+  53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3  edge_load_dep_external.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_dep_external.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_load_dep_external.exit
+  f6c097d0f27b8e911012932895f85d14441b79198bdee196ba0521c0977d58dd  edge_load_dep_dangling_show.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_dep_dangling_show.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_load_dep_dangling_show.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_self.out
+  e884d64a17cc9ed56f1a200f0d5fd37c9edffebffef625002b4b68c8b66c91d2  error_load_dep_self.err
+  f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec582a06  error_load_dep_self.exit
+  b2aaeae3ee812763857c5ceb0afc24d11842c4c35b19e1a2fe24fd6184006a01  error_load_dep_self_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_self_json.err
+  f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec582a06  error_load_dep_self_json.exit
+  6576832aef2eb0fb2df358c5339c96c8f06c6abdf04ee767a1aed32a73ca6132  edge_load_dep_self_show.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  edge_load_dep_self_show.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  edge_load_dep_self_show.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_issue_id.out
+  65f8160cdbd49a6bf9433f88e26add4fad654a30e4fd2351340a036bf13bd959  error_load_dep_issue_id.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_load_dep_issue_id.exit
+  13e6fbc72d7cb2931478a741906ad88495e02c4a5e98609e9558ca3d6e823c68  error_load_dep_issue_id_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_issue_id_json.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_load_dep_issue_id_json.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_other_then_self.out
+  65f8160cdbd49a6bf9433f88e26add4fad654a30e4fd2351340a036bf13bd959  error_load_dep_other_then_self.err
+  7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d  error_load_dep_other_then_self.exit
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  error_load_dep_dangling_then_self.out
+  b385ff686d986431da519bd62997b12dc95449575d885c71c396442df5173c98  error_load_dep_dangling_then_self.err
+  f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec582a06  error_load_dep_dangling_then_self.exit
+  55b99d61a63f56f773655072fe84ad7b86ce04406b39219a2d31adc89ab7ad8b  show_dep_missing.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  show_dep_missing.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  show_dep_missing.exit
+  1866185e03e52223801e180774b197f5e740cfe3199a29f224a041a69751fd3e  show_dep_missing_json.out
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  show_dep_missing_json.err
+  9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  show_dep_missing_json.exit

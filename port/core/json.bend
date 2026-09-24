@@ -534,21 +534,31 @@ type Lit is Data:
   LitOk{text: String}
   LitOdd{}
 
-# S4.232 (spec twin) a String's code points
-def codes(s: String) -> List<&2, U32>:
+# S4.232 (spec twin) a String's code points, REVERSED onto acc. The loops here carry an accumulator: a string
+# member as long as a real store holds (168 KB, 1.3 MB) recursed once per character made the JS lane fault
+# (bb-rvt: the JS backend's call stack; the C lanes were unaffected)
+def codes_rev(s: String, acc: List<&2, U32>) -> List<&2, U32>:
   match s:
     case SNil{}:
-      Nil{}
+      acc
     case SCon{Chr{c}, rest}:
-      c <> codes(rest)
+      codes_rev(rest, c <> acc)
+
+# S4.232 (spec twin) a String's code points
+def codes(s: String) -> List<&2, U32>:
+  List.reverse(&2, U32, codes_rev(s, Nil{}))
+
+# S2.27 (spec twin) the byte length of code points added to acc
+def byte_len_go(cs: List<&2, U32>, acc: U32) -> U32:
+  match cs:
+    case Nil{}:
+      acc
+    case Con{+c, rest}:
+      byte_len_go(rest, (acc + width(c) : U32))
 
 # S2.27 (spec twin) the byte length of code points: serde_json's column at the end of the input
 def byte_len(cs: List<&2, U32>) -> U32:
-  match cs:
-    case Nil{}:
-      0
-    case Con{+c, rest}:
-      (width(c) + byte_len(rest) : U32)
+  byte_len_go(cs, 0)
 
 # S4.232 (spec twin) is every code point an ASCII digit (and there is at least one)
 def digits_go(s: String) -> Bool:

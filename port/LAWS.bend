@@ -309,6 +309,17 @@ law work_child_index_leaf:
 law store_load_fast_duplicate:
   {Store.load_fast(Time.codes("{\"id\":\"proj-aaa\",\"title\":\"first copy\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n{\"id\":\"proj-aab\",\"title\":\"other\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n{\"id\":\"proj-aaa\",\"title\":\"second copy\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n"), "/mnt/proj/.beads/issues.jsonl") == Store.load(Time.codes("{\"id\":\"proj-aaa\",\"title\":\"first copy\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n{\"id\":\"proj-aab\",\"title\":\"other\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n{\"id\":\"proj-aaa\",\"title\":\"second copy\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n"), "/mnt/proj/.beads/issues.jsonl") : Store.Loaded}
 
+# S2.57 S2.58 fast == spec, closed: a store whose first record depends on a target that is not stored (fixture
+# `dep_dangling`) is refused alike by the fast loader, which asks a set of the stored ids, and by the spec loop,
+# which scans the records
+law store_load_fast_dangling:
+  {Store.load_fast(Time.codes("{\"id\":\"proj-a1\",\"title\":\"t proj-a1\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\",\"dependencies\":[{\"issue_id\":\"proj-a1\",\"depends_on_id\":\"proj-zz\",\"type\":\"blocks\",\"created_at\":\"2026-01-01T10:00:00Z\",\"created_by\":\"tester\"}]}\n{\"id\":\"proj-b1\",\"title\":\"t proj-b1\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n"), "/mnt/proj/.beads/issues.jsonl") == Store.load(Time.codes("{\"id\":\"proj-a1\",\"title\":\"t proj-a1\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\",\"dependencies\":[{\"issue_id\":\"proj-a1\",\"depends_on_id\":\"proj-zz\",\"type\":\"blocks\",\"created_at\":\"2026-01-01T10:00:00Z\",\"created_by\":\"tester\"}]}\n{\"id\":\"proj-b1\",\"title\":\"t proj-b1\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"created_at\":\"2026-01-01T10:00:00Z\",\"updated_at\":\"2026-01-01T10:00:00Z\"}\n"), "/mnt/proj/.beads/issues.jsonl") : Store.Loaded}
+
+# S4.154 closed: a close 3599.78 s after its creation (2026-08-29 02:09:22.449598 to 03:09:22.2327) is 0 whole hours;
+# its whole seconds alone would say 1 (`stats_lead_subsecond`)
+law work_lead_subsecond:
+  {Work.whole_hours(Time.Instant{20694, 7762, 449598000}, Time.Instant{20694, 11362, 232700000}) == 0 : U32}
+
 # S4.157–S4.169 fast == spec, closed: the rows of `blocked` over fixture `basic` with the records found through the
 # id table (Blocked.index, the default) equal the rows with the store scanned per lookup (`BEADS_RUST_SPEC=1`)
 law work_blocked_rows_table:

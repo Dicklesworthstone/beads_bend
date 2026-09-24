@@ -39,20 +39,21 @@ def lookup(issues: List<&2, Model.Issue>, +id: String) -> Maybe<&2, Model.Issue>
 
 # S5.151 S5.31 (spec twin) an `external:` end stands for itself: its reference is the id, `⏳ ` and the reference the
 # title, `blocked` the status and 2 the priority (OQ-045); its creation instant, a sort key, is unmeasured and taken
-# as the epoch. Any other end that is not stored contributes nothing
-def external_put(+target: String, kind: String, keep: Bool, rest: List<&2, Related>) -> List<&2, Related>:
-  match keep:
+# as the epoch. Any other end that is not stored (only `show` reads such a store: the import refuses it, S2.57)
+# stands as `[missing issue: <id>]`, status `tombstone`, priority 2, sorted by the edge's own `created_at` (OQ-132)
+def external_put(+target: String, kind: String, external: Bool, at: Time.Instant, rest: List<&2, Related>) -> List<&2, Related>:
+  match external:
     case True{}:
       Related{target, "⏳ " ++ target, "blocked", "2", kind, Time.Instant{0, 0, 0}} <> rest
     case False{}:
-      rest
+      Related{target, "[missing issue: " ++ target ++ "]", "tombstone", "2", kind, at} <> rest
 
-# S5.31 S5.151 (spec twin) an edge's other end as a Related; an end that is not stored contributes nothing, except an
-# `external:` end
-def related_put(found: Maybe<&2, Model.Issue>, +target: String, kind: String, rest: List<&2, Related>) -> List<&2, Related>:
+# S5.31 S5.151 (spec twin) an edge's other end as a Related; `at` is the edge's `created_at`, the sort key of an end
+# that is not stored
+def related_put(found: Maybe<&2, Model.Issue>, +target: String, kind: String, at: Time.Instant, rest: List<&2, Related>) -> List<&2, Related>:
   match found:
     case None{}:
-      external_put(target, kind, String.starts_with(target, "external:"), rest)
+      external_put(target, kind, String.starts_with(target, "external:"), at, rest)
     case Some{+t}:
       Related{Model.id_of(t), Model.title_of(t), Model.status_of(t), Model.priority_of(t), kind, Model.created_of(t)} <> rest
 
@@ -62,13 +63,13 @@ def dependencies(edges: List<&2, Model.Dependency>, +all: List<&2, Model.Issue>)
     case Nil{}:
       Nil{}
     case Con{+e, rest}:
-      related_put(lookup(all, Model.target_of(e)), Model.target_of(e), Model.dep_type_of(e), dependencies(rest, all))
+      related_put(lookup(all, Model.target_of(e)), Model.target_of(e), Model.dep_type_of(e), Model.dep_at(e), dependencies(rest, all))
 
 # S5.31 (spec twin) keep the pointing record when the edge points at the issue
 def pointing_put(from: Model.Issue, kind: String, hit: Bool, later: List<&2, Related>) -> List<&2, Related>:
   match hit:
     case True{}:
-      related_put(Some{from}, "", kind, later)
+      related_put(Some{from}, "", kind, Time.Instant{0, 0, 0}, later)
     case False{}:
       later
 

@@ -1,0 +1,2 @@
+Error: Issue cannot depend on itself: proj-b1
+Hint: An issue cannot depend on itself

@@ -258,6 +258,14 @@ def Laws.work_child_index_leaf():
 def Laws.store_load_fast_duplicate():
   {==}
 
+# S2.57 S2.58 both loaders refuse the dangling edge of the first record
+def Laws.store_load_fast_dangling():
+  {==}
+
+# S4.154 the borrowed second makes 3599 s, not 3600
+def Laws.work_lead_subsecond():
+  {==}
+
 # S4.157–S4.169 the id table and the scan give the same rows of `blocked`
 def Laws.work_blocked_rows_table():
   {==}
