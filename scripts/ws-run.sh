@@ -14,6 +14,7 @@
 #   --oracle   the inner command is the original: preload libfaketime
 #   case args  [@fx=<fixture>] [@time=<YYYY-MM-DD hh:mm:ss[.fraction]>] <argv of the CLI…>
 #              or  @scn=<scenario>  (goldens/scenarios/<scenario>.scn, multi-step)
+#              @store=<absolute path> instead of @fx: an external store (the real-store sweep, never a golden)
 # Capture:  scripts/golden-capture.sh goldens/cases.tsv goldens -- scripts/ws-run.sh --oracle br --no-db ::
 # Lanes:    LANE_WRAP=scripts/ws-run.sh scripts/lanes.sh goldens/cases.tsv goldens "$PWD/port/main.bend"
 # exit: the CLI's exit code (single step) or 0 (scenario; each step prints its

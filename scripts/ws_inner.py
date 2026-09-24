@@ -64,13 +64,22 @@ def snapshot():
     return state
 
 
-def setup(root, fixture):
+def setup(root, fixture, store=None):
     (Path("/mnt/home")).mkdir(parents=True, exist_ok=True)
     WS.mkdir(parents=True, exist_ok=True)
-    if fixture == "none":
+    if fixture == "none" and store is None:
         return
     beads = WS / ".beads"
     beads.mkdir()
+    if store is not None:
+        # @store=<absolute path>: an external store copied in as issues.jsonl (the
+        # real-store sweep; a probe, never a golden). The root filesystem is bound
+        # read-only, so the source cannot be changed from inside the sandbox.
+        source = Path(store)
+        if not source.is_absolute() or not source.is_file():
+            die(f"@store wants an absolute path to a file, got {store!r}")
+        shutil.copyfile(source, beads / "issues.jsonl")
+        return
     source = root / "goldens" / "fixtures" / f"{fixture}.jsonl"
     if not source.is_file():
         die(f"no fixture {source}")
@@ -217,7 +226,7 @@ def main():
     if not (root / "goldens").is_dir():
         die("WS_ROOT does not name the port root")
 
-    fixture, stamp, scenario = "empty", DEFAULT_TIME, None
+    fixture, stamp, scenario, store = "empty", DEFAULT_TIME, None, None
     while case and case[0].startswith("@"):
         key, _, value = case.pop(0)[1:].partition("=")
         if key == "fx":
@@ -226,11 +235,13 @@ def main():
             stamp = value
         elif key == "scn":
             scenario = value
+        elif key == "store":
+            store = value
         else:
             die(f"unknown directive @{key}")
 
     if scenario is None:
-        setup(root, fixture)
+        setup(root, fixture, store)
         before = snapshot()
         code = run(inner, case, stamp, oracle, root)
         dump_changes(before)

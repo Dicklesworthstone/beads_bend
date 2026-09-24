@@ -344,10 +344,214 @@ def relation_in(+all: List<&2, Model.Issue>, +idx: Index) -> List<&2, Entry>:
 def relation(+all: List<&2, Model.Issue>) -> List<&2, Entry>:
   relation_in(all, ByList{all})
 
-# S4.157–S4.166 (fast twin) the relation with the records found through the table; `spec` (BEADS_RUST_SPEC=1) selects
-# the scan. Bound to `relation` by the closed law `blocked_relation_table`
-def relation_by(spec: Bool, +all: List<&2, Model.Issue>) -> List<&2, Entry>:
-  relation_in(all, index(spec, all))
+# ---------------------------------------------------------------- the fast twin of the relation
+# The same three steps, overlay and normalization over a table instead of the entry list: the refs of each id in a
+# Map (so `add` is one lookup, not a scan of every entry) and the ids in order of entry beside it (the order is
+# observable, S4.161). The propagation reads the children of a parent from a Map built once, keeps its frontier as
+# a queue of two lists and its processed ids as a set. Nothing else changes: every step adds the same refs in the
+# same order as the spec twin.
+
+# S4.157 (data) the relation as a table: refs per id (REVERSED, as in `Entry`) and the ids in order of entry (REVERSED)
+type Table is Data:
+  Table{refs: Map<&2, List<&2, String>>, order: List<&2, String>}
+
+# S4.157 (data) a table after adding one ref, and whether the ref was new
+type TAdded is Data:
+  TAdded{table: Table, fresh: Bool}
+
+# S4.157 (fast twin) the ref routed once the id's refs are known to be there
+def t_known(known: Bool, +rs: List<&2, String>, m: Map<&2, List<&2, String>>, order: List<&2, String>, +id: String, +ref: String) -> TAdded:
+  match known:
+    case True{}:
+      TAdded{Table{m, order}, False{}}
+    case False{}:
+      TAdded{Table{Map.set(&2, List<&2, String>, m, id, ref <> rs), order}, True{}}
+
+# S4.157 (fast twin) the ref routed by the id's refs: none (a new id, entered at the end) or some
+def t_pick(present: Bool, +rs: List<&2, String>, m: Map<&2, List<&2, String>>, order: List<&2, String>, +id: String, +ref: String) -> TAdded:
+  match present:
+    case False{}:
+      TAdded{Table{Map.set(&2, List<&2, String>, m, id, ref <> Nil{}), id <> order}, True{}}
+    case True{}:
+      t_known(among(rs, ref), rs, m, order, id, ref)
+
+# S4.157 (fast twin) an id is present exactly when its refs are not empty (every entry is made with one ref)
+def t_have(m: Map<&2, List<&2, String>>, +rs: List<&2, String>, order: List<&2, String>, +id: String, +ref: String) -> TAdded:
+  t_pick(Bool.not(List.is_empty(&2, String, rs)), rs, m, order, id, ref)
+
+# S4.157 (fast twin) the lookup's pair taken apart
+def t_got(mv: Map<&2, List<&2, String>> & List<&2, String>, order: List<&2, String>, +id: String, +ref: String) -> TAdded:
+  (m, rs) = mv
+  t_have(m, rs, order, id, ref)
+
+# S4.157 S4.159 (fast twin) `add` over the table
+def t_add(t: Table, +id: String, +ref: String) -> TAdded:
+  match t:
+    case Table{refs, order}:
+      t_got(Map.get(List<&2, String>, Nil{}, refs, id), order, id, ref)
+
+# S4.157 (fast twin) the table of a TAdded
+def t_table(a: TAdded) -> Table:
+  match a:
+    case TAdded{table, fresh}:
+      table
+
+# S4.157 (fast twin) `add_some` over the table
+def t_add_some(t: Table, id: String, ref: String) -> Table:
+  match ref:
+    case SNil{}:
+      t
+    case SCon{h, t2}:
+      t_table(t_add(t, id, SCon{h, t2}))
+
+# S4.157 S4.158 (fast twin) step 1 over one issue's edges
+def t_direct_edges(edges: List<&2, Model.Dependency>, +source: String, +idx: Index, t: Table) -> Table:
+  match edges:
+    case Nil{}:
+      t
+    case Con{+e, rest}:
+      t_direct_edges(rest, source, idx, t_add_some(t, source, Bool.pick(String, (blocking(Model.dep_type_of(e)) && Bool.not(external(Model.target_of(e)))), direct_ref(Model.target_of(e), find(idx, Model.target_of(e))), "")))
+
+# S4.157 (fast twin) step 1 over every issue, in store order
+def t_direct(issues: List<&2, Model.Issue>, +idx: Index, t: Table) -> Table:
+  match issues:
+    case Nil{}:
+      t
+    case Con{+i, rest}:
+      t_direct(rest, idx, t_direct_edges(Model.deps_of(i), Model.id_of(i), idx, t))
+
+# S4.159 (fast twin) one child put in front of its parent's children
+def kid_put(mv: Map<&2, List<&2, String>> & List<&2, String>, +parent: String, child: String) -> Map<&2, List<&2, String>>:
+  (m, cs) = mv
+  Map.set(&2, List<&2, String>, m, parent, child <> cs)
+
+# S4.159 (fast twin) the children of every parent, each list in link order (the links are read REVERSED)
+def kids_go(rev: List<&2, Link>, m: Map<&2, List<&2, String>>) -> Map<&2, List<&2, String>>:
+  match rev:
+    case Nil{}:
+      m
+    case Con{Link{child, +parent}, rest}:
+      kids_go(rest, kid_put(Map.get(List<&2, String>, Nil{}, m, parent), parent, child))
+
+# S4.159 (fast twin) the value half of a children lookup
+def kids_value(mv: Map<&2, List<&2, String>> & List<&2, String>) -> List<&2, String>:
+  (m, cs) = mv
+  cs
+
+# S4.159 (data) the propagation's state: the table, and the frontier as a queue (front in order, back REVERSED;
+# the front is empty only when the queue is)
+type TWave is Data:
+  TWave{table: Table, front: List<&2, String>, back: List<&2, String>}
+
+# S4.159 (fast twin) the queue's back turned into its front when the front runs out
+def t_level(t: Table, front: List<&2, String>, back: List<&2, String>) -> TWave:
+  match front:
+    case Nil{}:
+      TWave{t, List.reverse(&2, String, back), Nil{}}
+    case Con{f, rest}:
+      TWave{t, Con{f, rest}, back}
+
+# S4.159 (fast twin) a child that gained the ref joins the back of the queue
+def t_push(a: TAdded, front: List<&2, String>, back: List<&2, String>, child: String) -> TWave:
+  match a:
+    case TAdded{t, True{}}:
+      TWave{t, front, child <> back}
+    case TAdded{t, False{}}:
+      TWave{t, front, back}
+
+# S4.159 (fast twin) every child of the id being processed gains `<id>:parent-blocked`, in link order
+def t_children(cs: List<&2, String>, +id: String, w: TWave) -> TWave:
+  match cs w:
+    case Nil{} other:
+      other
+    case Con{+child, rest} TWave{t, front, back}:
+      t_children(rest, id, t_push(t_add(t, child, id ++ ":parent-blocked"), front, back, child))
+
+# S4.159 (fast twin) process one popped id once: an id already processed is passed over
+def t_step(seen: Bool, w: TWave, +id: String, +kids: Map<&2, List<&2, String>>) -> TWave:
+  match seen:
+    case True{}:
+      w
+    case False{}:
+      t_children(kids_value(Map.get(List<&2, String>, Nil{}, kids, id)), id, w)
+
+# S4.159 (fast twin) the wave with its queue levelled
+def t_levelled(w: TWave) -> TWave:
+  match w:
+    case TWave{t, front, back}:
+      t_level(t, front, back)
+
+# S4.159 (fast twin) step 2 with the same fuel as `propagate`: one unit per popped id
+def t_propagate(fuel: Nat, w: TWave, +kids: Map<&2, List<&2, String>>, +done: Map<&2, Bool>) -> Table:
+  match fuel w:
+    case 0n TWave{t, front, back}:
+      t
+    case 1n+g TWave{t, Nil{}, back}:
+      t
+    case 1n+g TWave{t, Con{+id, rest}, back}:
+      t_propagate(g, t_levelled(t_step(set_answer(Map.has(&2, Bool, done, id)), TWave{t, rest, back}, id, kids)), kids, Map.set(&2, Bool, done, id, True{}))
+
+# S4.160 (fast twin) step 3 over the table
+def t_epics(ls: List<&2, Link>, +idx: Index, t: Table) -> Table:
+  match ls:
+    case Nil{}:
+      t
+    case Con{Link{+child, +parent}, rest}:
+      t_epics(rest, idx, t_add_some(t, parent, Bool.pick(String, rolls_up(find(idx, child), find(idx, parent)), child ++ ":child-open", "")))
+
+# S4.166 (fast twin) the external overlay over one issue's edges
+def t_overlay_edges(edges: List<&2, Model.Dependency>, +source: String, +live: Bool, t: Table) -> Table:
+  match edges:
+    case Nil{}:
+      t
+    case Con{+e, rest}:
+      t_overlay_edges(rest, source, live, t_add_some(t, source, Bool.pick(String, (live && blocking(Model.dep_type_of(e)) && external(Model.target_of(e))), Model.target_of(e) ++ ":blocked", "")))
+
+# S4.166 (fast twin) the external overlay over every issue
+def t_overlay(issues: List<&2, Model.Issue>, t: Table) -> Table:
+  match issues:
+    case Nil{}:
+      t
+    case Con{+i, rest}:
+      t_overlay(rest, t_overlay_edges(Model.deps_of(i), Model.id_of(i), Bool.not(terminal(Model.status_of(i))), t))
+
+# S4.157 (fast twin) the entries of the table in order of entry (`ids` in that order)
+def t_entries_go(ids: List<&2, String>, +m: Map<&2, List<&2, String>>) -> List<&2, Entry>:
+  match ids:
+    case Nil{}:
+      Nil{}
+    case Con{+id, rest}:
+      Entry{id, kids_value(Map.get(List<&2, String>, Nil{}, m, id))} <> t_entries_go(rest, m)
+
+# S4.157 (fast twin) the table as the entry list the spec twin builds
+def t_entries(t: Table) -> List<&2, Entry>:
+  match t:
+    case Table{refs, order}:
+      t_entries_go(List.reverse(&2, String, order), refs)
+
+# S4.159 (fast twin) the wave step 1 starts: its keys in order, as `keys(direct(…))`
+def t_start(t: Table) -> TWave:
+  match t:
+    case Table{refs, +order}:
+      t_level(Table{refs, order}, List.reverse(&2, String, order), Nil{})
+
+# S4.157–S4.166 (fast twin) the relation over the table: the same steps, in the same order, with the same fuel
+def relation_t(+all: List<&2, Model.Issue>, +idx: Index) -> List<&2, Entry>:
+  normalized(t_entries(t_overlay(all, t_epics(links(all), idx, t_propagate(Nat.add(Nat.add(List.length(&2, Model.Issue, all), List.length(&2, Link, links(all))), 1n), t_start(t_direct(all, idx, Table{Map.new(&2, List<&2, String>), Nil{}})), kids_go(List.reverse(&2, Link, links(all)), Map.new(&2, List<&2, String>)), Map.new(&2, Bool))))))
+
+# S4.157–S4.166 (spec twin) the relation a command uses: the spec twin over the scan when `spec` (BEADS_RUST_SPEC=1)
+# is on, the table otherwise. Bound by the closed laws `work_blocked_rows_table`, `work_figures_table`,
+# `work_ready_table` and `work_blocked_rows_hierarchy`
+def relation_with(spec: Bool, +all: List<&2, Model.Issue>, +idx: Index) -> List<&2, Entry>:
+  match spec:
+    case True{}:
+      relation_in(all, idx)
+    case False{}:
+      relation_t(all, idx)
+
+# S4.157–S4.166 (spec twin) the relation with its index chosen by the spec switch
+def relation_by(+spec: Bool, +all: List<&2, Model.Issue>) -> List<&2, Entry>:
+  relation_with(spec, all, index(spec, all))
 
 # S4.163 (spec twin) what follows the first `:` of a REVERSED ref (every ref has one: `<id>:<why>`)
 def ref_tail(rev: String) -> String:

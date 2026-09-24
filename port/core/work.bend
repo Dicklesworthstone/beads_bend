@@ -75,13 +75,13 @@ def row_le(x: Row, y: Row) -> Bool:
       row_le_keys(Query.priority_number(Model.priority_of(xi)), Query.priority_number(Model.priority_of(yi)), List.length(&2, String, xb), List.length(&2, String, yb), Model.created_of(xi), Model.created_of(yi), Model.id_of(xi), Model.id_of(yi))
 
 # S4.167–S4.169 (spec twin) the rows of `blocked`: the live keys of the relation, filtered, in the command's order
-def blocked_rows_in(+all: List<&2, Model.Issue>, +idx: Blocked.Index, types: List<&2, String>, priorities: List<&2, U32>, labels: List<&2, String>) -> List<&2, Row>:
-  List.sort(~Row, ~row_le, rows_kept(rows(Blocked.relation_in(all, idx), idx), types, priorities, labels))
+def blocked_rows_in(spec: Bool, +all: List<&2, Model.Issue>, +idx: Blocked.Index, types: List<&2, String>, priorities: List<&2, U32>, labels: List<&2, String>) -> List<&2, Row>:
+  List.sort(~Row, ~row_le, rows_kept(rows(Blocked.relation_with(spec, all, idx), idx), types, priorities, labels))
 
 # S4.167–S4.169 (spec twin) the rows of `blocked`; `spec` (BEADS_RUST_SPEC=1) selects the store scan for every
 # lookup over the table (Blocked.index)
-def blocked_rows(spec: Bool, +all: List<&2, Model.Issue>, types: List<&2, String>, priorities: List<&2, U32>, labels: List<&2, String>) -> List<&2, Row>:
-  blocked_rows_in(all, Blocked.index(spec, all), types, priorities, labels)
+def blocked_rows(+spec: Bool, +all: List<&2, Model.Issue>, types: List<&2, String>, priorities: List<&2, U32>, labels: List<&2, String>) -> List<&2, Row>:
+  blocked_rows_in(spec, all, Blocked.index(spec, all), types, priorities, labels)
 
 # ---------------------------------------------------------------- ready (S4.171–S4.178)
 

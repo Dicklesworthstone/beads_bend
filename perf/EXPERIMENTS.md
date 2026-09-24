@@ -69,3 +69,21 @@ Lever: `Blocked.index(spec, all)` (a `Map` of the records by id, first record of
 Laws: `work_blocked_rows_table`, `work_figures_table`, `work_ready_table` (closed, fixture `basic`). Kill-switch parity: the corpus on the JS lane gives 991/993 both with and without `BEADS_RUST_SPEC=1` (the same two DISC-010/011 draws), and the three commands give identical bytes both ways on the 967-record store.
 Exploratory result (NOT a capture: one run each, JS lane, the same store): `blocked --json` 3.24 s, `ready --json` 3.14 s, `stats --json` 3.09 s.
 Retry predicate: not a loss; capture under `scripts/incumbent-bench.sh` with the C binary.
+
+## EXP-005 — the BLOCKED relation built over a table (`Blocked.relation_t`)   [CLOSED, backfilled]
+
+| field | value |
+|---|---|
+| program / def | `port/main.bend` / `Blocked.relation_in` (S4.157–S4.166): `add`, `propagate` |
+| created (UTC) | 2026-09-24 |
+| agent | Claude (Opus 5.5), session 7 |
+| graveyard sweep | as EXP-003 |
+| status | CLOSED (lever kept; the numbers are exploratory, not an admitted ledger row) |
+| precommitted | false: written after the lever |
+
+Hypothesis: after EXP-004, `stats` and `ready` on stores with thousands of edges are dominated by the relation itself: `add` scans every entry per ref, the propagation scans every link per processed id, and each push appends to the frontier.
+Motivation (single runs, C of `9fa7e2f`, default threads): 2,945 records with 5,921 `blocks` and 1,897 `parent-child` edges: `count` 15.3 s, `stats --json` 43.7 s, `ready --json` 39.9 s; 6,553 records, 5,526 and 3,468 edges: `count` 33.1 s, `stats --json` 74.1 s, `ready --json` 79.3 s.
+Lever: `Blocked.relation_t`: the refs of each id in a `Map` beside the ids in order of entry, the children of each parent in a `Map` built once, the frontier as a two-list queue, the processed ids as a set; the same steps, order and fuel as the spec twin. `Blocked.relation_with(spec, …)` selects it; `BEADS_RUST_SPEC=1` keeps `relation_in`.
+Laws: `work_blocked_rows_hierarchy` (closed: a store reaching direct blockers, the parent-blocked propagation over two levels, an open child blocking its epic and an external blocker), with `work_blocked_rows_table`, `work_figures_table`, `work_ready_table`. Kill-switch parity: the corpus gives 992/993 on js with and without the switch; `count`, `stats --json` and `ready --json` give identical bytes both ways on three real store copies.
+Exploratory result (NOT a capture: one run each, C of the working tree, other sessions' jobs on the host): 2,945 records `stats --json` 15.4 s, `ready --json` 15.2 s (`count` 14.7 s); 6,553 records `stats --json` 33.2 s (`count` 34.0 s). What remains is the load (`count`).
+Retry predicate: not a loss; capture under `scripts/incumbent-bench.sh` with the C binary.

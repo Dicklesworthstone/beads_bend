@@ -262,6 +262,10 @@ def Laws.store_load_fast_duplicate():
 def Laws.work_blocked_rows_table():
   {==}
 
+# S4.157–S4.169 the relation over the table and over the lists give the same rows on a store with every step
+def Laws.work_blocked_rows_hierarchy():
+  {==}
+
 # S4.151–S4.156 the tables and the scans give the same figures
 def Laws.work_figures_table():
   {==}
