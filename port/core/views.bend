@@ -1,11 +1,11 @@
 # core/views — the small read-only views: `dep list`, `dep tree`, `dep cycles`, `label list`,
 # `label list-all`, `comments list`, `epic status`, `where` (S4.179–S4.192, S5.46–S5.56, S5.176–S5.200).
 # Each answers its text for stdout (plain or JSON) or a refusal. `dep tree`
-# walks the graph in full (`tree_walk`, S4.182–S4.185). `dep cycles` reports a
-# graph without cycles; a graph that still has a cycle after pruning answers
-# the port's own "not ported yet" failure, because the witness search is not
-# written (S4.186–S4.188, OQ-129: no captured case has a cycle). Nothing here
-# consults the original.
+# walks the graph in full (`tree_walk`, S4.182–S4.185). `dep cycles` prunes the
+# graph to what lies on or leads into a cycle, finds the strongly connected
+# components there and reports one depth-first witness each (S4.186–S4.188,
+# OQ-129, measured on hand-written cycle fixtures). Nothing here consults the
+# original.
 import Base
 import ./time.bend as Time
 import ./model.bend as Model
@@ -21,6 +21,7 @@ type View is Data:
   ViewBad{failure: Failure.Failure}
   ViewOk{out: String}
   ViewLater{}
+  ViewCode{out: String, err: String, code: U32}
 
 # S3.1 (spec twin) every stored id, in store order
 def ids_of(issues: List<&2, Model.Issue>) -> List<&2, String>:
@@ -586,22 +587,290 @@ def sources(ways: List<&2, Arc>) -> List<&2, String>:
     case Con{Arc{from, to}, rest}:
       from <> sources(rest)
 
-# S5.48 S5.181 (spec twin) a store without cycles: the line (its noun changes under `--blocking-only`), or the eight JSON
-# members with both flags echoed
-def no_cycles(blocking_only: Bool, +include_closed: Bool, json: Bool) -> String:
+# S4.187 (spec twin) keep an arc's target when the arc leaves `node` and lands in `within`
+def succ_put(keep: Bool, to: String, acc: List<&2, String>) -> List<&2, String>:
+  match keep:
+    case True{}:
+      to <> acc
+    case False{}:
+      acc
+
+# S4.187 (spec twin) the targets of `node`'s arcs that lie in `within`, onto acc
+def succ_go(ways: List<&2, Arc>, +node: String, +within: List<&2, String>, acc: List<&2, String>) -> List<&2, String>:
+  match ways:
+    case Nil{}:
+      acc
+    case Con{Arc{from, +to}, rest}:
+      succ_go(rest, node, within, succ_put((String.eq(from, node) && Blocked.among(within, to)), to, acc))
+
+# S4.186 S4.187 (spec twin) a node's neighbours inside a set, sorted ascending and without repeats (S4.186: every
+# adjacency list is sorted and deduplicated)
+def succ(+ways: List<&2, Arc>, +node: String, +within: List<&2, String>) -> List<&2, String>:
+  Model.dedup(List.sort(~String, ~String.is_le, succ_go(ways, node, within, Nil{})))
+
+# S4.187 (spec twin) the neighbours of every node of a list, onto acc
+def succs_all(nodes: List<&2, String>, +ways: List<&2, Arc>, +within: List<&2, String>, acc: List<&2, String>) -> List<&2, String>:
+  match nodes:
+    case Nil{}:
+      acc
+    case Con{+n, rest}:
+      succs_all(rest, ways, within, List.append(&2, String, succ(ways, n, within), acc))
+
+# S4.187 (spec twin) grow a reached set by one step per unit of fuel (the set's size bounds the steps it needs)
+def reach_go(fuel: Nat, +ways: List<&2, Arc>, +within: List<&2, String>, +seen: List<&2, String>) -> List<&2, String>:
+  match fuel:
+    case 0n:
+      seen
+    case 1n+g:
+      reach_go(g, ways, within, Model.dedup(List.sort(~String, ~String.is_le, succs_all(seen, ways, within, seen))))
+
+# S4.187 (spec twin) the nodes of `within` reachable from `start` in one step or more (`start` itself only on a cycle)
+def reach(+ways: List<&2, Arc>, +within: List<&2, String>, +start: String) -> List<&2, String>:
+  reach_go(Nat.add(List.length(&2, String, within), 1n), ways, within, succ(ways, start, within))
+
+# S4.187 (spec twin) keep a node of the start's reach that reaches the start back
+def mutual_put(keep: Bool, m: String, acc: List<&2, String>) -> List<&2, String>:
+  match keep:
+    case True{}:
+      m <> acc
+    case False{}:
+      acc
+
+# S4.187 (spec twin) the members of the start's strongly connected component other than itself
+def mutual(ms: List<&2, String>, +ways: List<&2, Arc>, +within: List<&2, String>, +start: String, acc: List<&2, String>) -> List<&2, String>:
+  match ms:
+    case Nil{}:
+      acc
+    case Con{+m, rest}:
+      mutual(rest, ways, within, start, mutual_put((Bool.not(String.eq(m, start)) && Blocked.among(reach(ways, within, m), start)), m, acc))
+
+# S4.187 (data) one frame of the witness walk: a node and the neighbours still to try
+type Frame is Data:
+  Frame{node: String, todo: List<&2, String>}
+
+# S4.187 (data) the witness walk: its frames (innermost first), the nodes entered, and whether the start was reached
+type Walk is Data:
+  Walk{frames: List<&2, Frame>, seen: List<&2, String>, found: Bool}
+
+# S4.187 (spec twin) one neighbour tried: the start ends the walk; a node already entered is passed over; any other is
+# entered with its own sorted neighbours
+def walk_try(home: Bool, entered: Bool, +t: String, node: String, more: List<&2, String>, below: List<&2, Frame>, seen: List<&2, String>, +ways: List<&2, Arc>, +comp: List<&2, String>) -> Walk:
+  match home entered:
+    case True{} _:
+      Walk{Frame{node, more} <> below, seen, True{}}
+    case False{} True{}:
+      Walk{Frame{node, more} <> below, seen, False{}}
+    case False{} False{}:
+      Walk{Frame{t, succ(ways, t, comp)} <> (Frame{node, more} <> below), t <> seen, False{}}
+
+# S4.187 (spec twin) the top frame: no neighbour left pops it (backtracking); otherwise its next neighbour is tried
+def walk_top(frames: List<&2, Frame>, +seen: List<&2, String>, +ways: List<&2, Arc>, +comp: List<&2, String>, +start: String) -> Walk:
+  match frames:
+    case Nil{}:
+      Walk{Nil{}, seen, False{}}
+    case Con{Frame{node, Nil{}}, below}:
+      Walk{below, seen, False{}}
+    case Con{Frame{node, Con{+t, more}}, below}:
+      walk_try(String.eq(t, start), Blocked.among(seen, t), t, node, more, below, seen, ways, comp)
+
+# S4.187 (spec twin) one step of the walk; a finished walk stays as it is
+def walk_step(w: Walk, +ways: List<&2, Arc>, +comp: List<&2, String>, +start: String) -> Walk:
+  match w:
+    case Walk{frames, seen, True{}}:
+      Walk{frames, seen, True{}}
+    case Walk{frames, seen, False{}}:
+      walk_top(frames, seen, ways, comp, start)
+
+# S4.187 (spec twin) the walk, one unit of fuel per step (each step pops a frame or tries one arc)
+def walk_go(fuel: Nat, +ways: List<&2, Arc>, +comp: List<&2, String>, +start: String, w: Walk) -> Walk:
+  match fuel:
+    case 0n:
+      w
+    case 1n+g:
+      walk_go(g, ways, comp, start, walk_step(w, ways, comp, start))
+
+# S4.187 (spec twin) the frames' nodes, outermost first, onto acc
+def frame_nodes(frames: List<&2, Frame>, acc: List<&2, String>) -> List<&2, String>:
+  match frames:
+    case Nil{}:
+      acc
+    case Con{Frame{node, todo}, below}:
+      frame_nodes(below, node <> acc)
+
+# S4.187 (spec twin) the witness of a walk that reached the start: the start, the path, the start again
+def walk_witness(w: Walk, +start: String) -> List<&2, String>:
+  match w:
+    case Walk{frames, seen, found}:
+      start <> List.append(&2, String, frame_nodes(frames, Nil{}), [start])
+
+# S4.187 (spec twin) the first neighbour of the start that is not the start itself
+def first_other(ns: List<&2, String>, +start: String) -> Maybe<&2, String>:
+  match ns:
+    case Nil{}:
+      None{}
+    case Con{+n, rest}:
+      Bool.pick(Maybe<&2, String>, String.eq(n, start), first_other(rest, start), Some{n})
+
+# S4.187 (spec twin) the walk from the start's first other neighbour back to the start, depth first over sorted
+# neighbours with backtracking: `path` (a→b; b→c, b→d; c→e→a; d→a) gives a b c e a, not the shorter a b d a
+def walk_from(first: Maybe<&2, String>, +ways: List<&2, Arc>, +comp: List<&2, String>, +start: String) -> List<&2, String>:
+  match first:
+    case None{}:
+      [start, start]
+    case Some{+u}:
+      walk_witness(walk_go(Nat.mul(Nat.add(Nat.add(List.length(&2, Arc, ways), List.length(&2, String, comp)), 1n), 2n), ways, comp, start, Walk{Frame{u, succ(ways, u, comp)} <> Nil{}, [u], False{}}), start)
+
+# S4.188 (spec twin) a member counts as closed when it is a stored record whose status is `closed` or `tombstone`
+def closed_member(found: Maybe<&2, Model.Issue>) -> Bool:
+  match found:
+    case None{}:
+      False{}
+    case Some{+i}:
+      (String.eq(Model.status_of(i), "closed") || String.eq(Model.status_of(i), "tombstone"))
+
+# S4.188 (spec twin) every member closed: the component is archived
+def all_closed(ms: List<&2, String>, +all: List<&2, Model.Issue>) -> Bool:
+  match ms:
+    case Nil{}:
+      True{}
+    case Con{+m, rest}:
+      (closed_member(Blocked.lookup(all, m)) && all_closed(rest, all))
+
+# S4.187 S4.188 (data) one reported cycle: its witness, and whether its component is archived
+type Wit is Data:
+  Wit{ids: List<&2, String>, archived: Bool}
+
+# S4.187 (data) the component search: the nodes already placed and the witnesses so far (REVERSED)
+type Comps is Data:
+  Comps{done: List<&2, String>, wits: List<&2, Wit>}
+
+# S4.187 (spec twin) a component's report: one node reports only on a self-edge (`[id, id]`); a larger one reports the
+# walk from its lowest id, which is `n` because the nodes are visited in ascending order and a smaller member would
+# have placed `n` already. `members` is the whole component, `n` included
+def comp_wits(single: Bool, self_edge: Bool, +n: String, +members: List<&2, String>, +ways: List<&2, Arc>, +all: List<&2, Model.Issue>, wits: List<&2, Wit>) -> List<&2, Wit>:
+  match single self_edge:
+    case True{} True{}:
+      Wit{[n, n], all_closed([n], all)} <> wits
+    case True{} False{}:
+      wits
+    case False{} _:
+      Wit{walk_from(first_other(succ(ways, n, members), n), ways, members, n), all_closed(members, all)} <> wits
+
+# S4.187 (spec twin) a node's component: itself and the nodes of its reach that reach it back
+def comp_of(+n: String, +ways: List<&2, Arc>, +within: List<&2, String>) -> List<&2, String>:
+  n <> mutual(reach(ways, within, n), ways, within, n, Nil{})
+
+# S4.187 (spec twin) one node: a node already placed is passed over; otherwise its component is found and reported
+def comp_step(placed: Bool, +n: String, +ways: List<&2, Arc>, +within: List<&2, String>, +all: List<&2, Model.Issue>, c: Comps) -> Comps:
+  match placed:
+    case True{}:
+      c
+    case False{}:
+      match c:
+        case Comps{done, wits}:
+          Comps{List.append(&2, String, comp_of(n, ways, within), done), comp_wits(Nat.is_eq(List.length(&2, String, comp_of(n, ways, within)), 1n), Blocked.among(reach(ways, within, n), n), n, comp_of(n, ways, within), ways, all, wits)}
+
+# S4.187 (spec twin) is a node placed in a component already
+def comps_done(c: Comps, +n: String) -> Bool:
+  match c:
+    case Comps{done, wits}:
+      Blocked.among(done, n)
+
+# S4.187 (spec twin) the components over the nodes in ascending order; the witnesses come out REVERSED
+def comps_go(nodes: List<&2, String>, +ways: List<&2, Arc>, +within: List<&2, String>, +all: List<&2, Model.Issue>, +c: Comps) -> Comps:
+  match nodes:
+    case Nil{}:
+      c
+    case Con{+n, rest}:
+      comps_go(rest, ways, within, all, comp_step(comps_done(c, n), n, ways, within, all, c))
+
+# S5.48 (spec twin) ids as JSON strings joined by commas, REVERSED onto acc
+def ids_json_go(ids: List<&2, String>, acc: List<&2, String>) -> List<&2, String>:
+  match ids:
+    case Nil{}:
+      acc
+    case Con{id, rest}:
+      ids_json_go(rest, Failure.quoted(id) <> acc)
+
+# S5.48 S5.182 (spec twin) a witness as a JSON array
+def wit_json(ids: List<&2, String>) -> String:
+  "[" ++ String.join(List.reverse(&2, String, ids_json_go(ids, Nil{})), ",") ++ "]"
+
+# S5.48 (spec twin) the witnesses as one JSON array
+def wits_json(ws: List<&2, Wit>, acc: List<&2, String>) -> String:
+  match ws:
+    case Nil{}:
+      "[" ++ String.join(List.reverse(&2, String, acc), ",") ++ "]"
+    case Con{Wit{ids, archived}, rest}:
+      wits_json(rest, wit_json(ids) <> acc)
+
+# S5.182 (spec twin) the numbered lines, `  {i}. {id -> id -> …}`
+def wit_lines(ws: List<&2, Wit>, +i: U32, acc: String) -> String:
+  match ws:
+    case Nil{}:
+      acc
+    case Con{Wit{ids, archived}, rest}:
+      wit_lines(rest, (i + 1 : U32), acc ++ "  " ++ U32.show(i) ++ ". " ++ String.join(ids, " -> ") ++ "\n")
+
+# S4.188 (spec twin) keep a witness of the wanted kind
+def kind_put(keep: Bool, w: Wit, acc: List<&2, Wit>) -> List<&2, Wit>:
+  match keep:
+    case True{}:
+      w <> acc
+    case False{}:
+      acc
+
+# S4.188 (spec twin) the witnesses of one kind, REVERSED onto acc
+def kind_go(ws: List<&2, Wit>, +archived: Bool, acc: List<&2, Wit>) -> List<&2, Wit>:
+  match ws:
+    case Nil{}:
+      acc
+    case Con{Wit{ids, +a}, rest}:
+      kind_go(rest, archived, kind_put(((a && archived) || (Bool.not(a) && Bool.not(archived))), Wit{ids, a}, acc))
+
+# S4.188 (spec twin) the witnesses of one kind, in order
+def wits_kind(ws: List<&2, Wit>, +archived: Bool) -> List<&2, Wit>:
+  List.reverse(&2, Wit, kind_go(ws, archived, Nil{}))
+
+# S5.48 (spec twin) an extra member, emitted only when its list is not empty
+def wits_member(+key: String, ws: List<&2, Wit>) -> String:
+  match ws:
+    case Nil{}:
+      ""
+    case Con{w, rest}:
+      ",\"" ++ key ++ "\":" ++ wits_json(w <> rest, Nil{})
+
+# S5.48 S4.188 (spec twin) the JSON object: the shown cycles, the four counts, both flags, the scope, and under
+# `--include-closed` the two kind lists when not empty (never without it)
+def cycles_json(+shown: List<&2, Wit>, +active: List<&2, Wit>, +archived: List<&2, Wit>, blocking_only: Bool, +include_closed: Bool) -> String:
+  String.concat(["{\"cycles\":", wits_json(shown, Nil{}), ",\"count\":", Nat.show(List.length(&2, Wit, shown)), ",\"active_count\":", Nat.show(List.length(&2, Wit, active)), ",\"archived_closed_count\":", Nat.show(List.length(&2, Wit, archived)), ",\"total_count\":", Nat.show(Nat.add(List.length(&2, Wit, active), List.length(&2, Wit, archived))), ",\"blocking_only\":", Failure.bool_text(blocking_only), ",\"include_closed\":", Failure.bool_text(include_closed), ",\"scope\":", Bool.pick(String, include_closed, "\"active_and_archived\"", "\"active\""), Bool.pick(String, include_closed, wits_member("active_cycles", active) ++ wits_member("archived_closed_cycles", archived), ""), "}\n"])
+
+# S5.181 S5.182 (spec twin) the text: the numbered lines with the `Warning:` count on stderr; with nothing shown, the
+# line for hidden archived cycles or the plain "no cycles" line (`blocking dependency` under `--blocking-only`)
+def cycles_text(+shown: List<&2, Wit>, +hidden: Nat, +noun: String) -> View:
+  match shown:
+    case Nil{}:
+      ViewOk{Bool.pick(String, Nat.is_gt(hidden, 0n), "✓ No active " ++ noun ++ " cycles detected. " ++ Nat.show(hidden) ++ " archived closed-only cycle(s) hidden; rerun with --include-closed to inspect them.\n", "✓ No " ++ noun ++ " cycles detected.\n")}
+    case Con{w, rest}:
+      ViewCode{wit_lines(w <> rest, 1, ""), "Warning: Found " ++ Nat.show(List.length(&2, Wit, w <> rest)) ++ " " ++ noun ++ " cycle(s):\n", 0}
+
+# S4.188 (spec twin) an active cycle sets exit code 5 after the output; archived-only cycles never do
+def with_code(v: View, active: Bool) -> View:
+  match v active:
+    case ViewOk{out} True{}:
+      ViewCode{out, "", 5}
+    case ViewCode{out, err, code} True{}:
+      ViewCode{out, err, 5}
+    case other _:
+      other
+
+# S4.187 S4.188 S5.48 S5.181 S5.182 (spec twin) the report over the witnesses in ascending order
+def cycles_view(+ws: List<&2, Wit>, +blocking_only: Bool, +include_closed: Bool, json: Bool) -> View:
   match json:
     case True{}:
-      "{\"cycles\":[],\"count\":0,\"active_count\":0,\"archived_closed_count\":0,\"total_count\":0,\"blocking_only\":" ++ Failure.bool_text(blocking_only) ++ ",\"include_closed\":" ++ Failure.bool_text(include_closed) ++ ",\"scope\":" ++ Bool.pick(String, include_closed, "\"all\"", "\"active\"") ++ "}\n"
+      with_code(ViewOk{cycles_json(Bool.pick(List<&2, Wit>, include_closed, ws, wits_kind(ws, False{})), wits_kind(ws, False{}), wits_kind(ws, True{}), blocking_only, include_closed)}, Nat.is_gt(List.length(&2, Wit, wits_kind(ws, False{})), 0n))
     case False{}:
-      Bool.pick(String, blocking_only, "✓ No blocking dependency cycles detected.\n", "✓ No dependency cycles detected.\n")
-
-# S4.187 (spec twin) nothing left after the pruning means no cycle
-def cycles_pick(core: List<&2, String>, blocking_only: Bool, include_closed: Bool, json: Bool) -> View:
-  match core:
-    case Nil{}:
-      ViewOk{no_cycles(blocking_only, include_closed, json)}
-    case Con{n, rest}:
-      ViewLater{}
+      with_code(cycles_text(Bool.pick(List<&2, Wit>, include_closed, ws, wits_kind(ws, False{})), Bool.pick(Nat, include_closed, 0n, List.length(&2, Wit, wits_kind(ws, True{}))), Bool.pick(String, blocking_only, "blocking dependency", "dependency")), Nat.is_gt(List.length(&2, Wit, wits_kind(ws, False{})), 0n))
 
 # ---------------------------------------------------------------- labels (S5.50, S5.185–S5.188)
 
@@ -658,6 +927,35 @@ def label_counts(+groups: List<&2, Query.Group>, json: Bool) -> View:
 # S5.187 (spec twin) `label list-all`
 def label_list_all(all: List<&2, Model.Issue>, json: Bool) -> View:
   label_counts(label_tally(all, Nil{}), json)
+
+# S5.185 (data) the two renderings of the names
+type Names is Data:
+  Names{lines: List<&2, String>, strs: List<&2, String>}
+
+# S5.185 (spec twin) the label names of a tally, as text lines (two spaces before each) and as JSON strings, REVERSED
+def name_lines(groups: List<&2, Query.Group>, lines: List<&2, String>, strs: List<&2, String>) -> Names:
+  match groups:
+    case Nil{}:
+      Names{lines, strs}
+    case Con{Query.Group{+key, count}, rest}:
+      name_lines(rest, ("  " ++ Render.inline(key) ++ "\n") <> lines, Failure.quoted(key) <> strs)
+
+# S5.185 (spec twin) the names rendered in the mode asked for, in ascending byte order
+def names_view(n: Names, +count: Nat, json: Bool) -> View:
+  match n json:
+    case Names{lines, strs} True{}:
+      ViewOk{"[" ++ String.join(List.reverse(&2, String, strs), ",") ++ "]\n"}
+    case Names{lines, strs} False{}:
+      ViewOk{Bool.pick(String, Nat.is_eq(count, 0n), "No labels in project.\n", "Labels (" ++ Nat.show(count) ++ " total):\n" ++ String.concat(List.reverse(&2, String, lines)))}
+
+# S5.185 (spec twin) the tally's names, counted
+def names_of(+groups: List<&2, Query.Group>, json: Bool) -> View:
+  names_view(name_lines(groups, Nil{}, Nil{}), List.length(&2, Query.Group, groups), json)
+
+# S5.185 (spec twin) `label list` without an issue: every label of the project, names only (round 15:
+# `Labels (3 total):` then `  auth`; JSON `["auth","backend","db"]`; an empty store `No labels in project.` / `[]`)
+def label_names(all: List<&2, Model.Issue>, json: Bool) -> View:
+  names_of(label_tally(all, Nil{}), json)
 
 # ---------------------------------------------------------------- comments (S5.51, S5.192–S5.194)
 
@@ -790,7 +1088,19 @@ def whereabouts(+dir: String, prefix: Maybe<&2, String>, json: Bool) -> View:
     case False{}:
       ViewOk{String.concat([dir, "\n", prefix_line(prefix), "  database: ", dir, "/beads.db\n  jsonl: ", dir, "/issues.jsonl\n"])}
 
-# S4.186–S4.188 (spec twin) `dep cycles`: a graph with a cycle needs the witness search, which is not ported yet
+# S4.187 (spec twin) the witnesses of a finished search, back in ascending order
+def wits_of(c: Comps) -> List<&2, Wit>:
+  match c:
+    case Comps{done, wits}:
+      List.reverse(&2, Wit, wits)
+
+# S4.186–S4.188 (spec twin) the witnesses of the store's cycles, in ascending order. The components are searched
+# only among the nodes the pruning keeps (a node on a cycle, or leading into one), so a store without cycles costs the
+# pruning alone
+def cycle_wits(+ways: List<&2, Arc>, +all: List<&2, Model.Issue>) -> List<&2, Wit>:
+  wits_of(comps_go(Model.dedup(List.sort(~String, ~String.is_le, cyclic_core(Nat.add(List.length(&2, Arc, ways), 1n), sources(ways), ways))), ways, Model.dedup(List.sort(~String, ~String.is_le, cyclic_core(Nat.add(List.length(&2, Arc, ways), 1n), sources(ways), ways))), all, Comps{Nil{}, Nil{}}))
+
+# S4.186–S4.188 S5.48 S5.181 S5.182 (spec twin) `dep cycles` (OQ-129 resolved by a hand-written cycle fixture)
 def dep_cycles(+all: List<&2, Model.Issue>, blocking_only: Bool, include_closed: Bool, json: Bool) -> View:
-  cycles_pick(cyclic_core(Nat.add(List.length(&2, Arc, arcs(all)), 1n), sources(arcs(all)), arcs(all)), blocking_only, include_closed, json)
+  cycles_view(cycle_wits(arcs(all), all), blocking_only, include_closed, json)
 

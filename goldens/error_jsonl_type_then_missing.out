@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: Invalid JSON at line 1: invalid type: string \"x\", expected i32 at line 1 column 15",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

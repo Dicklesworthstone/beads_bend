@@ -1,0 +1,7 @@
+error: unexpected argument '--priority-min' found
+
+  tip: a similar argument exists: '--priority'
+
+Usage: br count --priority <PRIORITY>
+
+For more information, try '--help'.

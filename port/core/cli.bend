@@ -335,17 +335,26 @@ def differing(xs: List<&2, U32>, ys: List<&2, U32>) -> Nat:
     case _ _:
       0n
 
-# S1.80 (data) a similarity as the exact fraction num/den, and the word it belongs to
+# S1.80 (data) a similarity as the exact fraction num/den, the word it belongs to, and how the original's 64-bit
+# arithmetic judges it when it is EXACTLY 0.7 (`tie`: above, i.e. similar)
 type Cand is Data:
-  Cand{num: Nat, den: Nat, word: String}
+  Cand{num: Nat, den: Nat, word: String, tie: Bool}
+
+# S1.80 (spec twin) the original's verdict at an exact 0.7: `(m/la + m/lb + (m-t)/m) / 3.0` in binary64 rounds to
+# 0.7000000000000001, above 0.7, for every exact tie a candidate of at most 19 code points (the longest name the
+# tables hold, `acceptance-criteria`) can reach, except (la, lb, m, t) = (25, 10, 10, 3), (60, 12, 11, 0), (30, 15, 11, 0),
+# which round to 0.6999999999999998. Enumerated over every feasible tuple (m ≤ lb ≤ 19, la ≤ 10m, t ≤ m/2; OQ-106),
+# measured on `usage_enum_tie_similar`
+def tie_above(+la: Nat, +lb: Nat, +m: Nat, +t: Nat) -> Bool:
+  Bool.not(((Nat.is_eq(la, 25n) && Nat.is_eq(lb, 10n) && Nat.is_eq(m, 10n) && Nat.is_eq(t, 3n)) || (Nat.is_eq(la, 60n) && Nat.is_eq(lb, 12n) && Nat.is_eq(m, 11n) && Nat.is_eq(t, 0n)) || (Nat.is_eq(la, 30n) && Nat.is_eq(lb, 15n) && Nat.is_eq(m, 11n) && Nat.is_eq(t, 0n))))
 
 # S1.80 (spec twin) the Jaro similarity from its counts: (m/la + m/lb + (m-t)/m) / 3 as one fraction; 0 when nothing matches
-def jaro_of(+m: Nat, t: Nat, +la: Nat, +lb: Nat, word: String, none: Bool) -> Cand:
+def jaro_of(+m: Nat, +t: Nat, +la: Nat, +lb: Nat, word: String, none: Bool) -> Cand:
   match none:
     case True{}:
-      Cand{0n, 1n, word}
+      Cand{0n, 1n, word, False{}}
     case False{}:
-      Cand{Nat.add(Nat.add(Nat.mul(Nat.mul(m, m), lb), Nat.mul(Nat.mul(m, m), la)), Nat.mul(Nat.mul(Nat.sub(m, t), la), lb)), Nat.mul(Nat.mul(Nat.mul(3n, la), lb), m), word}
+      Cand{Nat.add(Nat.add(Nat.mul(Nat.mul(m, m), lb), Nat.mul(Nat.mul(m, m), la)), Nat.mul(Nat.mul(Nat.sub(m, t), la), lb)), Nat.mul(Nat.mul(Nat.mul(3n, la), lb), m), word, tie_above(la, lb, m, t)}
 
 # S1.80 (spec twin) the counts of a finished matching: m matches, t = half the out-of-order ones
 def jaro_counts(done: Match, +la: Nat, +lb: Nat, word: String) -> Cand:
@@ -361,16 +370,17 @@ def jaro_sized(a: List<&2, U32>, +word: String, +la: Nat, +lb: Nat) -> Cand:
 def jaro(+a: List<&2, U32>, +word: String) -> Cand:
   jaro_sized(a, word, List.length(&2, U32, a), String.length(word))
 
-# S1.80 (spec twin) a candidate is kept when its similarity is ABOVE 0.7: 10*num > 7*den
+# S1.80 (spec twin) a candidate is kept when its similarity is ABOVE 0.7 as the original computes it: 10*num > 7*den,
+# or exactly 0.7 where binary64 rounds above (`count --by staqq` offers `status`: (3/5 + 3/6 + 1)/3)
 def close_enough(c: Cand) -> Bool:
   match c:
-    case Cand{num, den, word}:
-      Nat.is_gt(Nat.mul(10n, num), Nat.mul(7n, den))
+    case Cand{+num, +den, word, tie}:
+      (Nat.is_gt(Nat.mul(10n, num), Nat.mul(7n, den)) || (Nat.is_eq(Nat.mul(10n, num), Nat.mul(7n, den)) && tie))
 
 # S1.80 (spec twin) the order of the tip: ascending similarity; equal ones keep their declaration order
 def cand_le(x: Cand, y: Cand) -> Bool:
   match x y:
-    case Cand{xn, xd, xw} Cand{yn, yd, yw}:
+    case Cand{xn, xd, xw, xt} Cand{yn, yd, yw, yt}:
       Nat.is_le(Nat.mul(xn, yd), Nat.mul(yn, xd))
 
 # S1.80 (spec twin) keep a candidate that is close enough
@@ -400,7 +410,7 @@ def similar(a: List<&2, U32>, words: List<&2, String>) -> List<&2, Cand>:
 # S1.80 (spec twin) a candidate's word
 def cand_word(c: Cand) -> String:
   match c:
-    case Cand{num, den, word}:
+    case Cand{num, den, word, tie}:
       word
 
 # S1.81 (spec twin) the most similar candidate: the LAST of the ascending list, "" when there is none
@@ -1461,6 +1471,81 @@ def verdict(+st: St) -> Parsed:
 # S1.1–S1.30 (spec twin) argv to a command, or the argument parser's answer
 def parse(argv: List<&2, String>) -> Parsed:
   verdict(settle(walk(argv, start())))
+
+# S1.2 (data) one argument as the shell read it: its text (an invalid UTF-8 sequence already replaced by U+FFFD, as
+# the original prints it) and whether its bytes were valid UTF-8 (OQ-012)
+type Arg is Data:
+  Arg{text: String, ok: Bool}
+
+# S1.2 (spec twin) the occurrences that carry a value, counted onto acc
+def valued(occs: List<&2, Occ>, +acc: Nat) -> Nat:
+  match occs:
+    case Nil{}:
+      acc
+    case Con{Occ{k, v}, rest}:
+      valued(rest, Bool.pick(Nat, String.is_empty(v), acc, Nat.add(acc, 1n)))
+
+# S1.2 (spec twin) how much of argv the level has taken as values: recorded values, positional words, a held refusal
+def consumed(st: St) -> Nat:
+  match st:
+    case St{cmd, outer, seen, used, words, pending, held, trailing, fresh, skip, halt}:
+      Nat.add(Nat.add(valued(seen, 0n), List.length(&2, String, words)), Bool.pick(Nat, String.is_empty(held), 0n, 1n))
+
+# S1.2 (spec twin) the refusal of a value that is not valid UTF-8: the level's bare usage line
+def utf8_text(c: Surface.Cmd) -> String:
+  "error: invalid UTF-8 was detected in one or more arguments\n\n" ++ usage(c, Nil{}) ++ "\n" ++ tail()
+
+# S1.2 (spec twin) after an invalid argument's step: when the step took it as a value (a value recorded or refused,
+# a positional word), the parse stops with the UTF-8 refusal at that level; taken as a name (an option, a
+# subcommand), its U+FFFD text stands in the ordinary refusals (`unrecognized subcommand '�'`)
+def utf8_check(ok: Bool, +before: Nat, +st: St) -> St:
+  match ok:
+    case True{}:
+      st
+    case False{}:
+      Bool.pick(St, Nat.is_gt(consumed(st), before), halted(st, Refused{utf8_text(cmd_of(st))}), st)
+
+# S1.2 (spec twin) an invalid argument of the form `--name=value` is refused before its value is judged
+def attached_value(sh: Shape) -> Bool:
+  match sh:
+    case Long{name, attached, value}:
+      attached
+    case other:
+      False{}
+
+# S1.2 (spec twin) one argument: an invalid attached value stops the parse at once; otherwise the ordinary step
+def step_pre(bad: Bool, +st: St, arg: String) -> St:
+  match bad:
+    case True{}:
+      halted(st, Refused{utf8_text(cmd_of(st))})
+    case False{}:
+      step(st, arg)
+
+# S1.2 (spec twin) one argument with its validity
+def step_arg(+st: St, +arg: String, +ok: Bool) -> St:
+  utf8_check(ok, consumed(st), step_pre((Bool.not(ok) && is_going(st) && attached_value(shape_of(arg))), st, arg))
+
+# S1.2 (spec twin) the loop over argv with each argument's validity
+def walk_args(args: List<&2, Arg>, st: St) -> St:
+  match args:
+    case Nil{}:
+      st
+    case Con{Arg{arg, ok}, rest}:
+      walk_args(rest, step_arg(st, arg, ok))
+
+# S1.2 (spec twin) argv with a validity flag per argument (`1` valid, `0` not, in order; a missing flag reads valid)
+def flagged(argv: List<&2, String>, flags: String) -> List<&2, Arg>:
+  match argv flags:
+    case Nil{} _:
+      Nil{}
+    case Con{a, rest} SCon{Chr{+c}, more}:
+      Arg{a, Bool.not(U32.is_eq(c, 48))} <> flagged(rest, more)
+    case Con{a, rest} SNil{}:
+      Arg{a, True{}} <> flagged(rest, "")
+
+# S1.1–S1.30 S1.2 (spec twin) `parse` with each argument's validity (OQ-012)
+def parse_flagged(args: List<&2, Arg>) -> Parsed:
+  verdict(settle(walk_args(args, start())))
 
 # ---------------------------------------------------------------- reading the occurrences
 

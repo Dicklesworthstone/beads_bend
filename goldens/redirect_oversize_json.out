@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: Redirect file exceeds maximum size of 4096 bytes: /mnt/proj/.beads/redirect",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

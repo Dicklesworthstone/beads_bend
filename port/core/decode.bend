@@ -516,6 +516,8 @@ def dep_of(sp: Json.Split) -> DepDec:
       DepBad{msg, at}
     case Json.SplitOk{ms}:
       dep_go(ms, DepOk{Model.Dependency{"", "", "blocks", Time.Instant{0, 0, 0}, None{}, None{}, None{}}})
+    case Json.SplitTrail{ms, close, at}:
+      DepBad{"trailing characters", at}
 
 # S3.5 (spec twin) fold one decoded dependency into the list being built (REVERSED); a refusal is sticky and keeps
 # its own column
@@ -633,6 +635,8 @@ def com_of(sp: Json.Split) -> ComDec:
       ComBad{msg, at}
     case Json.SplitOk{ms}:
       com_go(ms, ComOk{Model.Comment{"0", "", "", "", Time.Instant{0, 0, 0}}})
+    case Json.SplitTrail{ms, close, at}:
+      ComBad{"trailing characters", at}
 
 # S3.6 (spec twin) fold one decoded comment into the list being built (REVERSED); a refusal is sticky
 def coms_push(acc: Got, one: ComDec) -> Got:
@@ -1509,13 +1513,33 @@ def missing_pick(id: Bool, title: Bool, created: Bool, updated: Bool) -> String:
     case True{} True{} True{} True{}:
       ""
 
-# S2.28 (spec twin) route on the missing-member verdict
+# S2.28 (spec twin) after the members: a member's own refusal came first (serde_json meets it while it reads the
+# object); only a record whose members all read meets the missing-member verdict, at the `}` (`error_jsonl_type_then_missing`:
+# `{"priority":"x"}` is `invalid type: string "x", expected i32` at column 15, not `missing field `id``)
+def missing_after(d: Dec, missing: String, eof: U32) -> Dec:
+  match d:
+    case DecBad{msg, at}:
+      DecBad{msg, at}
+    case DecOk{i}:
+      match missing:
+        case SNil{}:
+          DecOk{i}
+        case SCon{h, t}:
+          DecBad{SCon{h, t}, eof}
+
+# S2.28 (spec twin) the members read in order, then the missing-member verdict
 def checked(+ms: List<&2, Json.Member>, missing: String, +eof: U32) -> Dec:
-  match missing:
-    case SNil{}:
-      members_go(ms, DecOk{Model.blank()}, eof)
-    case SCon{h, t}:
-      DecBad{SCon{h, t}, eof}
+  missing_after(members_go(ms, DecOk{Model.blank()}, eof), missing, eof)
+
+# S2.27 S2.28 (spec twin) a record whose `}` is followed by more input: its fields are judged at the `}` first (a
+# missing member is reported at the `}`'s column, `error_jsonl_missing_then_trailing`), then its members; only a
+# record that passes both meets `trailing characters` (bb-04n)
+def trailed(d: Dec, at: U32) -> Dec:
+  match d:
+    case DecOk{i}:
+      DecBad{"trailing characters", at}
+    case DecBad{msg, a}:
+      DecBad{msg, a}
 
 # S2.27 S2.28 (spec twin) the record of a split line
 def from_split(sp: Json.Split, eof: U32) -> Dec:
@@ -1524,6 +1548,8 @@ def from_split(sp: Json.Split, eof: U32) -> Dec:
       DecBad{msg, at}
     case Json.SplitOk{+ms}:
       checked(ms, missing_pick(has_key(ms, "id"), has_key(ms, "title"), has_key(ms, "created_at"), has_key(ms, "updated_at")), eof)
+    case Json.SplitTrail{+ms, +close, at}:
+      trailed(checked(ms, missing_pick(has_key(ms, "id"), has_key(ms, "title"), has_key(ms, "created_at"), has_key(ms, "updated_at")), close), at)
 
 # S2.27 (spec twin) the record of a lexed line
 # S2.27 (spec twin) a line that is an ARRAY: serde_json fills the record's members from its elements in order, and

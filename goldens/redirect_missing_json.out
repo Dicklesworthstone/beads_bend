@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: Redirect target not found: /mnt/other/.beads",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

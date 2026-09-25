@@ -1,0 +1,2 @@
+Error: Priority must be 0-4, got: HIGH
+Hint: Did you mean --priority 1?

@@ -92,6 +92,8 @@ def split_of(sp: Json.Split) -> String:
       "split bad: " ++ msg
     case Json.SplitOk{ms}:
       "split ok " ++ Nat.show(List.length(&2, Json.Member, ms))
+    case Json.SplitTrail{ms, close, at}:
+      "split trail " ++ Nat.show(List.length(&2, Json.Member, ms))
 
 def members_of(lx: Json.Lexed) -> String:
   match lx:

@@ -318,10 +318,26 @@ def start_blockers(refs: List<&2, String>) -> List<&2, String>:
     case Con{+r, rest}:
       word_put(Blocked.ref_id(r), (String.ends_with(r, ":child-open") || String.ends_with(r, ":parent-blocked")), start_blockers(rest))
 
+# S4.267 (spec twin) does someone other than the actor hold the issue (a blank assignee holds nothing)
+def held_by_other(who: Maybe<&2, String>, +actor: String) -> Bool:
+  match who:
+    case None{}:
+      False{}
+    case Some{+a}:
+      (Bool.not(String.is_empty(a)) && Bool.not(String.eq(a, actor)))
+
+# S4.267 (spec twin) the claim's checks after the blocked one, which `--force` does NOT waive: a closed issue is never
+# reopened by a claim; an issue another person holds is refused; a re-claim by the holder is idempotent (round 15:
+# `update proj-ptp --claim` refuses `already assigned to bob`, with or without `--force`; `update proj-mkh --claim`
+# refuses the closed issue; a closed issue that someone holds names the closed status first)
+def claim_checked(+i: Model.Issue, +actor: String) -> Edit:
+  Bool.pick(Edit, String.eq(Model.status_of(i), "closed"), EditBad{Create.invalid("claim", "cannot claim closed issue " ++ Model.id_of(i) ++ ": `--claim` starts work on an open issue and never reopens one, so its close_reason and closed_at are left intact. Reopen it first with `br reopen " ++ Model.id_of(i) ++ "`, then claim it")}, Bool.pick(Edit, held_by_other(Model.assignee_of(i), actor), EditBad{Create.invalid("claim", "issue " ++ Model.id_of(i) ++ " already assigned to " ++ Maybe.default(&2, String, Model.assignee_of(i), ""))}, EditOk{reopened(set_head(1, set_person(0, i, Some{actor}), "in_progress")), True{}}))
+
 # S4.267 (spec twin) `--claim`: the assignee becomes the actor and the status `in_progress`; an issue with
-# start-blockers is refused unless `--force`
+# start-blockers is refused unless `--force` (this check comes first: `update proj-170 --claim` names the blocker
+# although alice holds the issue)
 def claimed(+i: Model.Issue, +blockers: List<&2, String>, actor: String, force: Bool) -> Edit:
-  Bool.pick(Edit, (Bool.not(force) && Bool.not(List.is_empty(&2, String, blockers))), EditBad{Create.invalid("claim", "cannot claim blocked issue: " ++ String.join(blockers, ", "))}, EditOk{reopened(set_head(1, set_person(0, i, Some{actor}), "in_progress")), True{}})
+  Bool.pick(Edit, (Bool.not(force) && Bool.not(List.is_empty(&2, String, blockers))), EditBad{Create.invalid("claim", "cannot claim blocked issue: " ++ String.join(blockers, ", "))}, claim_checked(i, actor))
 
 # S4.267 (spec twin) `--claim` folded in; `relation` is the BLOCKED relation of the store
 def with_claim(e: Edit, claim: Bool, relation: List<&2, Blocked.Entry>, actor: String, force: Bool) -> Edit:

@@ -1,0 +1,7 @@
+error: unexpected argument '--label' found
+
+  tip: a similar argument exists: '--by-label'
+
+Usage: br count --by-label
+
+For more information, try '--help'.

@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "BEADS_DIR is invalid: Configuration error: Redirect target not found: /mnt/other/.beads",
+    "hint": null,
+    "retryable": false,
+    "context": {
+      "wrapper_context": "BEADS_DIR is invalid"
+    }
+  }
+}

@@ -198,17 +198,18 @@ def defer_one(+i: Model.Issue, now: Time.Instant, +until: Maybe<&2, Time.Instant
 def undeferred_status(+status: String) -> String:
   Bool.pick(String, String.eq(status, "deferred"), "open", status)
 
-# S4.325 S4.326 (spec twin) one id of `undefer`: a terminal issue is refused; an issue that is neither `deferred` nor
-# carries a gate is a skip; anything else loses its gate, and a `deferred` one becomes `open`
+# S4.325 S4.326 (spec twin) one id of `undefer`: an issue that is neither `deferred` nor carries a gate is a skip, closed
+# or not (`not deferred (status: closed)`, round 15); a terminal issue that still carries a stale gate is refused; anything
+# else loses its gate, and a `deferred` one becomes `open`
 def undefer_one(+i: Model.Issue, now: Time.Instant) -> Verdict:
-  Bool.pick(Verdict, Blocked.terminal(Model.status_of(i)), Skipped{"cannot undefer " ++ Model.status_of(i) ++ " issue"}, Bool.pick(Verdict, (Bool.not(String.eq(Model.status_of(i), "deferred")) && Maybe.is_none(&2, Time.Instant, Model.defer_of(i))), Skipped{"not deferred (status: " ++ Model.status_of(i) ++ ")"}, Acted{moved(i, undeferred_status(Model.status_of(i)), now, Model.closed_of(i), Model.close_reason_of(i), None{}, True{}), "✓ Undeferred " ++ Render.inline(Model.id_of(i)) ++ ": " ++ Render.inline(Model.title_of(i)) ++ " (now " ++ undeferred_status(Model.status_of(i)) ++ ")\n", String.concat(["{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"previous_status\":", Failure.quoted(Model.status_of(i)), ",\"status\":", Failure.quoted(undeferred_status(Model.status_of(i))), "}"])}))
+  Bool.pick(Verdict, (Bool.not(String.eq(Model.status_of(i), "deferred")) && Maybe.is_none(&2, Time.Instant, Model.defer_of(i))), Skipped{"not deferred (status: " ++ Model.status_of(i) ++ ")"}, Bool.pick(Verdict, Blocked.terminal(Model.status_of(i)), Skipped{"cannot undefer " ++ Model.status_of(i) ++ " issue"}, Acted{moved(i, undeferred_status(Model.status_of(i)), now, Model.closed_of(i), Model.close_reason_of(i), None{}, True{}), "✓ Undeferred " ++ Render.inline(Model.id_of(i)) ++ ": " ++ Render.inline(Model.title_of(i)) ++ " (now " ++ undeferred_status(Model.status_of(i)) ++ ")\n", String.concat(["{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"previous_status\":", Failure.quoted(Model.status_of(i)), ",\"status\":", Failure.quoted(undeferred_status(Model.status_of(i))), "}"])}))
 
 # ---------------------------------------------------------------- the batch (S4.213, S4.299)
 
 # S4.213 S4.299 (data) a batch so far: the model with the survivors in it, the success lines and JSON elements (both
 # REVERSED), the skips (REVERSED), and the last id acted on ("" when none)
 type Batch is Data:
-  Batch{model: List<&2, Model.Issue>, plain: List<&2, String>, json: List<&2, String>, skips: List<&2, Skip>, last: String}
+  Batch{model: List<&2, Model.Issue>, plain: List<&2, String>, json: List<&2, String>, skips: List<&2, Skip>, last: String, acted: List<&2, String>}
 
 # S4.299 (spec twin) the model with one issue replaced by its new self
 def replaced(model: List<&2, Model.Issue>, +new: Model.Issue) -> List<&2, Model.Issue>:
@@ -218,19 +219,41 @@ def replaced(model: List<&2, Model.Issue>, +new: Model.Issue) -> List<&2, Model.
     case Con{+i, rest}:
       Bool.pick(Model.Issue, String.eq(Model.id_of(i), Model.id_of(new)), new, i) <> replaced(rest, new)
 
-# S4.208 S4.213 (spec twin) one verdict folded into the batch: a skip joins the skips and is NOT the last-touched id
+# S4.208 S4.213 (spec twin) one verdict folded into the batch: a skip joins the skips and is NOT the last-touched id;
+# an acted-on id joins the batch's ids (REVERSED), which must not repeat (`first_dup`)
 def settle(b: Batch, id: String, v: Verdict) -> Batch:
   match b v:
-    case Batch{model, plain, json, skips, last} Skipped{reason}:
-      Batch{model, plain, json, Skip{id, reason} <> skips, last}
-    case Batch{model, plain, json, skips, last} Acted{+issue, line, element}:
-      Batch{replaced(model, issue), line <> plain, element <> json, skips, Model.id_of(issue)}
+    case Batch{model, plain, json, skips, last, acted} Skipped{reason}:
+      Batch{model, plain, json, Skip{id, reason} <> skips, last, acted}
+    case Batch{model, plain, json, skips, last, acted} Acted{+issue, line, element}:
+      Batch{replaced(model, issue), line <> plain, element <> json, skips, Model.id_of(issue), Model.id_of(issue) <> acted}
 
 # S4.299 (spec twin) the model a batch holds
 def model_of(b: Batch) -> List<&2, Model.Issue>:
   match b:
-    case Batch{model, plain, json, skips, last}:
+    case Batch{model, plain, json, skips, last, acted}:
       model
+
+# S4.327 (spec twin) the first id met twice, scanning in order (`close proj-uly proj-mta proj-mta proj-uly` names
+# `proj-mta`); "" when none repeats
+def first_dup(ids: List<&2, String>, +seen: List<&2, String>) -> String:
+  match ids:
+    case Nil{}:
+      ""
+    case Con{+id, rest}:
+      Bool.pick(String, Blocked.among(seen, id), id, first_dup(rest, id <> seen))
+
+# S4.327 (spec twin) the id repeated among the ids a batch acted on, in command-line order; "" when none
+def batch_dup(b: Batch) -> String:
+  match b:
+    case Batch{model, plain, json, skips, last, acted}:
+      first_dup(List.reverse(&2, String, acted), Nil{})
+
+# S4.327 (spec twin) an id twice in one atomic update batch (`close`, `reopen`, `update`, `defer`, `undefer`):
+# VALIDATION_FAILED, exit 4, nothing printed but the refusal, nothing written (round 15: `close proj-mta proj-mta`,
+# `close proj-mta mta`, `reopen proj-mkh proj-mkh`; ids that were skipped do not count)
+def dup_failure(+id: String) -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: issue_ids: duplicate issue ID in atomic update batch: " ++ id, None{}, True{}, [Failure.CtxMember{"field", Failure.CStr{"issue_ids"}}, Failure.CtxMember{"reason", Failure.CStr{"duplicate issue ID in atomic update batch: " ++ id}}], 4}
 
 # S4.382 (spec twin) the greatest comment id among some comments
 def max_comment(cs: List<&2, Model.Comment>, acc: U32) -> U32:

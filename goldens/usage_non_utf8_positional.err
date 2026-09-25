@@ -1,0 +1,5 @@
+error: invalid UTF-8 was detected in one or more arguments
+
+Usage: br dep add [OPTIONS] <ISSUE> <DEPENDS_ON>
+
+For more information, try '--help'.

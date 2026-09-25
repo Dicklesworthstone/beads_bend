@@ -1,0 +1,3 @@
+Warning: Skipped proj-170: blocked by: proj-mta — close the open blocker(s) first, or use --force to close anyway
+Error: Partially applied: 1 closed, 1 skipped — proj-170: blocked by: proj-mta — close the open blocker(s) first, or use --force to close anyway
+Hint: Skipped issue(s) have open blocking dependencies. Close the blockers first, or re-run with --force to close anyway.

@@ -1,0 +1,5 @@
+proj-q9z
+--- .beads/issues.jsonl ---
+{"id":"proj-q9z","title":"Typed","status":"open","priority":2,"issue_type":"bug","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":".","compaction_level":0,"original_size":0,"labels":["a","b"]}
+--- .beads/last-touched ---
+proj-q9z

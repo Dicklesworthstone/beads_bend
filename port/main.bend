@@ -36,13 +36,11 @@ def Sys.cwd() -> IO(String):
   import "./effs/sys_cwd.c"
   import "./effs/sys_cwd.js"
 
-# S8.1 (shell) IO.args answers List<&1, String>; the core takes List<&2, String>, and there is no upcast
-def args_list(xs: List<String>) -> List<&2, String>:
-  match xs:
-    case Nil{}:
-      Nil{}
-    case Con{x, rest}:
-      x <> args_list(rest)
+# S1.2 S8.1 (shell) the command line with each argument's UTF-8 validity (IO.args faults on the JS lane on an invalid
+# byte and hides it as U+FFFD on C; OQ-012); the core splits it (Run.argv_flags, Run.argv_texts)
+def Sys.argv() -> IO(String):
+  import "./effs/sys_argv.c"
+  import "./effs/sys_argv.js"
 
 # S8.12 (shell) the verdict of one probe: close what opened
 def probed(r: Result<&1, &1, U32 & String, File>) -> IO(Bool):
@@ -291,20 +289,54 @@ def run_argv(+argv: List<&2, String>, +cwd: String, env: List<&2, Run.Var>, +dir
     wall : String <- Clock.wall()
     perform(dir, Run.outcome(Run.Inputs{argv, Bool.not(String.is_empty(dir)), Run.root_of(dir, cwd), store, touched, Run.Var{"BEADS_BEND_WALL", wall} <> Run.Var{"BEADS_BEND_DIR", dir} <> Run.file_var(".beads/config.yaml", config) <> List.append(&2, Run.Var, input, List.append(&2, Run.Var, sides, env))}))
 
-# S8.1 (shell) the argv as the core takes it
-def run_in(args: List<String>, +cwd: String, env: List<&2, Run.Var>, +dir: String) -> IO(Unit):
-  run_argv(args_list(args), cwd, env, dir)
+# S8.1 (shell) run in the directory discovery settled on
+def run_in(args: List<&2, String>, +cwd: String, env: List<&2, Run.Var>, +dir: String) -> IO(Unit):
+  run_argv(args, cwd, env, dir)
+
+# S2.5 (shell) test the target a directory's redirect names (the core names none, or one)
+def redirect_tested(+dir: String, +bytes: List<&2, U32>) -> IO(Run.Redir):
+  do IO<Run.Redir>:
+    oks : List<&2, Bool> <- probe_all(Run.redirect_paths(dir, bytes))
+    return Run.Redir{bytes, oks}
+
+# S2.5 (shell) read a directory's `redirect` file (absent reads as nothing) and test its target
+def redirect_probe(+dir: String) -> IO(Run.Redir):
+  do IO<Run.Redir>:
+    bytes : List<&2, U32> <- read_all(Run.inside(dir, "redirect"))
+    redirect_tested(dir, bytes)
+
+# S2.5 (shell) at most ten hops (S2.5): each reads and tests the redirect of the directory the core says the last one
+# reached (without a redirect, or with a target that did not open, that is the same directory, so the hops settle);
+# then the command runs where the core says, and a target that did not open is handed to the core, which refuses
+def redirect_hops(fuel: Nat, args: List<&2, String>, +cwd: String, +env: List<&2, Run.Var>, +dir: String, +r: Run.Redir) -> IO(Unit):
+  match fuel:
+    case 0n:
+      run_in(args, cwd, Run.Var{"BEADS_BEND_REDIRECT_ERROR", Run.redir_error(dir, r)} <> env, Run.redir_dir(dir, r))
+    case 1n+g:
+      do IO<Unit>:
+        next : Run.Redir <- redirect_probe(Run.redir_dir(dir, r))
+        redirect_hops(g, args, cwd, env, Run.redir_dir(dir, r), next)
+
+# S2.5 (shell) the found workspace's redirect, followed
+def redirect_read(args: List<&2, String>, +cwd: String, +env: List<&2, Run.Var>, +dir: String) -> IO(Unit):
+  do IO<Unit>:
+    first : Run.Redir <- redirect_probe(dir)
+    redirect_hops(10n, args, cwd, env, dir, first)
 
 # S2.1 S2.2 (shell) test the directories discovery names, then run in the first that opened
-def discover(args: List<String>, +cwd: String, +env: List<&2, Run.Var>) -> IO(Unit):
+def discover(args: List<&2, String>, +cwd: String, +env: List<&2, Run.Var>) -> IO(Unit):
   do IO<Unit>:
     oks : List<&2, Bool> <- probe_all(Run.discovery(cwd, Run.env_of(env, "BEADS_DIR")))
-    run_in(args, cwd, env, Run.found(Run.discovery(cwd, Run.env_of(env, "BEADS_DIR")), oks))
+    redirect_read(args, cwd, env, Run.found(Run.discovery(cwd, Run.env_of(env, "BEADS_DIR")), oks))
+
+# S1.2 S8.1 (shell) the arguments as the core takes them, their validity flags handed over as `BEADS_BEND_ARGV_OK`
+def started(+line: String, +cwd: String, +env: List<&2, Run.Var>) -> IO(Unit):
+  discover(Run.argv_texts(line), cwd, Run.Var{"BEADS_BEND_ARGV_OK", Run.argv_flags(line)} <> env)
 
 # S8.1 S8.12 (shell) gather what discovery needs, then discover
 def main() -> IO(Unit):
   do IO<Unit>:
-    args : List<String> <- IO.args()
+    line : String <- Sys.argv()
     cwd : String <- Sys.cwd()
     env : List<&2, Run.Var> <- env_all(Run.env_names())
-    discover(args, cwd, env)
+    started(line, cwd, env)

@@ -1,0 +1,5 @@
+{"id":"proj-7x2","title":"D","status":"open","priority":2,"issue_type":"task","created_at":"2026-04-10T08:00:00Z","created_by":"tester","updated_at":"2026-04-10T08:00:00Z","due_at":"2026-04-12T08:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/issues.jsonl ---
+{"id":"proj-7x2","title":"D","status":"open","priority":2,"issue_type":"task","created_at":"2026-04-10T08:00:00Z","created_by":"tester","updated_at":"2026-04-10T08:00:00Z","due_at":"2026-04-12T08:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-7x2

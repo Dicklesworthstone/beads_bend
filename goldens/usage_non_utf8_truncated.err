@@ -1,0 +1,5 @@
+error: invalid UTF-8 was detected in one or more arguments
+
+Usage: br show [OPTIONS] [IDS]...
+
+For more information, try '--help'.

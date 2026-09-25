@@ -104,6 +104,15 @@ def printed(out: String, note: String, quiet: Bool) -> Outcome:
     case False{}:
       Outcome{out, note, 0, Nil{}}
 
+# S4.188 S5.182 (spec twin) a view with its own stderr text and exit code (`dep cycles`: the `Warning:` count, exit 5 on
+# an active cycle); `--quiet` drops both texts and keeps the code (`dep cycles -q` on a cycle: no output, exit 5)
+def coded(out: String, err: String, code: U32, quiet: Bool) -> Outcome:
+  match quiet:
+    case True{}:
+      Outcome{"", "", code, Nil{}}
+    case False{}:
+      Outcome{out, err, code, Nil{}}
+
 # S4.133 S5.124 (spec twin) did a filter that runs outside the query take part: only then does the truncation note know the total
 def outside_query(+opts: List<&2, Cli.Occ>) -> Bool:
   (Cli.given(opts, "id") || Cli.given(opts, "priority-min") || Cli.given(opts, "priority-max") || Cli.given(opts, "desc-contains") || Cli.given(opts, "notes-contains") || Cli.given(opts, "deferred") || Cli.given(opts, "overdue"))
@@ -777,16 +786,34 @@ def updated(b: Update.Batch, json: Bool, quiet: Bool) -> Outcome:
 def any_update_flag(+opts: List<&2, Cli.Occ>) -> Bool:
   (Cli.given(opts, "status") || Cli.given(opts, "priority") || Cli.given(opts, "type") || Cli.given(opts, "title") || Cli.given(opts, "description") || Cli.given(opts, "design") || Cli.given(opts, "acceptance-criteria") || Cli.given(opts, "prerequisites") || Cli.given(opts, "notes") || Cli.given(opts, "append-notes") || Cli.given(opts, "parent") || Cli.given(opts, "assignee") || Cli.given(opts, "owner") || Cli.given(opts, "estimate") || Cli.given(opts, "due") || Cli.given(opts, "defer") || Cli.given(opts, "external-ref") || Cli.given(opts, "source-repo") || Cli.given(opts, "source-repo-path") || Cli.given(opts, "claim") || Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label") || Cli.given(opts, "check-acceptance") || Cli.given(opts, "uncheck-acceptance") || Cli.given(opts, "add-acceptance"))
 
+# S4.327 (spec twin) a batch that acted on one id twice is refused before anything prints (round 15)
+def dup_refused(+dup: String, json: Bool) -> Outcome:
+  failed(Status.dup_failure(dup), json)
+
+# S4.327 (spec twin) did the per-id checks refuse the batch
+def batch_bad(b: Update.Batch) -> Bool:
+  match b:
+    case Update.BatchBad{f}:
+      True{}
+    case Update.BatchOk{model, plain, elements, changed, last}:
+      False{}
+
+# S4.327 (spec twin) an `update` batch changes each id once: after every per-id check (a claim of a closed issue is
+# named first), an id given twice is refused (round 15: `update proj-mta proj-mta --priority 1`); without an update
+# flag there is no batch, and each id answers `No updates specified` (`dup` is "" then)
+def updated_once(+b: Update.Batch, +dup: String, +json: Bool, quiet: Bool) -> Outcome:
+  Bool.pick(Outcome, (String.is_empty(dup) || batch_bad(b)), updated(b, json, quiet), dup_refused(dup, json))
+
 # S4.270 (spec twin) `update` once its `--parent` was resolved: an id that resolves to nothing is refused
 # (`error_update_parent_missing`); `""` clears the parent (`update_parent_clear`)
-def update_parented(p: Resolve.Found, given: Bool, ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
+def update_parented(p: Resolve.Found, given: Bool, +ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
   match p given:
     case Resolve.FoundBad{f} _:
       failed(f, json)
     case Resolve.FoundOk{pid} True{}:
-      updated(Update.run(ids, model, opts, priority, Blocked.relation(model), actor, now, any_update_flag(opts), Some{pid}), json, quiet)
+      updated_once(Update.run(ids, model, opts, priority, Blocked.relation(model), actor, now, any_update_flag(opts), Some{pid}), Bool.pick(String, any_update_flag(opts), Status.first_dup(ids, Nil{}), ""), json, quiet)
     case Resolve.FoundOk{pid} False{}:
-      updated(Update.run(ids, model, opts, priority, Blocked.relation(model), actor, now, any_update_flag(opts), None{}), json, quiet)
+      updated_once(Update.run(ids, model, opts, priority, Blocked.relation(model), actor, now, any_update_flag(opts), None{}), Bool.pick(String, any_update_flag(opts), Status.first_dup(ids, Nil{}), ""), json, quiet)
 
 # S4.270 (spec twin) the parent `--parent` names: `""` as it is (a clear), anything else resolved like an issue id
 def new_parent(given: Maybe<&2, String>, +ids: List<&2, String>, +prefix: String) -> Resolve.Found:
@@ -914,10 +941,14 @@ def close_done(out: String, skips: List<&2, Status.Skip>, closed: Nat, writes: L
       close_failed(out, s <> rest, closed, writes, json, quiet)
 
 # S4.290–S4.299 (spec twin) what a `close` batch answered; `before` is the blocked ids of the store before the batch
-def closed_batch(b: Status.Batch, before: List<&2, String>, suggest: Bool, +json: Bool, quiet: Bool) -> Outcome:
+def closed_ok(b: Status.Batch, before: List<&2, String>, suggest: Bool, +json: Bool, quiet: Bool) -> Outcome:
   match b:
-    case Status.Batch{+model, +plain, elements, +skips, last}:
+    case Status.Batch{+model, +plain, elements, +skips, last, acted}:
       close_done(close_text(List.reverse(&2, String, elements), List.reverse(&2, String, plain), List.reverse(&2, Status.Skip, skips), unblocked(before, Blocked.keys(Blocked.relation(model)), model), suggest, json), List.reverse(&2, Status.Skip, skips), List.length(&2, String, plain), batch_writes(model, last), json, quiet)
+
+# S4.290–S4.299 S4.327 (spec twin) a `close` batch: refused when an id repeats among those it acted on
+def closed_batch(+b: Status.Batch, before: List<&2, String>, suggest: Bool, +json: Bool, quiet: Bool) -> Outcome:
+  Bool.pick(Outcome, String.is_empty(Status.batch_dup(b)), closed_ok(b, before, suggest, json, quiet), dup_refused(Status.batch_dup(b), json))
 
 # S4.290 S4.297 (spec twin) `close` once every id is resolved: `--suggest-next` works with a single id only
 def close_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
@@ -925,19 +956,24 @@ def close_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{+ids}:
-      Bool.pick(Outcome, (Cli.given(opts, "suggest-next") && Nat.is_gt(List.length(&2, String, ids), 1n)), failed(Create.invalid("suggest-next", "--suggest-next only works with a single issue ID"), json), closed_batch(Status.close_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, Blocked.relation(model), now, Maybe.default(&2, String, Cli.value(opts, "reason"), "done"), Cli.given(opts, "force"), Status.Note{Cli.value(opts, "transition-comment"), actor, Cli.value(opts, "session")}, ids), Blocked.keys(Blocked.relation(model)), Cli.given(opts, "suggest-next"), json, quiet))
+      Bool.pick(Outcome, (Cli.given(opts, "suggest-next") && Nat.is_gt(List.length(&2, String, ids), 1n)), failed(Create.invalid("suggest-next", "--suggest-next only works with a single issue ID"), json), closed_batch(Status.close_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, "", Nil{}}, model, Blocked.relation(model), now, Maybe.default(&2, String, Cli.value(opts, "reason"), "done"), Cli.given(opts, "force"), Status.Note{Cli.value(opts, "transition-comment"), actor, Cli.value(opts, "session")}, ids), Blocked.keys(Blocked.relation(model)), Cli.given(opts, "suggest-next"), json, quiet))
 
 # S4.314 S4.326 S5.42 S5.43 S5.107 (spec twin) what `reopen`, `defer` or `undefer` answered: the successes before
 # the skips; `hush` is `--quiet` for `defer` and `undefer`, which S5.107 short-circuits, and False for `reopen`,
 # which prints its line even under `--quiet` (golden reopen_quiet);
 # as JSON one object whose first member is named after the command, `skipped` omitted when empty; exit 0 even when
 # every id was skipped; `nothing` is the line for a batch in which literally nothing happened
-def gated_batch(b: Status.Batch, name: String, nothing: String, json: Bool, hush: Bool) -> Outcome:
+def gated_ok(b: Status.Batch, name: String, nothing: String, json: Bool, hush: Bool) -> Outcome:
   match b json:
-    case Status.Batch{model, plain, elements, +skips, last} True{}:
+    case Status.Batch{model, plain, elements, +skips, last, acted} True{}:
       wrote(String.concat(["{\"", name, "\":[", String.join(List.reverse(&2, String, elements), ","), "]", Bool.pick(String, List.is_empty(&2, Status.Skip, skips), "", ",\"skipped\":[" ++ String.concat(Status.skip_objects(List.reverse(&2, Status.Skip, skips), True{})) ++ "]"), "}\n"]), batch_writes(model, last), hush)
-    case Status.Batch{model, +plain, elements, +skips, last} False{}:
+    case Status.Batch{model, +plain, elements, +skips, last, acted} False{}:
       wrote(Bool.pick(String, (List.is_empty(&2, String, plain) && List.is_empty(&2, Status.Skip, skips)), nothing, String.concat(List.reverse(&2, String, plain)) ++ String.concat(Status.skip_lines(List.reverse(&2, Status.Skip, skips)))), batch_writes(model, last), hush)
+
+# S4.314 S4.326 S4.327 (spec twin) a `reopen`, `defer` or `undefer` batch: refused when an id repeats among those it
+# acted on (ids it skipped do not count: `undefer proj-mta proj-mta` of an issue that is not deferred skips twice)
+def gated_batch(+b: Status.Batch, name: String, nothing: String, +json: Bool, hush: Bool) -> Outcome:
+  Bool.pick(Outcome, String.is_empty(Status.batch_dup(b)), gated_ok(b, name, nothing, json, hush), dup_refused(Status.batch_dup(b), json))
 
 # S4.310–S4.315 (spec twin) `reopen` once every id is resolved
 def reopen_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
@@ -945,7 +981,7 @@ def reopen_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Mode
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{ids}:
-      gated_batch(Status.reopen_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, now, Cli.value(opts, "reason"), actor), "reopened", "No issues to reopen.\n", json, False{})
+      gated_batch(Status.reopen_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, "", Nil{}}, model, now, Cli.value(opts, "reason"), actor), "reopened", "No issues to reopen.\n", json, False{})
 
 # S4.321–S4.326 (spec twin) `defer` (`deferring` true) or `undefer` once every id is resolved
 def gate_many(m: Resolve.Many, +model: List<&2, Model.Issue>, now: Time.Instant, until: Maybe<&2, Time.Instant>, +deferring: Bool, note: Status.Note, +json: Bool, quiet: Bool) -> Outcome:
@@ -953,7 +989,7 @@ def gate_many(m: Resolve.Many, +model: List<&2, Model.Issue>, now: Time.Instant,
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{ids}:
-      gated_batch(Status.gate_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, ""}, model, now, until, deferring, note),Bool.pick(String, deferring, "deferred", "undeferred"), Bool.pick(String, deferring, "No issues to defer.\n", "No issues to undefer.\n"), json, quiet)
+      gated_batch(Status.gate_go(ids, Status.Batch{model, Nil{}, Nil{}, Nil{}, "", Nil{}}, model, now, until, deferring, note),Bool.pick(String, deferring, "deferred", "undeferred"), Bool.pick(String, deferring, "No issues to defer.\n", "No issues to undefer.\n"), json, quiet)
 
 # S4.322 S4.324 (spec twin) `defer --until`, judged once before any issue is examined
 def gate_until(n: When.Named, m: Resolve.Many, model: List<&2, Model.Issue>, now: Time.Instant, note: Status.Note, json: Bool, quiet: Bool) -> Outcome:
@@ -1010,6 +1046,8 @@ def viewed(v: Views.View, json: Bool, quiet: Bool) -> Outcome:
       printed(out, "", quiet)
     case Views.ViewLater{}:
       failed(Failure.unported(), json)
+    case Views.ViewCode{out, err, code}:
+      coded(out, err, code, quiet)
 
 # S4.179 (spec twin) the `--type` filter of `dep list` as the model spells edge types; "" when it is not given
 def kind_of(given: Maybe<&2, String>) -> String:
@@ -1031,7 +1069,7 @@ def dep_tree_cmd(+opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, word: 
 def label_list_cmd(+model: List<&2, Model.Issue>, words: List<&2, String>, prefix: String, +json: Bool, quiet: Bool) -> Outcome:
   match words:
     case Nil{}:
-      viewed(Views.label_list_all(model, json), json, quiet)
+      viewed(Views.label_names(model, json), json, quiet)
     case Con{word, rest}:
       viewed(Views.label_list(Views.hit(model, word, prefix), json), json, quiet)
 
@@ -1408,6 +1446,15 @@ def comment_resolved(f: Resolve.Found, +model: List<&2, Model.Issue>, author: St
     case Resolve.FoundOk{+id} False{}:
       comment_found(Blocked.lookup(model, id), model, id, author, text, at, json, quiet)
 
+# S1.65 S4.201 S8.4 (spec twin) `comments add --author`: used only when it is not blank; a blank one falls through to
+# the actor (`r15_comments_add_author_empty`: `--author ""` stores `"author":"tester"`)
+def author_or(given: Maybe<&2, String>, actor: String) -> String:
+  match given:
+    case None{}:
+      actor
+    case Some{+a}:
+      Bool.pick(String, String.is_empty(String.trim(a)), actor, a)
+
 # S4.380–S4.385 S4.397 (spec twin) `comments add <id> [text…]`; `-f <path>` and `-f -` (standard input) arrive as
 # `file`, read by the shell
 def comment_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: List<&2, String>, +raw: List<&2, Model.Issue>, actor: String, +prefix: String, +json: Bool, quiet: Bool, later: Bool, file: Maybe<&2, Read>) -> Outcome:
@@ -1417,7 +1464,7 @@ def comment_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: L
     case None{} _ False{}:
       failed(no_clock(), json)
     case Some{at} Con{first, +rest} False{}:
-      comment_resolved(Resolve.resolve(Show.ids_of(raw), first, prefix), Store.model(raw), Maybe.default(&2, String, Cli.value(opts, "author"), actor), comment_source(file, Cli.value(opts, "message"), rest), at, json, quiet, (Bool.not(Cli.given(opts, "file")) && Bool.not(Cli.given(opts, "message")) && Bool.not(Nat.is_gt(List.length(&2, String, rest), 0n))))
+      comment_resolved(Resolve.resolve(Show.ids_of(raw), first, prefix), Store.model(raw), author_or(Cli.value(opts, "author"), actor), comment_source(file, Cli.value(opts, "message"), rest), at, json, quiet, (Bool.not(Cli.given(opts, "file")) && Bool.not(Cli.given(opts, "message")) && Bool.not(Nat.is_gt(List.length(&2, String, rest), 0n))))
     case Some{at} Nil{} False{}:
       failed(no_comment_id(), json)
 
@@ -1718,6 +1765,118 @@ def root_of(+ws: String, cwd: String) -> String:
 def inside(+ws: String, name: String) -> String:
   Bool.pick(String, String.is_empty(ws), "", ws ++ "/" ++ name)
 
+# S1.2 (spec twin) the first piece of the command line: the flags
+def argv_head(pieces: List<&2, String>) -> String:
+  match pieces:
+    case Con{flags, rest}:
+      flags
+    case Nil{}:
+      ""
+
+# S1.2 (spec twin) the pieces after the flags: the arguments
+def argv_tail(pieces: List<&2, String>) -> List<&2, String>:
+  match pieces:
+    case Con{flags, rest}:
+      rest
+    case Nil{}:
+      Nil{}
+
+# S1.2 (spec twin) the shell's command line (`Sys.argv`: the validity flags, then each argument, NUL-separated): the flags
+def argv_flags(line: String) -> String:
+  argv_head(String.split(line, Chr{0}))
+
+# S1.2 (spec twin) the arguments of the shell's command line, in order (an empty line has none)
+def argv_texts(line: String) -> List<&2, String>:
+  argv_tail(String.split(line, Chr{0}))
+
+# S2.5 (spec twin) the path a `.beads/redirect` file names, from its text trimmed: none when the file is absent or
+# blank (`redirect_blank`); an absolute path as written; a relative one joined to the `.beads` directory WITHOUT
+# normalizing (`redirect_relative` reports `/mnt/proj/.beads/../proj/.beads`). OQ-023
+def redirect_target(+dir: String, +bytes: List<&2, U32>) -> String:
+  Bool.pick(String, String.is_empty(touched_text(Bytes.decode(bytes))), "", Bool.pick(String, String.starts_with(touched_text(Bytes.decode(bytes)), "/"), touched_text(Bytes.decode(bytes)), dir ++ "/" ++ touched_text(Bytes.decode(bytes))))
+
+# S2.5 (spec twin) a redirect file over 4096 bytes is refused before its text is read (`redirect_oversize`)
+def redirect_oversize(bytes: List<&2, U32>) -> Bool:
+  Nat.is_gt(List.length(&2, U32, bytes), 4096n)
+
+# S2.5 (spec twin) the directories the shell tests for a redirect: its target, or none (an oversize file names none)
+def redirect_paths(+dir: String, +bytes: List<&2, U32>) -> List<&2, String>:
+  Bool.pick(List<&2, String>, (redirect_oversize(bytes) || String.is_empty(redirect_target(dir, bytes))), Nil{}, redirect_target(dir, bytes) <> Nil{})
+
+# S2.5 (spec twin) one path segment into the normalized stack (REVERSED): `` and `.` are dropped, `..` pops
+def norm_put(skip: Bool, up: Bool, seg: String, acc: List<&2, String>) -> List<&2, String>:
+  match skip up acc:
+    case True{} _ _:
+      acc
+    case False{} True{} Nil{}:
+      Nil{}
+    case False{} True{} Con{h, t}:
+      t
+    case False{} False{} _:
+      seg <> acc
+
+# S2.5 (spec twin) the segments of a path, normalized
+def norm_go(segs: List<&2, String>, acc: List<&2, String>) -> List<&2, String>:
+  match segs:
+    case Nil{}:
+      acc
+    case Con{+s, rest}:
+      norm_go(rest, norm_put((String.is_empty(s) || String.eq(s, ".")), String.eq(s, ".."), s, acc))
+
+# S2.5 (spec twin) an absolute path with `.` and `..` resolved lexically (`/mnt/proj/.beads/../.beads` → `/mnt/proj/.beads`,
+# as `redirect_parent_rel` prints it)
+def normalized(path: String) -> String:
+  "/" ++ String.join(List.reverse(&2, String, norm_go(String.split(path, Chr{47}), Nil{})), "/")
+
+# S2.5 (spec twin) the workspace after its redirect: unchanged without one; the normalized target when it opened;
+# unchanged when it did not (the refusal is `redirect_missing`)
+def redirected(+dir: String, bytes: List<&2, U32>, oks: List<&2, Bool>) -> String:
+  match oks:
+    case Con{True{}, rest}:
+      normalized(redirect_target(dir, bytes))
+    case other:
+      dir
+
+# S2.5 (data) a directory's redirect as the shell read and tested it: the file's bytes and whether its target opened
+type Redir is Data:
+  Redir{bytes: List<&2, U32>, oks: List<&2, Bool>}
+
+# S2.5 (spec twin) where the next hop starts, and where the command runs after the last: the normalized target when it
+# opened, else here (at most ten hops; a redirect to itself stays, as `redirect_self` answers normally)
+def redir_dir(+dir: String, r: Redir) -> String:
+  match r:
+    case Redir{bytes, oks}:
+      redirected(dir, bytes, oks)
+
+# S2.5 (spec twin) the target a redirect names that did not open, as written; empty otherwise
+def redirect_missing(+dir: String, bytes: List<&2, U32>, oks: List<&2, Bool>) -> String:
+  match oks:
+    case Con{False{}, rest}:
+      redirect_target(dir, bytes)
+    case other:
+      ""
+
+# S2.5 (spec twin) why the last hop's redirect is refused, or empty: an oversize file names itself; a target that did
+# not open is named as written
+def redirect_problem(oversize: Bool, +dir: String, +bytes: List<&2, U32>, +oks: List<&2, Bool>) -> String:
+  match oversize:
+    case True{}:
+      "Redirect file exceeds maximum size of 4096 bytes: " ++ dir ++ "/redirect"
+    case False{}:
+      Bool.pick(String, String.is_empty(redirect_missing(dir, bytes, oks)), "", "Redirect target not found: " ++ redirect_missing(dir, bytes, oks))
+
+# S2.5 (spec twin) the refusal of the last hop's redirect, or empty
+def redir_error(+dir: String, r: Redir) -> String:
+  match r:
+    case Redir{+bytes, oks}:
+      redirect_problem(redirect_oversize(bytes), dir, bytes, oks)
+
+# S2.5 S9.8 (spec twin) a refused redirect: CONFIG_ERROR exit 7; under `BEADS_DIR` a MISSING target's message is
+# wrapped and the context names the wrapper (`redirect_missing_beads_dir_json`); an oversize file is not
+# (`redirect_oversize_beads_dir`)
+def redirect_failure(+reason: String, +beads_dir: String) -> Failure.Failure:
+  Bool.pick(Failure.Failure, (String.is_empty(String.trim(beads_dir)) || Bool.not(String.starts_with(reason, "Redirect target not found"))), Failure.Failure{"CONFIG_ERROR", "Configuration error: " ++ reason, None{}, False{}, Nil{}, 7}, Failure.Failure{"CONFIG_ERROR", "BEADS_DIR is invalid: Configuration error: " ++ reason, None{}, False{}, [Failure.CtxMember{"wrapper_context", Failure.CStr{"BEADS_DIR is invalid"}}], 7})
+
 # S5.1 S8.30 (spec twin) where a file change lands: the core names `.beads/<file>`, the shell writes it inside the
 # directory discovery found (which may be `_beads`, or `BEADS_DIR`)
 def relocated(+ws: String, +path: String) -> String:
@@ -1765,12 +1924,25 @@ def no_workspace(+beads_dir: String) -> Failure.Failure:
   Bool.pick(Failure.Failure, String.is_empty(String.trim(beads_dir)), Failure.not_initialized(), Failure.Failure{"CONFIG_ERROR", "Configuration error: BEADS_DIR not found or not a .beads directory: " ++ String.trim(beads_dir), None{}, False{}, Nil{}, 7})
 
 # S2.1 S9.8 (spec twin) route on the workspace verdict; the store path the messages quote is absolute
-def routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
+def workspace_routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
   match workspace:
     case False{}:
       failed(no_workspace(env_of(call_env(c), "BEADS_DIR")), wants_json(c))
     case True{}:
       decoded(Bytes.decode(store), cwd ++ "/.beads/issues.jsonl", c)
+
+# S2.5 (spec twin) a redirect whose target did not open refuses every command that needs the workspace, before the
+# store is read (the shell passes the core's reason in `BEADS_BEND_REDIRECT_ERROR`)
+def redirect_routed(clear: Bool, workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
+  match clear:
+    case False{}:
+      failed(redirect_failure(env_of(call_env(c), "BEADS_BEND_REDIRECT_ERROR"), env_of(call_env(c), "BEADS_DIR")), wants_json(c))
+    case True{}:
+      workspace_routed(workspace, c, cwd, store)
+
+# S2.1 S2.5 S9.8 (spec twin) route on the redirect, then on the workspace verdict
+def routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
+  redirect_routed(String.is_empty(env_of(call_env(c), "BEADS_BEND_REDIRECT_ERROR")), workspace, c, cwd, store)
 
 # S1.29 S1.89 (spec twin) a help request: the text on stdout, exit 0. A level whose help text the port does
 # not carry answers with the port's own refusal (PLAN §3: help texts beyond the captured ones are excluded)
@@ -1854,5 +2026,5 @@ def ran(p: Cli.Parsed, workspace: Bool, +cwd: String, store: List<&2, U32>, touc
 # S1 S4 S5 S9 (spec twin, dispatcher) the single entry the shell calls
 def outcome(inputs: Inputs) -> Outcome:
   match inputs:
-    case Inputs{argv, workspace, cwd, store, touched, env}:
-      ran(Cli.parse(argv), workspace, cwd, store, touched, env)
+    case Inputs{argv, workspace, cwd, store, touched, +env}:
+      ran(Cli.parse_flagged(Cli.flagged(argv, env_of(env, "BEADS_BEND_ARGV_OK"))), workspace, cwd, store, touched, env)

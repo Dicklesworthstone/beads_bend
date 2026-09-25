@@ -343,8 +343,10 @@ type Member is Data:
 type Split is Data:
   SplitBad{msg: String, at: U32}
   SplitOk{members: List<&2, Member>}
+  SplitTrail{members: List<&2, Member>, close: U32, at: U32}
 
-# S2.24 (data) where the splitter stands in `{ "k" : v , "k" : v }`
+# S2.24 (data) where the splitter stands in `{ "k" : v , "k" : v }`; `PTrail` is a closed object followed by more
+# input, which begins at `at` (serde_json judges the record's fields at the `}` BEFORE it looks past it: bb-04n)
 type Phase is Data:
   PStart{}
   PKeyFirst{}
@@ -353,6 +355,7 @@ type Phase is Data:
   PVal{}
   PAfter{}
   PDone{}
+  PTrail{at: U32}
 
 # S2.24 (data) the splitter's state: phase, nesting depth inside the current value, the current key and
 # its column, the current value's tokens (REVERSED), the members so far (REVERSED), the sticky error
@@ -377,7 +380,7 @@ def sp_key(kind: TokKind, at: U32, out: List<&2, Member>, may_close: Bool) -> Sp
     case KStr{text} _:
       Sp{PColon{}, 0n, text, at, Nil{}, out, NoErr{}}
     case KRBrace{} True{}:
-      Sp{PDone{}, 0n, "", 0, Nil{}, out, NoErr{}}
+      Sp{PDone{}, 0n, "", at, Nil{}, out, NoErr{}}
     case KRBrace{} False{}:
       sp_fail("trailing comma", at)
     case _ _:
@@ -441,13 +444,14 @@ def sp_val(kind: TokKind, at: U32, depth: Nat, key: String, kat: U32, cur: List<
     case 1n+d:
       sp_val_deep(kind, at, 1n+d, key, kat, cur, out)
 
-# S2.24 (spec twin) after a complete value: `,` continues, `}` closes; the member is recorded either way
+# S2.24 (spec twin) after a complete value: `,` continues, `}` closes; the member is recorded either way. A closed
+# object keeps the `}`'s column in the key-column slot, where a missing member is reported (bb-04n)
 def sp_after(kind: TokKind, at: U32, key: String, kat: U32, cur: List<&2, Tok>, out: List<&2, Member>) -> Sp:
   match kind:
     case KComma{}:
       Sp{PKey{}, 0n, "", 0, Nil{}, Member{key, List.reverse(&2, Tok, cur), kat} <> out, NoErr{}}
     case KRBrace{}:
-      Sp{PDone{}, 0n, "", 0, Nil{}, Member{key, List.reverse(&2, Tok, cur), kat} <> out, NoErr{}}
+      Sp{PDone{}, 0n, "", at, Nil{}, Member{key, List.reverse(&2, Tok, cur), kat} <> out, NoErr{}}
     case _:
       sp_fail("expected `,` or `}`", at)
 
@@ -467,7 +471,9 @@ def sp_phase(phase: Phase, kind: TokKind, at: U32, depth: Nat, key: String, kat:
     case PAfter{}:
       sp_after(kind, at, key, kat, cur, out)
     case PDone{}:
-      sp_fail("trailing characters", at)
+      Sp{PTrail{at}, depth, key, kat, cur, out, NoErr{}}
+    case PTrail{t}:
+      Sp{PTrail{t}, depth, key, kat, cur, out, NoErr{}}
 
 # S2.27 (spec twin) a set error is sticky
 def sp_step(st: Sp, tok: Tok) -> Sp:
@@ -487,10 +493,12 @@ def sp_go(toks: List<&2, Tok>, st: Sp) -> Sp:
 
 # S2.27 (spec twin) the end of the tokens: only a closed object is complete. `eof` is the line's byte length,
 # the column serde_json reports for an input that ends too early
-def sp_end(phase: Phase, out: List<&2, Member>, eof: U32) -> Split:
+def sp_end(phase: Phase, out: List<&2, Member>, eof: U32, close: U32) -> Split:
   match phase:
     case PDone{}:
       SplitOk{List.reverse(&2, Member, out)}
+    case PTrail{t}:
+      SplitTrail{List.reverse(&2, Member, out), close, t}
     case PStart{}:
       SplitBad{"EOF while parsing a value", eof}
     case _:
@@ -503,7 +511,7 @@ def sp_finish(st: Sp, +eof: U32) -> Split:
     case Sp{phase, depth, key, kat, cur, out, ErrAt{msg, +at}}:
       SplitBad{Bool.pick(String, (at > eof : U32), "EOF while parsing a value", msg), Bool.pick(U32, (at > eof : U32), eof, at)}
     case Sp{phase, depth, key, kat, cur, out, NoErr{}}:
-      sp_end(phase, out, eof)
+      sp_end(phase, out, eof, kat)
 
 # S2.24 S2.27 (spec twin) the members of the object these tokens spell
 def members(toks: List<&2, Tok>, eof: U32) -> Split:

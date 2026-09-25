@@ -1,0 +1,9 @@
+○ proj-a1 · T a1   [● P2 · OPEN]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-01
+
+Dependencies:
+  -> proj-b1 (blocks) - T b1
+
+Dependents:
+  <- proj-c1 (blocks) - T c1

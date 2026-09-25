@@ -1,0 +1,7 @@
+error: unexpected argument '--all' found
+
+  tip: a similar argument exists: '--allow-stale'
+
+Usage: br count --by-label --allow-stale
+
+For more information, try '--help'.
