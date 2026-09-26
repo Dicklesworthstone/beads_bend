@@ -1,0 +1,7 @@
+○ proj-p1 · T   [● P2 · OPEN]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-01
+
+Dependents:
+  <- proj-c1 (parent-child) - T
+  <- proj-c1 (blocks) - T

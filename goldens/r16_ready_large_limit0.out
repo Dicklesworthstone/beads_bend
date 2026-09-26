@@ -1,0 +1,322 @@
+📋 Ready work (320 issues with no blockers):
+
+1. [● P1] [task] proj-x005: Set up database schema
+2. [● P1] [task] proj-x00d: Set up database schema
+3. [● P1] [task] proj-x00l: Set up database schema
+4. [● P1] [task] proj-x00t: Set up database schema
+5. [● P1] [task] proj-x011: Set up database schema
+6. [● P1] [task] proj-x019: Set up database schema
+7. [● P1] [task] proj-x01h: Set up database schema
+8. [● P1] [task] proj-x01p: Set up database schema
+9. [● P1] [task] proj-x01x: Set up database schema
+10. [● P1] [task] proj-x025: Set up database schema
+11. [● P1] [task] proj-x02d: Set up database schema
+12. [● P1] [task] proj-x02l: Set up database schema
+13. [● P1] [task] proj-x02t: Set up database schema
+14. [● P1] [task] proj-x031: Set up database schema
+15. [● P1] [task] proj-x039: Set up database schema
+16. [● P1] [task] proj-x03h: Set up database schema
+17. [● P1] [task] proj-x03p: Set up database schema
+18. [● P1] [task] proj-x03x: Set up database schema
+19. [● P1] [task] proj-x045: Set up database schema
+20. [● P1] [task] proj-x04d: Set up database schema
+21. [● P1] [task] proj-x04l: Set up database schema
+22. [● P1] [task] proj-x04t: Set up database schema
+23. [● P1] [task] proj-x051: Set up database schema
+24. [● P1] [task] proj-x059: Set up database schema
+25. [● P1] [task] proj-x05h: Set up database schema
+26. [● P1] [task] proj-x05p: Set up database schema
+27. [● P1] [task] proj-x05x: Set up database schema
+28. [● P1] [task] proj-x065: Set up database schema
+29. [● P1] [task] proj-x06d: Set up database schema
+30. [● P1] [task] proj-x06l: Set up database schema
+31. [● P1] [task] proj-x06t: Set up database schema
+32. [● P1] [task] proj-x071: Set up database schema
+33. [● P1] [task] proj-x079: Set up database schema
+34. [● P1] [task] proj-x07h: Set up database schema
+35. [● P1] [task] proj-x07p: Set up database schema
+36. [● P1] [task] proj-x07x: Set up database schema
+37. [● P1] [task] proj-x085: Set up database schema
+38. [● P1] [task] proj-x08d: Set up database schema
+39. [● P1] [task] proj-x08l: Set up database schema
+40. [● P1] [task] proj-x08t: Set up database schema
+41. [● P1] [task] proj-x091: Set up database schema
+42. [● P1] [task] proj-x099: Set up database schema
+43. [● P1] [task] proj-x09h: Set up database schema
+44. [● P1] [task] proj-x09p: Set up database schema
+45. [● P1] [task] proj-x09x: Set up database schema
+46. [● P1] [task] proj-x0a5: Set up database schema
+47. [● P1] [task] proj-x0ad: Set up database schema
+48. [● P1] [task] proj-x0al: Set up database schema
+49. [● P1] [task] proj-x0at: Set up database schema
+50. [● P1] [task] proj-x0b1: Set up database schema
+51. [● P1] [task] proj-x0b9: Set up database schema
+52. [● P1] [task] proj-x0bh: Set up database schema
+53. [● P1] [task] proj-x0bp: Set up database schema
+54. [● P1] [task] proj-x0bx: Set up database schema
+55. [● P1] [task] proj-x0c5: Set up database schema
+56. [● P1] [task] proj-x0cd: Set up database schema
+57. [● P1] [task] proj-x0cl: Set up database schema
+58. [● P1] [task] proj-x0ct: Set up database schema
+59. [● P1] [task] proj-x0d1: Set up database schema
+60. [● P1] [task] proj-x0d9: Set up database schema
+61. [● P1] [task] proj-x0dh: Set up database schema
+62. [● P1] [task] proj-x0dp: Set up database schema
+63. [● P1] [task] proj-x0dx: Set up database schema
+64. [● P1] [task] proj-x0e5: Set up database schema
+65. [● P1] [feature] proj-x000: Implement user auth
+66. [● P1] [feature] proj-x008: Implement user auth
+67. [● P1] [feature] proj-x00g: Implement user auth
+68. [● P1] [feature] proj-x00o: Implement user auth
+69. [● P1] [feature] proj-x00w: Implement user auth
+70. [● P1] [feature] proj-x014: Implement user auth
+71. [● P1] [feature] proj-x01c: Implement user auth
+72. [● P1] [feature] proj-x01k: Implement user auth
+73. [● P1] [feature] proj-x01s: Implement user auth
+74. [● P1] [feature] proj-x020: Implement user auth
+75. [● P1] [feature] proj-x028: Implement user auth
+76. [● P1] [feature] proj-x02g: Implement user auth
+77. [● P1] [feature] proj-x02o: Implement user auth
+78. [● P1] [feature] proj-x02w: Implement user auth
+79. [● P1] [feature] proj-x034: Implement user auth
+80. [● P1] [feature] proj-x03c: Implement user auth
+81. [● P1] [feature] proj-x03k: Implement user auth
+82. [● P1] [feature] proj-x03s: Implement user auth
+83. [● P1] [feature] proj-x040: Implement user auth
+84. [● P1] [feature] proj-x048: Implement user auth
+85. [● P1] [feature] proj-x04g: Implement user auth
+86. [● P1] [feature] proj-x04o: Implement user auth
+87. [● P1] [feature] proj-x04w: Implement user auth
+88. [● P1] [feature] proj-x054: Implement user auth
+89. [● P1] [feature] proj-x05c: Implement user auth
+90. [● P1] [feature] proj-x05k: Implement user auth
+91. [● P1] [feature] proj-x05s: Implement user auth
+92. [● P1] [feature] proj-x060: Implement user auth
+93. [● P1] [feature] proj-x068: Implement user auth
+94. [● P1] [feature] proj-x06g: Implement user auth
+95. [● P1] [feature] proj-x06o: Implement user auth
+96. [● P1] [feature] proj-x06w: Implement user auth
+97. [● P1] [feature] proj-x074: Implement user auth
+98. [● P1] [feature] proj-x07c: Implement user auth
+99. [● P1] [feature] proj-x07k: Implement user auth
+100. [● P1] [feature] proj-x07s: Implement user auth
+101. [● P1] [feature] proj-x080: Implement user auth
+102. [● P1] [feature] proj-x088: Implement user auth
+103. [● P1] [feature] proj-x08g: Implement user auth
+104. [● P1] [feature] proj-x08o: Implement user auth
+105. [● P1] [feature] proj-x08w: Implement user auth
+106. [● P1] [feature] proj-x094: Implement user auth
+107. [● P1] [feature] proj-x09c: Implement user auth
+108. [● P1] [feature] proj-x09k: Implement user auth
+109. [● P1] [feature] proj-x09s: Implement user auth
+110. [● P1] [feature] proj-x0a0: Implement user auth
+111. [● P1] [feature] proj-x0a8: Implement user auth
+112. [● P1] [feature] proj-x0ag: Implement user auth
+113. [● P1] [feature] proj-x0ao: Implement user auth
+114. [● P1] [feature] proj-x0aw: Implement user auth
+115. [● P1] [feature] proj-x0b4: Implement user auth
+116. [● P1] [feature] proj-x0bc: Implement user auth
+117. [● P1] [feature] proj-x0bk: Implement user auth
+118. [● P1] [feature] proj-x0bs: Implement user auth
+119. [● P1] [feature] proj-x0c0: Implement user auth
+120. [● P1] [feature] proj-x0c8: Implement user auth
+121. [● P1] [feature] proj-x0cg: Implement user auth
+122. [● P1] [feature] proj-x0co: Implement user auth
+123. [● P1] [feature] proj-x0cw: Implement user auth
+124. [● P1] [feature] proj-x0d4: Implement user auth
+125. [● P1] [feature] proj-x0dc: Implement user auth
+126. [● P1] [feature] proj-x0dk: Implement user auth
+127. [● P1] [feature] proj-x0ds: Implement user auth
+128. [● P1] [feature] proj-x0e0: Implement user auth
+129. [● P3] [docs] proj-x001: Write API docs
+130. [● P3] [docs] proj-x009: Write API docs
+131. [● P3] [docs] proj-x00h: Write API docs
+132. [● P3] [docs] proj-x00p: Write API docs
+133. [● P3] [docs] proj-x00x: Write API docs
+134. [● P3] [docs] proj-x015: Write API docs
+135. [● P3] [docs] proj-x01d: Write API docs
+136. [● P3] [docs] proj-x01l: Write API docs
+137. [● P3] [docs] proj-x01t: Write API docs
+138. [● P3] [docs] proj-x021: Write API docs
+139. [● P3] [docs] proj-x029: Write API docs
+140. [● P3] [docs] proj-x02h: Write API docs
+141. [● P3] [docs] proj-x02p: Write API docs
+142. [● P3] [docs] proj-x02x: Write API docs
+143. [● P3] [docs] proj-x035: Write API docs
+144. [● P3] [docs] proj-x03d: Write API docs
+145. [● P3] [docs] proj-x03l: Write API docs
+146. [● P3] [docs] proj-x03t: Write API docs
+147. [● P3] [docs] proj-x041: Write API docs
+148. [● P3] [docs] proj-x049: Write API docs
+149. [● P3] [docs] proj-x04h: Write API docs
+150. [● P3] [docs] proj-x04p: Write API docs
+151. [● P3] [docs] proj-x04x: Write API docs
+152. [● P3] [docs] proj-x055: Write API docs
+153. [● P3] [docs] proj-x05d: Write API docs
+154. [● P3] [docs] proj-x05l: Write API docs
+155. [● P3] [docs] proj-x05t: Write API docs
+156. [● P3] [docs] proj-x061: Write API docs
+157. [● P3] [docs] proj-x069: Write API docs
+158. [● P3] [docs] proj-x06h: Write API docs
+159. [● P3] [docs] proj-x06p: Write API docs
+160. [● P3] [docs] proj-x06x: Write API docs
+161. [● P3] [docs] proj-x075: Write API docs
+162. [● P3] [docs] proj-x07d: Write API docs
+163. [● P3] [docs] proj-x07l: Write API docs
+164. [● P3] [docs] proj-x07t: Write API docs
+165. [● P3] [docs] proj-x081: Write API docs
+166. [● P3] [docs] proj-x089: Write API docs
+167. [● P3] [docs] proj-x08h: Write API docs
+168. [● P3] [docs] proj-x08p: Write API docs
+169. [● P3] [docs] proj-x08x: Write API docs
+170. [● P3] [docs] proj-x095: Write API docs
+171. [● P3] [docs] proj-x09d: Write API docs
+172. [● P3] [docs] proj-x09l: Write API docs
+173. [● P3] [docs] proj-x09t: Write API docs
+174. [● P3] [docs] proj-x0a1: Write API docs
+175. [● P3] [docs] proj-x0a9: Write API docs
+176. [● P3] [docs] proj-x0ah: Write API docs
+177. [● P3] [docs] proj-x0ap: Write API docs
+178. [● P3] [docs] proj-x0ax: Write API docs
+179. [● P3] [docs] proj-x0b5: Write API docs
+180. [● P3] [docs] proj-x0bd: Write API docs
+181. [● P3] [docs] proj-x0bl: Write API docs
+182. [● P3] [docs] proj-x0bt: Write API docs
+183. [● P3] [docs] proj-x0c1: Write API docs
+184. [● P3] [docs] proj-x0c9: Write API docs
+185. [● P3] [docs] proj-x0ch: Write API docs
+186. [● P3] [docs] proj-x0cp: Write API docs
+187. [● P3] [docs] proj-x0cx: Write API docs
+188. [● P3] [docs] proj-x0d5: Write API docs
+189. [● P3] [docs] proj-x0dd: Write API docs
+190. [● P3] [docs] proj-x0dl: Write API docs
+191. [● P3] [docs] proj-x0dt: Write API docs
+192. [● P3] [docs] proj-x0e1: Write API docs
+193. [● P2] [epic] proj-x007: Auth epic
+194. [● P2] [epic] proj-x00f: Auth epic
+195. [● P2] [epic] proj-x00n: Auth epic
+196. [● P2] [epic] proj-x00v: Auth epic
+197. [● P2] [epic] proj-x013: Auth epic
+198. [● P2] [epic] proj-x01b: Auth epic
+199. [● P2] [epic] proj-x01j: Auth epic
+200. [● P2] [epic] proj-x01r: Auth epic
+201. [● P2] [epic] proj-x01z: Auth epic
+202. [● P2] [epic] proj-x027: Auth epic
+203. [● P2] [epic] proj-x02f: Auth epic
+204. [● P2] [epic] proj-x02n: Auth epic
+205. [● P2] [epic] proj-x02v: Auth epic
+206. [● P2] [epic] proj-x033: Auth epic
+207. [● P2] [epic] proj-x03b: Auth epic
+208. [● P2] [epic] proj-x03j: Auth epic
+209. [● P2] [epic] proj-x03r: Auth epic
+210. [● P2] [epic] proj-x03z: Auth epic
+211. [● P2] [epic] proj-x047: Auth epic
+212. [● P2] [epic] proj-x04f: Auth epic
+213. [● P2] [epic] proj-x04n: Auth epic
+214. [● P2] [epic] proj-x04v: Auth epic
+215. [● P2] [epic] proj-x053: Auth epic
+216. [● P2] [epic] proj-x05b: Auth epic
+217. [● P2] [epic] proj-x05j: Auth epic
+218. [● P2] [epic] proj-x05r: Auth epic
+219. [● P2] [epic] proj-x05z: Auth epic
+220. [● P2] [epic] proj-x067: Auth epic
+221. [● P2] [epic] proj-x06f: Auth epic
+222. [● P2] [epic] proj-x06n: Auth epic
+223. [● P2] [epic] proj-x06v: Auth epic
+224. [● P2] [epic] proj-x073: Auth epic
+225. [● P2] [epic] proj-x07b: Auth epic
+226. [● P2] [epic] proj-x07j: Auth epic
+227. [● P2] [epic] proj-x07r: Auth epic
+228. [● P2] [epic] proj-x07z: Auth epic
+229. [● P2] [epic] proj-x087: Auth epic
+230. [● P2] [epic] proj-x08f: Auth epic
+231. [● P2] [epic] proj-x08n: Auth epic
+232. [● P2] [epic] proj-x08v: Auth epic
+233. [● P2] [epic] proj-x093: Auth epic
+234. [● P2] [epic] proj-x09b: Auth epic
+235. [● P2] [epic] proj-x09j: Auth epic
+236. [● P2] [epic] proj-x09r: Auth epic
+237. [● P2] [epic] proj-x09z: Auth epic
+238. [● P2] [epic] proj-x0a7: Auth epic
+239. [● P2] [epic] proj-x0af: Auth epic
+240. [● P2] [epic] proj-x0an: Auth epic
+241. [● P2] [epic] proj-x0av: Auth epic
+242. [● P2] [epic] proj-x0b3: Auth epic
+243. [● P2] [epic] proj-x0bb: Auth epic
+244. [● P2] [epic] proj-x0bj: Auth epic
+245. [● P2] [epic] proj-x0br: Auth epic
+246. [● P2] [epic] proj-x0bz: Auth epic
+247. [● P2] [epic] proj-x0c7: Auth epic
+248. [● P2] [epic] proj-x0cf: Auth epic
+249. [● P2] [epic] proj-x0cn: Auth epic
+250. [● P2] [epic] proj-x0cv: Auth epic
+251. [● P2] [epic] proj-x0d3: Auth epic
+252. [● P2] [epic] proj-x0db: Auth epic
+253. [● P2] [epic] proj-x0dj: Auth epic
+254. [● P2] [epic] proj-x0dr: Auth epic
+255. [● P2] [epic] proj-x0dz: Auth epic
+256. [● P2] [epic] proj-x0e7: Auth epic
+257. [● P2] [task] proj-x003: Ünïcödé title — “quotes” & <tags> \ backslash
+258. [● P2] [task] proj-x00b: Ünïcödé title — “quotes” & <tags> \ backslash
+259. [● P2] [task] proj-x00j: Ünïcödé title — “quotes” & <tags> \ backslash
+260. [● P2] [task] proj-x00r: Ünïcödé title — “quotes” & <tags> \ backslash
+261. [● P2] [task] proj-x00z: Ünïcödé title — “quotes” & <tags> \ backslash
+262. [● P2] [task] proj-x017: Ünïcödé title — “quotes” & <tags> \ backslash
+263. [● P2] [task] proj-x01f: Ünïcödé title — “quotes” & <tags> \ backslash
+264. [● P2] [task] proj-x01n: Ünïcödé title — “quotes” & <tags> \ backslash
+265. [● P2] [task] proj-x01v: Ünïcödé title — “quotes” & <tags> \ backslash
+266. [● P2] [task] proj-x023: Ünïcödé title — “quotes” & <tags> \ backslash
+267. [● P2] [task] proj-x02b: Ünïcödé title — “quotes” & <tags> \ backslash
+268. [● P2] [task] proj-x02j: Ünïcödé title — “quotes” & <tags> \ backslash
+269. [● P2] [task] proj-x02r: Ünïcödé title — “quotes” & <tags> \ backslash
+270. [● P2] [task] proj-x02z: Ünïcödé title — “quotes” & <tags> \ backslash
+271. [● P2] [task] proj-x037: Ünïcödé title — “quotes” & <tags> \ backslash
+272. [● P2] [task] proj-x03f: Ünïcödé title — “quotes” & <tags> \ backslash
+273. [● P2] [task] proj-x03n: Ünïcödé title — “quotes” & <tags> \ backslash
+274. [● P2] [task] proj-x03v: Ünïcödé title — “quotes” & <tags> \ backslash
+275. [● P2] [task] proj-x043: Ünïcödé title — “quotes” & <tags> \ backslash
+276. [● P2] [task] proj-x04b: Ünïcödé title — “quotes” & <tags> \ backslash
+277. [● P2] [task] proj-x04j: Ünïcödé title — “quotes” & <tags> \ backslash
+278. [● P2] [task] proj-x04r: Ünïcödé title — “quotes” & <tags> \ backslash
+279. [● P2] [task] proj-x04z: Ünïcödé title — “quotes” & <tags> \ backslash
+280. [● P2] [task] proj-x057: Ünïcödé title — “quotes” & <tags> \ backslash
+281. [● P2] [task] proj-x05f: Ünïcödé title — “quotes” & <tags> \ backslash
+282. [● P2] [task] proj-x05n: Ünïcödé title — “quotes” & <tags> \ backslash
+283. [● P2] [task] proj-x05v: Ünïcödé title — “quotes” & <tags> \ backslash
+284. [● P2] [task] proj-x063: Ünïcödé title — “quotes” & <tags> \ backslash
+285. [● P2] [task] proj-x06b: Ünïcödé title — “quotes” & <tags> \ backslash
+286. [● P2] [task] proj-x06j: Ünïcödé title — “quotes” & <tags> \ backslash
+287. [● P2] [task] proj-x06r: Ünïcödé title — “quotes” & <tags> \ backslash
+288. [● P2] [task] proj-x06z: Ünïcödé title — “quotes” & <tags> \ backslash
+289. [● P2] [task] proj-x077: Ünïcödé title — “quotes” & <tags> \ backslash
+290. [● P2] [task] proj-x07f: Ünïcödé title — “quotes” & <tags> \ backslash
+291. [● P2] [task] proj-x07n: Ünïcödé title — “quotes” & <tags> \ backslash
+292. [● P2] [task] proj-x07v: Ünïcödé title — “quotes” & <tags> \ backslash
+293. [● P2] [task] proj-x083: Ünïcödé title — “quotes” & <tags> \ backslash
+294. [● P2] [task] proj-x08b: Ünïcödé title — “quotes” & <tags> \ backslash
+295. [● P2] [task] proj-x08j: Ünïcödé title — “quotes” & <tags> \ backslash
+296. [● P2] [task] proj-x08r: Ünïcödé title — “quotes” & <tags> \ backslash
+297. [● P2] [task] proj-x08z: Ünïcödé title — “quotes” & <tags> \ backslash
+298. [● P2] [task] proj-x097: Ünïcödé title — “quotes” & <tags> \ backslash
+299. [● P2] [task] proj-x09f: Ünïcödé title — “quotes” & <tags> \ backslash
+300. [● P2] [task] proj-x09n: Ünïcödé title — “quotes” & <tags> \ backslash
+301. [● P2] [task] proj-x09v: Ünïcödé title — “quotes” & <tags> \ backslash
+302. [● P2] [task] proj-x0a3: Ünïcödé title — “quotes” & <tags> \ backslash
+303. [● P2] [task] proj-x0ab: Ünïcödé title — “quotes” & <tags> \ backslash
+304. [● P2] [task] proj-x0aj: Ünïcödé title — “quotes” & <tags> \ backslash
+305. [● P2] [task] proj-x0ar: Ünïcödé title — “quotes” & <tags> \ backslash
+306. [● P2] [task] proj-x0az: Ünïcödé title — “quotes” & <tags> \ backslash
+307. [● P2] [task] proj-x0b7: Ünïcödé title — “quotes” & <tags> \ backslash
+308. [● P2] [task] proj-x0bf: Ünïcödé title — “quotes” & <tags> \ backslash
+309. [● P2] [task] proj-x0bn: Ünïcödé title — “quotes” & <tags> \ backslash
+310. [● P2] [task] proj-x0bv: Ünïcödé title — “quotes” & <tags> \ backslash
+311. [● P2] [task] proj-x0c3: Ünïcödé title — “quotes” & <tags> \ backslash
+312. [● P2] [task] proj-x0cb: Ünïcödé title — “quotes” & <tags> \ backslash
+313. [● P2] [task] proj-x0cj: Ünïcödé title — “quotes” & <tags> \ backslash
+314. [● P2] [task] proj-x0cr: Ünïcödé title — “quotes” & <tags> \ backslash
+315. [● P2] [task] proj-x0cz: Ünïcödé title — “quotes” & <tags> \ backslash
+316. [● P2] [task] proj-x0d7: Ünïcödé title — “quotes” & <tags> \ backslash
+317. [● P2] [task] proj-x0df: Ünïcödé title — “quotes” & <tags> \ backslash
+318. [● P2] [task] proj-x0dn: Ünïcödé title — “quotes” & <tags> \ backslash
+319. [● P2] [task] proj-x0dv: Ünïcödé title — “quotes” & <tags> \ backslash
+320. [● P2] [task] proj-x0e3: Ünïcödé title — “quotes” & <tags> \ backslash

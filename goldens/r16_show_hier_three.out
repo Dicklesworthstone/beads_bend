@@ -1,0 +1,27 @@
+○ proj-ig8 · Deep leaf   [● P4 · OPEN]
+Owner: tester · Type: task
+Created: 2026-06-01 · Updated: 2026-06-01
+
+Dependents:
+  <- proj-in9 (blocks) - Shared node with a child
+
+○ proj-in9 · Shared node with a child   [● P3 · OPEN]
+Owner: tester · Type: task
+Created: 2026-06-01 · Updated: 2026-06-01
+
+Dependencies:
+  -> proj-ig8 (blocks) - Deep leaf
+
+Dependents:
+  <- proj-t11 (blocks) - Alpha busy branch
+  <- proj-0i4 (blocks) - Zeta open branch
+
+◐ proj-t11 · Alpha busy branch   [● P2 · IN_PROGRESS]
+Owner: tester · Type: task
+Created: 2026-06-01 · Updated: 2026-06-01
+
+Dependencies:
+  -> proj-in9 (blocks) - Shared node with a child
+
+Dependents:
+  <- proj-6ja (blocks) - Hierarchy root

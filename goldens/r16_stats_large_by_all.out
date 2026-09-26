@@ -1,0 +1,41 @@
+📊 Issue Database Status
+
+Summary:
+  Total Issues:           512
+  Open:                   320
+  In Progress:            64
+  Blocked:                0
+  Closed:                 64
+  Ready to Work:          320
+  Deferred:               64
+
+Extended:
+  Avg Lead Time:          2.0 hours
+
+By type:
+  bug: 64
+  chore: 64
+  docs: 64
+  epic: 64
+  feature: 64
+  task: 192
+
+By priority:
+  P0: 64
+  P1: 128
+  P2: 192
+  P3: 64
+  P4: 64
+
+By assignee:
+  (unassigned): 384
+  alice: 64
+  bob: 64
+
+By label:
+  (no labels): 384
+  auth: 64
+  backend: 128
+  db: 64
+
+For more details, use 'br list' to see individual issues.

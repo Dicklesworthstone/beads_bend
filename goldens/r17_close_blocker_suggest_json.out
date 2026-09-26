@@ -1,0 +1,20 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation errors: [ValidationError { field: \"updated_at\", message: \"cannot be before created_at\" }, ValidationError { field: \"closed_at\", message: \"cannot be before created_at\" }]",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "errors": [
+        {
+          "field": "updated_at",
+          "message": "cannot be before created_at"
+        },
+        {
+          "field": "closed_at",
+          "message": "cannot be before created_at"
+        }
+      ]
+    }
+  }
+}

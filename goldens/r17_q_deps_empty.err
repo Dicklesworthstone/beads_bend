@@ -1,0 +1,7 @@
+error: unexpected argument '--deps' found
+
+  tip: a similar argument exists: '--description'
+
+Usage: br q --description <DESCRIPTION> <TITLE>...
+
+For more information, try '--help'.

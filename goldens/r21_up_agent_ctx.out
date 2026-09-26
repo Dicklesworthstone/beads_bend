@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: session: --session can only be used when closing with --status closed",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "session",
+      "reason": "--session can only be used when closing with --status closed"
+    }
+  }
+}

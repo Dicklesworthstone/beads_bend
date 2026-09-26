@@ -1,0 +1,8 @@
+id,title,status,priority,issue_type,assignee,created_at,updated_at
+proj-ptp,Fix login timeout,in_progress,0,bug,bob,2026-01-01T10:00:02+00:00,2026-01-01T12:30:00+00:00
+proj-170,Implement user auth,open,1,feature,alice,2026-01-01T10:00:01+00:00,2026-01-01T11:00:00+00:00
+proj-mta,Set up database schema,open,1,task,,2026-01-01T10:00:00+00:00,2026-01-01T10:00:00+00:00
+proj-b75,Ünïcödé title — “quotes” & <tags> \ backslash,open,2,task,,2026-01-01T10:00:06+00:00,2026-01-01T10:00:06+00:00
+proj-uly,Auth epic,open,2,epic,,2026-01-01T10:00:04+00:00,2026-01-01T10:00:04+00:00
+proj-5u2,Write API docs,open,3,docs,,2026-01-01T10:00:03+00:00,2026-01-01T11:00:00+00:00
+proj-7vm,Refactor config loader,deferred,4,chore,,2026-01-01T10:00:05+00:00,2026-01-01T14:00:00+00:00

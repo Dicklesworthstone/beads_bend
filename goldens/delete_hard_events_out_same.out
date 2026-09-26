@@ -1,0 +1,4 @@
+{"deleted":["proj-aaa"],"deleted_count":1,"dependencies_removed":2,"labels_removed":0,"events_removed":1,"references_updated":0,"orphaned_issues":[]}
+--- .beads/issues.jsonl ---
+{"id":"proj-bbb","title":"T proj-bbb","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","created_by":"tester","updated_at":"2026-01-01T10:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}
+{"id":"proj-ccc","title":"T proj-ccc","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","created_by":"tester","updated_at":"2026-01-01T10:00:00Z","source_repo":"proj","source_repo_path":"/mnt/proj","compaction_level":0,"original_size":0}

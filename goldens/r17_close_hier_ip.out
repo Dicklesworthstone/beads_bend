@@ -1,0 +1,12 @@
+{"closed":[],"skipped":[{"id":"proj-t11","reason":"blocked by: proj-in9 — close the open blocker(s) first, or use --force to close anyway"}]}
+{
+  "error": {
+    "code": "NOTHING_TO_DO",
+    "message": "Nothing to do: all 1 issue(s) skipped — proj-t11: blocked by: proj-in9 — close the open blocker(s) first, or use --force to close anyway",
+    "hint": "Skipped issue(s) have open blocking dependencies. Close the blockers first, or re-run with --force to close anyway.",
+    "retryable": false,
+    "context": {
+      "reason": "all 1 issue(s) skipped — proj-t11: blocked by: proj-in9 — close the open blocker(s) first, or use --force to close anyway"
+    }
+  }
+}

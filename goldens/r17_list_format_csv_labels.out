@@ -1,0 +1,3 @@
+id,title,status,priority,issue_type,assignee,created_at,updated_at
+proj-170,Implement user auth,open,1,feature,alice,2026-01-01T10:00:01+00:00,2026-01-01T11:00:00+00:00
+proj-mta,Set up database schema,open,1,task,,2026-01-01T10:00:00+00:00,2026-01-01T10:00:00+00:00

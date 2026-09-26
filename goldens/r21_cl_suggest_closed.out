@@ -1,0 +1,12 @@
+{"closed":[],"skipped":[{"id":"proj-mkh","reason":"already closed"}],"unblocked":[]}
+{
+  "error": {
+    "code": "NOTHING_TO_DO",
+    "message": "Nothing to do: all 1 issue(s) skipped — proj-mkh: already closed",
+    "hint": "Skipped issue(s) were already closed or not found.",
+    "retryable": false,
+    "context": {
+      "reason": "all 1 issue(s) skipped — proj-mkh: already closed"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+📊 Issue Database Status
+
+Summary:
+  Total Issues:           512
+  Open:                   320
+  In Progress:            64
+  Blocked:                0
+  Closed:                 64
+  Ready to Work:          320
+  Deferred:               64
+
+Extended:
+  Avg Lead Time:          2.0 hours
+
+For more details, use 'br list' to see individual issues.

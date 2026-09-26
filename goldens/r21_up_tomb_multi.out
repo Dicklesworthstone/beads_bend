@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: issue: cannot update tombstone issue: proj-c3",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "issue",
+      "reason": "cannot update tombstone issue: proj-c3"
+    }
+  }
+}

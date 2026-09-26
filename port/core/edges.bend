@@ -204,9 +204,11 @@ def reaches(+issues: List<&2, Model.Issue>, +start: String, +goal: String) -> Bo
   Blocked.among(reached(Nat.add(List.length(&2, Model.Issue, issues), 1n), arcs(issues), start <> Nil{}, step_of(arcs(issues), start <> Nil{})), goal)
 
 # S4.354 (spec twin) would the new edge close a cycle: its arc's head already reaches its tail. A `parent-child`
-# edge's arc runs parent → child, so the check starts at the target
+# edge's arc runs parent → child, so the check starts at the dependent (the child). A `parent-child` edge is checked
+# too, although it is not a blocking type (round 16: `dep add proj-9vo proj-9vo.1 -t parent-child` on `parents` is a
+# cycle; the port used to add it)
 def closes_cycle(+issues: List<&2, Model.Issue>, +dependent: String, +target: String, +kind: String) -> Bool:
-  Bool.pick(Bool, Blocked.blocking(kind), Bool.pick(Bool, String.eq(kind, "parent-child"), reaches(issues, dependent, target), reaches(issues, target, dependent)), False{})
+  Bool.pick(Bool, (Blocked.blocking(kind) || String.eq(kind, "parent-child")), Bool.pick(Bool, String.eq(kind, "parent-child"), reaches(issues, dependent, target), reaches(issues, target, dependent)), False{})
 
 # ---------------------------------------------------------------- the edge itself (S4.350, S4.358–S4.363)
 

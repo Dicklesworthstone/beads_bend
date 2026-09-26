@@ -1,0 +1,7 @@
+error: unexpected argument '--notes' found
+
+  tip: to pass '--notes' as a value, use '-- --notes'
+
+Usage: br create <TITLE>
+
+For more information, try '--help'.

@@ -1,0 +1,11 @@
+✓ proj-e1 t proj-e1
+   Progress: 2/2 children closed (100%)
+   Eligible for closure
+
+✓ proj-e2 t proj-e2
+   Progress: 1/1 children closed (100%)
+   Eligible for closure
+
+○ proj-e4 t proj-e4
+   Progress: 1/2 children closed (50%)
+

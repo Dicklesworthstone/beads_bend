@@ -1,0 +1,11 @@
+
+🚫 Blocked issues (2):
+
+[● P0] proj-9vo.3: Blocked child
+  Blocked by:
+    • proj-3av: Loose task [P2] [open]
+[● P1] proj-9vo: Parent epic
+  Blocked by:
+    • proj-9vo.1: Child one [P2] [open]
+    • proj-9vo.2: Child two [P3] [open]
+    • proj-9vo.3: Blocked child [P0] [open]

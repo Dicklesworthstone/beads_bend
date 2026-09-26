@@ -1,0 +1,7 @@
+id,title,status,priority,issue_type,assignee,created_at,updated_at
+proj-9vo.3,Blocked child,open,0,task,,2026-04-05T06:07:08+00:00,2026-04-05T06:07:08+00:00
+proj-9vo,Parent epic,open,1,epic,,2026-04-05T06:07:08+00:00,2026-04-05T06:07:08+00:00
+proj-9vo.1.1,Grandchild,open,1,task,,2026-04-05T06:07:08+00:00,2026-04-05T06:07:08+00:00
+proj-3av,Loose task,open,2,task,,2026-04-05T06:07:08+00:00,2026-04-05T06:07:08+00:00
+proj-9vo.1,Child one,open,2,task,,2026-04-05T06:07:08+00:00,2026-04-05T06:07:08+00:00
+proj-9vo.2,Child two,open,3,task,,2026-04-05T06:07:08+00:00,2026-04-05T06:07:08+00:00

@@ -1,0 +1,3 @@
+id,title,status,priority,issue_type,assignee,created_at,updated_at
+proj-uly,Auth epic,open,2,epic,,2026-01-01T10:00:04+00:00,2026-01-01T10:00:04+00:00
+proj-ptp,Fix login timeout,in_progress,0,bug,bob,2026-01-01T10:00:02+00:00,2026-01-01T12:30:00+00:00

@@ -15,6 +15,7 @@ import ./resolve.bend as Resolve
 import ./blocked.bend as Blocked
 import ./work.bend as Work
 import ./query.bend as Query
+import ./show.bend as Show
 
 # S5.20 (data) what a view answers: a refusal; the text for stdout; or "this form is not ported yet"
 type View is Data:
@@ -117,11 +118,12 @@ def edges_of(+i: Model.Issue, +all: List<&2, Model.Issue>, direction: U32, +kind
       List.append(&2, Edge, List.sort(~Edge, ~edge_le_query, down_edges(Model.deps_of(i), all, kind)), List.sort(~Edge, ~edge_le_query, up_edges(all, Model.id_of(i), kind)))
 
 # S5.177 S5.151 (spec twin) the other end's title, priority and status; a missing end shows an empty title, priority 2 and
-# `unknown` (OQ-122), except an `external:` end, which shows `⏳ {ref}` and `blocked` (OQ-045)
+# `unknown` (OQ-122), except an `external:` end, which shows `⏳ {ref}` and `blocked` (OQ-045), `{ref}` without the
+# `external:` prefix when it is `<project>:<id>`, as `show` spells it (round 20: `dep list`, `dep tree`)
 def other_title(other: Maybe<&2, Model.Issue>, +id: String) -> String:
   match other:
     case None{}:
-      Bool.pick(String, String.starts_with(id, "external:"), "⏳ " ++ id, "")
+      Bool.pick(String, String.starts_with(id, "external:"), "⏳ " ++ Show.ext_title(id), "")
     case Some{i}:
       Model.title_of(i)
 
@@ -306,11 +308,12 @@ def expands(+all: List<&2, Model.Issue>, +id: String, depth: Nat, max_depth: Nat
 type Kid is Data:
   Kid{id: String, rank: U32, srank: U32, title: String}
 
-# S4.184 (spec twin) a neighbour with its sort keys; a node with no stored record ranks last on both ranks
+# S4.184 (spec twin) a neighbour with its sort keys; a node with no stored record ranks last on both ranks, except an
+# `external:` end, which sorts as the P2 `blocked` node with the title it shows (round 20: `dep_tree_ext_titles`)
 def kid_of(found: Maybe<&2, Model.Issue>, +id: String) -> Kid:
   match found:
     case None{}:
-      Kid{id, 256, 6, ""}
+      Bool.pick(Kid, String.starts_with(id, "external:"), Kid{id, 2, status_rank("blocked"), other_title(None{}, id)}, Kid{id, 256, 6, ""})
     case Some{+i}:
       Kid{id, Query.priority_number(Model.priority_of(i)), status_rank(Model.status_of(i)), Model.title_of(i)}
 
@@ -804,13 +807,17 @@ def wits_json(ws: List<&2, Wit>, acc: List<&2, String>) -> String:
     case Con{Wit{ids, archived}, rest}:
       wits_json(rest, wit_json(ids) <> acc)
 
-# S5.182 (spec twin) the numbered lines, `  {i}. {id -> id -> …}`
-def wit_lines(ws: List<&2, Wit>, +i: U32, acc: String) -> String:
+# S5.182 (spec twin) the numbered lines, `  {i}. {id -> id -> …}`, REVERSED onto acc (joined once by `wit_lines`)
+def wit_lines_go(ws: List<&2, Wit>, +i: U32, acc: List<&2, String>) -> List<&2, String>:
   match ws:
     case Nil{}:
       acc
     case Con{Wit{ids, archived}, rest}:
-      wit_lines(rest, (i + 1 : U32), acc ++ "  " ++ U32.show(i) ++ ". " ++ String.join(ids, " -> ") ++ "\n")
+      wit_lines_go(rest, (i + 1 : U32), ("  " ++ U32.show(i) ++ ". " ++ String.join(ids, " -> ") ++ "\n") <> acc)
+
+# S5.182 (spec twin) the numbered lines, `  {i}. {id -> id -> …}`, numbered from `i`
+def wit_lines(ws: List<&2, Wit>, +i: U32, acc: String) -> String:
+  acc ++ String.concat(List.reverse(&2, String, wit_lines_go(ws, i, Nil{})))
 
 # S4.188 (spec twin) keep a witness of the wanted kind
 def kind_put(keep: Bool, w: Wit, acc: List<&2, Wit>) -> List<&2, Wit>:
@@ -1080,13 +1087,15 @@ def prefix_line(prefix: Maybe<&2, String>) -> String:
       "  prefix: " ++ p ++ "\n"
 
 # S5.56 S5.200 (spec twin) `where`: the `.beads` directory, the prefix, the path `beads.db` would have (printed even
-# though `--no-db` never creates it), and the store
-def whereabouts(+dir: String, prefix: Maybe<&2, String>, json: Bool) -> View:
+# though `--no-db` never creates it), and the store; `relative` (a relative `BEADS_DIR`) adds the redirect note, the
+# directory naming itself (round 21: `BEADS_DIR=.beads where` prints `  (via redirect from /mnt/proj/.beads)`, and
+# `redirected_from` under `--json`)
+def whereabouts(+dir: String, prefix: Maybe<&2, String>, json: Bool, relative: Bool) -> View:
   match json:
     case True{}:
-      ViewOk{String.concat(["{\"path\":", Failure.quoted(dir), prefix_member(prefix), ",\"database_path\":", Failure.quoted(dir ++ "/beads.db"), ",\"jsonl_path\":", Failure.quoted(dir ++ "/issues.jsonl"), "}\n"])}
+      ViewOk{String.concat(["{\"path\":", Failure.quoted(dir), Bool.pick(String, relative, ",\"redirected_from\":" ++ Failure.quoted(dir), ""), prefix_member(prefix), ",\"database_path\":", Failure.quoted(dir ++ "/beads.db"), ",\"jsonl_path\":", Failure.quoted(dir ++ "/issues.jsonl"), "}\n"])}
     case False{}:
-      ViewOk{String.concat([dir, "\n", prefix_line(prefix), "  database: ", dir, "/beads.db\n  jsonl: ", dir, "/issues.jsonl\n"])}
+      ViewOk{String.concat([dir, "\n", Bool.pick(String, relative, "  (via redirect from " ++ dir ++ ")\n", ""), prefix_line(prefix), "  database: ", dir, "/beads.db\n  jsonl: ", dir, "/issues.jsonl\n"])}
 
 # S4.187 (spec twin) the witnesses of a finished search, back in ascending order
 def wits_of(c: Comps) -> List<&2, Wit>:

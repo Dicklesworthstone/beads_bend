@@ -1,0 +1,20 @@
+✓ proj-b1 · T b1   [● P2 · CLOSED]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-01
+Closed: 2026-01-01 (closed)
+
+Dependencies:
+  -> proj-a1 (blocks) - T a1
+
+Dependents:
+  <- proj-a1 (blocks) - T a1
+
+✗ proj-a1 · T a1   [● P2 · TOMBSTONE]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-01
+
+Dependencies:
+  -> proj-b1 (blocks) - T b1
+
+Dependents:
+  <- proj-b1 (blocks) - T b1

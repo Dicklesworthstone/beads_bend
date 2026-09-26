@@ -1,0 +1,3 @@
+Warning: Skipped proj-9vo.3: blocked by: proj-3av — close the open blocker(s) first, or use --force to close anyway
+Error: Nothing to do: all 1 issue(s) skipped — proj-9vo.3: blocked by: proj-3av — close the open blocker(s) first, or use --force to close anyway
+Hint: Skipped issue(s) have open blocking dependencies. Close the blockers first, or re-run with --force to close anyway.

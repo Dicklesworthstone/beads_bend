@@ -1,0 +1,3 @@
+proj-9vo.1.1: Grandchild [P1] [open]
+  ├── proj-9vo.1: Child one [P2] [open]
+    ├── proj-9vo: Parent epic [P1] [open]

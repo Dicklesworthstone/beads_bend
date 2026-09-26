@@ -1,0 +1,4 @@
+Dependents of proj-9vo (3):
+  <- proj-9vo.3 (parent-child): Blocked child [P0] [open]
+  <- proj-9vo.1 (parent-child): Child one [P2] [open]
+  <- proj-9vo.2 (parent-child): Child two [P3] [open]

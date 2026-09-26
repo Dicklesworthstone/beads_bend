@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: claim: issue proj-ptp already assigned to bob",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "claim",
+      "reason": "issue proj-ptp already assigned to bob"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+○ proj-e1 · t proj-e1   [● P2 · OPEN]
+Owner: tester · Type: epic
+Created: 2026-01-01 · Updated: 2026-01-01
+
+Dependents:
+  <- proj-c1 (parent-child) - t proj-c1
+  <- proj-c2 (parent-child) - t proj-c2

@@ -1,0 +1,3 @@
+Dependencies and dependents of proj-a1 (2):
+  -> proj-b1 (blocks): T b1 [P2] [open]
+  <- proj-c1 (blocks): T c1 [P2] [open]

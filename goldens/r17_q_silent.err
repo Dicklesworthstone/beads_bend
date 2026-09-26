@@ -1,0 +1,7 @@
+error: unexpected argument '--silent' found
+
+  tip: a similar argument exists: '--quiet'
+
+Usage: br q --quiet <TITLE>...
+
+For more information, try '--help'.

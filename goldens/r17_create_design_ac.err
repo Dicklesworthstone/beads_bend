@@ -1,0 +1,7 @@
+error: unexpected argument '--design' found
+
+  tip: a similar argument exists: '--deps'
+
+Usage: br create --deps <DEPS> <TITLE>
+
+For more information, try '--help'.

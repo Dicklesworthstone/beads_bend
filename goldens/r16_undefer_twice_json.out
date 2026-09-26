@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: issue_ids: duplicate issue ID in atomic update batch: proj-84a",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "issue_ids",
+      "reason": "duplicate issue ID in atomic update batch: proj-84a"
+    }
+  }
+}

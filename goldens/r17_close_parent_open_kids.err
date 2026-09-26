@@ -1,0 +1,3 @@
+Warning: Skipped proj-9vo: epic has 3/3 open children (use --force to close anyway)
+Error: Nothing to do: all 1 issue(s) skipped — proj-9vo: epic has 3/3 open children (use --force to close anyway)
+Hint: Skipped issue(s) have open children. Close the children first, or re-run with --force to close anyway.

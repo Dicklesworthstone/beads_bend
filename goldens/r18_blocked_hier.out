@@ -1,0 +1,11 @@
+
+🚫 Blocked issues (4):
+
+[● P1] proj-6ja: Hierarchy root
+  Blocked by 2 open dependencies: [proj-0i4, proj-t11]
+[● P2] proj-t11: Alpha busy branch
+  Blocked by 1 open dependencies: [proj-in9]
+[● P2] proj-0i4: Zeta open branch
+  Blocked by 1 open dependencies: [proj-in9]
+[● P3] proj-in9: Shared node with a child
+  Blocked by 1 open dependencies: [proj-ig8]

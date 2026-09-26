@@ -1,0 +1,9 @@
+○ proj-9vo.1 · Child one   [● P2 · OPEN]
+Owner: tester · Type: task
+Created: 2026-04-05 · Updated: 2026-04-05
+
+Dependencies:
+  -> proj-9vo (parent-child) - Parent epic
+
+Dependents:
+  <- proj-9vo.1.1 (parent-child) - Grandchild

@@ -117,7 +117,8 @@ def stamped(i: Model.Issue, now: Time.Instant) -> Model.Issue:
 # ---------------------------------------------------------------- the edits, one flag at a time
 
 # S4.265 (spec twin) a member written whenever its flag is present: 0 title, 1 assignee, 2 owner, 3 `external_ref`
-# (trimmed, S2.36), 4 `source_repo`, 5 `source_repo_path`, 6 the estimate; an empty value clears an optional member
+# (as given: white space in it is refused by the write's validation, round 19 `error_update_extref_space`),
+# 4 `source_repo`, 5 `source_repo_path`, 6 the estimate; an empty value clears an optional member
 def put(kind: U32, i: Model.Issue, value: String) -> Model.Issue:
   match kind:
     case 0:
@@ -127,7 +128,7 @@ def put(kind: U32, i: Model.Issue, value: String) -> Model.Issue:
     case 2:
       set_person(1, i, optional(value))
     case 3:
-      set_source(0, i, optional(String.trim(value)))
+      set_source(0, i, optional(value))
     case 4:
       set_source(1, i, optional(value))
     case 5:
@@ -181,9 +182,14 @@ def with_compared(e: Edit, given: Maybe<&2, String>, +which: U32) -> Edit:
 def context_hint() -> String:
   "These fields accumulate context: a write that clears the field or keeps less than half its length needs --force; run `br show <id>` first to read what is there, or use --append-notes / --add-acceptance to extend instead of replace."
 
+# S4.266 (spec twin) the guard's failure from its reason; its JSON context is `field` (`update`), `reason` and `hint`
+# (round 17: `r17_upd_notes_shrink_json`)
+def context_refused(+reason: String) -> Failure.Failure:
+  Failure.Failure{"VALIDATION_FAILED", "Validation failed: update: " ++ reason, Some{context_hint()}, True{}, [Failure.CtxMember{"field", Failure.CStr{"update"}}, Failure.CtxMember{"reason", Failure.CStr{reason}}, Failure.CtxMember{"hint", Failure.CStr{context_hint()}}], 4}
+
 # S4.266 (spec twin) the refusal of the accumulated-context guard: an empty value, or one under half the stored length
 def context_refusal(id: String, +field: String, +old: Nat, +new: Nat) -> Failure.Failure:
-  Failure.Failure{"VALIDATION_FAILED", "Validation failed: update: " ++ id ++ ": refusing to overwrite non-empty '" ++ field ++ "' (" ++ Nat.show(old) ++ " chars) with " ++ Bool.pick(String, Nat.is_eq(new, 0n), "an empty value", "different content (" ++ Nat.show(new) ++ " chars, " ++ Nat.show(Nat.div(Nat.mul(new, 100n), Nat.max(old, 1n))) ++ "% of the current length)") ++ " without --force", Some{context_hint()}, True{}, Nil{}, 4}
+  context_refused(id ++ ": refusing to overwrite non-empty '" ++ field ++ "' (" ++ Nat.show(old) ++ " chars) with " ++ Bool.pick(String, Nat.is_eq(new, 0n), "an empty value", "different content (" ++ Nat.show(new) ++ " chars, " ++ Nat.show(Nat.div(Nat.mul(new, 100n), Nat.max(old, 1n))) ++ "% of the current length)") ++ " without --force")
 
 # S4.266 (spec twin) the name of a guarded body: 0 description, 1 design, 2 acceptance criteria, 3 prerequisites, 4 notes
 def body_name(which: U32) -> String:
@@ -260,8 +266,8 @@ def with_parent(e: Edit, parent: Maybe<&2, String>, model: List<&2, Model.Issue>
       EditBad{f}
     case EditOk{i, changed} None{}:
       EditOk{i, changed}
-    case EditOk{i, changed} Some{p}:
-      parent_written(i, p, model, actor, now)
+    case EditOk{+i, changed} Some{+p}:
+      Bool.pick(Edit, String.eq(p, Edges.parent_of(Model.deps_of(i))), EditOk{i, changed}, parent_written(i, p, model, actor, now))
 
 # S4.265 S4.266 (spec twin) one body flag folded in
 def with_body(e: Edit, given: Maybe<&2, String>, +which: U32, force: Bool) -> Edit:
@@ -326,28 +332,34 @@ def held_by_other(who: Maybe<&2, String>, +actor: String) -> Bool:
     case Some{+a}:
       (Bool.not(String.is_empty(a)) && Bool.not(String.eq(a, actor)))
 
-# S4.267 (spec twin) the claim's checks after the blocked one, which `--force` does NOT waive: a closed issue is never
-# reopened by a claim; an issue another person holds is refused; a re-claim by the holder is idempotent (round 15:
-# `update proj-ptp --claim` refuses `already assigned to bob`, with or without `--force`; `update proj-mkh --claim`
-# refuses the closed issue; a closed issue that someone holds names the closed status first)
+# S4.267 (spec twin) the claim's holder check, after the blocked one and not waived by `--force`: an issue another
+# person holds is refused; a re-claim by the holder is idempotent (round 15: `update proj-ptp --claim` refuses
+# `already assigned to bob`, with or without `--force`)
 def claim_checked(+i: Model.Issue, +actor: String) -> Edit:
-  Bool.pick(Edit, String.eq(Model.status_of(i), "closed"), EditBad{Create.invalid("claim", "cannot claim closed issue " ++ Model.id_of(i) ++ ": `--claim` starts work on an open issue and never reopens one, so its close_reason and closed_at are left intact. Reopen it first with `br reopen " ++ Model.id_of(i) ++ "`, then claim it")}, Bool.pick(Edit, held_by_other(Model.assignee_of(i), actor), EditBad{Create.invalid("claim", "issue " ++ Model.id_of(i) ++ " already assigned to " ++ Maybe.default(&2, String, Model.assignee_of(i), ""))}, EditOk{reopened(set_head(1, set_person(0, i, Some{actor}), "in_progress")), True{}}))
+  Bool.pick(Edit, held_by_other(Model.assignee_of(i), actor), EditBad{Create.invalid("claim", "issue " ++ Model.id_of(i) ++ " already assigned to " ++ Maybe.default(&2, String, Model.assignee_of(i), ""))}, EditOk{reopened(set_head(1, set_person(0, i, Some{actor}), "in_progress")), True{}})
 
-# S4.267 (spec twin) `--claim`: the assignee becomes the actor and the status `in_progress`; an issue with
-# start-blockers is refused unless `--force` (this check comes first: `update proj-170 --claim` names the blocker
-# although alice holds the issue)
-def claimed(+i: Model.Issue, +blockers: List<&2, String>, actor: String, force: Bool) -> Edit:
+# S4.267 (spec twin) the blocked check, which `--force` waives (`update proj-170 --claim` names the blocker although
+# alice holds the issue), then the holder
+def claim_unblocked(+i: Model.Issue, +blockers: List<&2, String>, actor: String, force: Bool) -> Edit:
   Bool.pick(Edit, (Bool.not(force) && Bool.not(List.is_empty(&2, String, blockers))), EditBad{Create.invalid("claim", "cannot claim blocked issue: " ++ String.join(blockers, ", "))}, claim_checked(i, actor))
 
+# S4.267 (spec twin) `--claim`: the assignee becomes the actor and the status `in_progress`. The issue's status is
+# judged first, before the blocked check and whatever `--force` says: a closed issue is never reopened by a claim
+# (round 15), a deferred one is never undeferred (round 16: `update proj-7vm --claim`); then `claim_unblocked`.
+# `was` is the status as loaded: a `--status` given beside `--claim` does not lift these refusals (round 21:
+# `update proj-7vm --status in_progress --claim`)
+def claimed(+i: Model.Issue, +blockers: List<&2, String>, actor: String, force: Bool, +was: String) -> Edit:
+  Bool.pick(Edit, String.eq(was, "closed"), EditBad{Create.invalid("claim", "cannot claim closed issue " ++ Model.id_of(i) ++ ": `--claim` starts work on an open issue and never reopens one, so its close_reason and closed_at are left intact. Reopen it first with `br reopen " ++ Model.id_of(i) ++ "`, then claim it")}, Bool.pick(Edit, String.eq(was, "deferred"), EditBad{Create.invalid("claim", "cannot claim deferred issue " ++ Model.id_of(i) ++ ": `--claim` does not cancel deferral. Run `br undefer " ++ Model.id_of(i) ++ "` first, then claim it")}, claim_unblocked(i, blockers, actor, force)))
+
 # S4.267 (spec twin) `--claim` folded in; `relation` is the BLOCKED relation of the store
-def with_claim(e: Edit, claim: Bool, relation: List<&2, Blocked.Entry>, actor: String, force: Bool) -> Edit:
+def with_claim(e: Edit, claim: Bool, relation: List<&2, Blocked.Entry>, actor: String, force: Bool, was: String) -> Edit:
   match e claim:
     case EditBad{f} _:
       EditBad{f}
     case EditOk{i, changed} False{}:
       EditOk{i, changed}
     case EditOk{+i, changed} True{}:
-      claimed(i, start_blockers(Blocked.refs_of(relation, Model.id_of(i))), actor, force)
+      claimed(i, start_blockers(Blocked.refs_of(relation, Model.id_of(i))), actor, force, was)
 
 # S4.268 (spec twin) the labels without the named ones
 def labels_without(labels: List<&2, String>, +drop: List<&2, String>) -> List<&2, String>:
@@ -357,10 +369,28 @@ def labels_without(labels: List<&2, String>, +drop: List<&2, String>) -> List<&2
     case Con{+l, rest}:
       word_put(l, Query.among(drop, l), labels_without(rest, drop))
 
-# S4.268 (spec twin) the label set after the three label flags: `--set-labels` replaces it (comma-split), then
-# `--add-label` appends what is missing, then `--remove-label` drops what is there; sorted and without duplicates
+# S4.268 (spec twin) the label set after the three label flags: `--set-labels` replaces it (comma-split) and the
+# other two are then ignored (round 17: `--set-labels a --add-label b` leaves `a`); otherwise `--add-label` appends
+# what is missing, then `--remove-label` drops what is there; sorted and without duplicates
 def labels_after(+current: List<&2, String>, +set: List<&2, String>, add: List<&2, String>, remove: List<&2, String>, replacing: Bool) -> List<&2, String>:
-  Model.labels_repaired(labels_without(List.append(&2, String, Bool.pick(List<&2, String>, replacing, Query.comma_split(set), current), add), remove))
+  Bool.pick(List<&2, String>, replacing, Model.labels_repaired(Query.comma_split(set)), Model.labels_repaired(labels_without(List.append(&2, String, current, add), remove)))
+
+# S4.268 (spec twin) is any of the labels absent from the pool
+def any_missing(xs: List<&2, String>, +pool: List<&2, String>) -> Bool:
+  match xs:
+    case Nil{}:
+      False{}
+    case Con{+x, rest}:
+      (Bool.not(Query.among(pool, x)) || any_missing(rest, pool))
+
+# S4.268 (spec twin) is any of the labels in the pool
+def any_present(xs: List<&2, String>, +pool: List<&2, String>) -> Bool:
+  match xs:
+    case Nil{}:
+      False{}
+    case Con{+x, rest}:
+      (Query.among(pool, x) || any_present(rest, pool))
+
 
 # S4.268 (spec twin) are two sorted label lists the same
 def same_labels(xs: List<&2, String>, ys: List<&2, String>) -> Bool:
@@ -372,19 +402,26 @@ def same_labels(xs: List<&2, String>, ys: List<&2, String>) -> Bool:
     case _ _:
       False{}
 
-# S4.268 (spec twin) the label flags folded in: a no-op when the set does not change
-def labels_written(+i: Model.Issue, +after: List<&2, String>, changed: Bool) -> Edit:
-  Bool.pick(Edit, Nat.is_gt(List.length(&2, String, after), 64n), EditBad{Create.invalid("labels", "exceeds 64 labels")}, EditOk{set_labels(i, after), (changed || Bool.not(same_labels(Model.labels_of(i), after)))})
+# S4.268 (spec twin) did the label flags change anything: `--set-labels` when the set differs; and, whether or not
+# `--set-labels` replaced the set, an added label that was absent, or a removed label present after the adds, is a
+# change even when the two cancel (round 17: `--add-label z --remove-label z` stamps `updated_at` and rewrites the
+# store; round 21: `--set-labels "" --add-label x` on an issue without labels does too, and stores no label)
+def labels_touched(+current: List<&2, String>, +after: List<&2, String>, +add: List<&2, String>, +remove: List<&2, String>, replacing: Bool) -> Bool:
+  ((replacing && Bool.not(same_labels(current, after))) || any_missing(add, current) || any_present(remove, List.append(&2, String, current, add)))
+
+# S4.268 (spec twin) the label flags folded in: a no-op when nothing was touched (`labels_touched`)
+def labels_written(+i: Model.Issue, +after: List<&2, String>, changed: Bool, touched: Bool) -> Edit:
+  Bool.pick(Edit, Nat.is_gt(List.length(&2, String, after), 64n), EditBad{Create.invalid("labels", "exceeds 64 labels")}, EditOk{set_labels(i, after), (changed || touched)})
 
 # S4.268 S4.372 (spec twin) the label flags once every named label passed the rules of S4.372: the first that fails
 # (a `--set-labels` item, an `--add-label`, a `--remove-label`, in that order; `--add-label` is never split at commas)
 # refuses the update
-def labels_valid(+i: Model.Issue, +set: List<&2, String>, +add: List<&2, String>, +remove: List<&2, String>, replacing: Bool, changed: Bool, +bad: String) -> Edit:
+def labels_valid(+i: Model.Issue, +set: List<&2, String>, +add: List<&2, String>, +remove: List<&2, String>, +replacing: Bool, changed: Bool, bad: Maybe<&2, String>) -> Edit:
   match bad:
-    case SCon{h, t}:
-      EditBad{Labels.label_refusal(SCon{h, t})}
-    case SNil{}:
-      labels_written(i, labels_after(Model.labels_of(i), set, add, remove, replacing), changed)
+    case Some{l}:
+      EditBad{Labels.label_refusal(l)}
+    case None{}:
+      labels_written(i, labels_after(Model.labels_of(i), set, add, remove, replacing), changed, labels_touched(Model.labels_of(i), labels_after(Model.labels_of(i), set, add, remove, replacing), add, remove, replacing))
 
 # S4.268 (spec twin) the label flags, when any is given
 def with_labels(e: Edit, +set: List<&2, String>, +add: List<&2, String>, +remove: List<&2, String>, any: Bool, +replacing: Bool) -> Edit:
@@ -408,7 +445,7 @@ def finished(e: Edit, now: Time.Instant) -> Edit:
 
 # S4.218 (spec twin) a tombstone is immutable to `update`
 def start(+i: Model.Issue) -> Edit:
-  Bool.pick(Edit, String.eq(Model.status_of(i), "tombstone"), EditBad{Create.invalid("issue_id", "cannot update tombstone issue: " ++ Model.id_of(i))}, EditOk{i, False{}})
+  Bool.pick(Edit, String.eq(Model.status_of(i), "tombstone"), EditBad{Create.invalid("issue", "cannot update tombstone issue: " ++ Model.id_of(i))}, EditOk{i, False{}})
 
 # S4.273 (spec twin) one observed change: `  <name>: <old> → <new>`, nothing when the two are equal
 def change_line(name: String, +old: String, +new: String) -> String:
@@ -495,10 +532,41 @@ def with_acceptance(e: Edit, acc: Acceptance.Done, given: Bool, now: Time.Instan
     case True{}:
       acceptance_applied(e, acc, now)
 
-# S4.262–S4.268 (spec twin) every flag of one `update` applied to one issue, in a fixed order; `priority` is the
-# priority's digits when `-p` was given and judged
-def edited(i: Model.Issue, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, parent: Maybe<&2, String>, model: List<&2, Model.Issue>) -> Edit:
-  finished(with_context(with_parent(with_labels(with_claim(with_date(with_date(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_append(with_body(with_body(with_body(with_body(with_body(with_compared(with_compared(with_status(start(i), Cli.value(opts, "status")), priority, 2), lowered_kind(Cli.value(opts, "type")), 3), Cli.value(opts, "description"), 0, Cli.given(opts, "force")), Cli.value(opts, "design"), 1, Cli.given(opts, "force")), Cli.value(opts, "acceptance-criteria"), 2, Cli.given(opts, "force")), Cli.value(opts, "prerequisites"), 3, Cli.given(opts, "force")), Cli.value(opts, "notes"), 4, Cli.given(opts, "force")), Cli.value(opts, "append-notes")), Cli.value(opts, "title"), 0), Cli.value(opts, "assignee"), 1), Cli.value(opts, "owner"), 2), Cli.value(opts, "external-ref"), 3), Cli.value(opts, "source-repo"), 4), Cli.value(opts, "source-repo-path"), 5), Cli.value(opts, "estimate"), 6), Cli.value(opts, "due"), 0, now, "date"), Cli.value(opts, "defer"), 1, now, "date"), Cli.given(opts, "claim"), relation, actor, Cli.given(opts, "force")), Cli.values(opts, "set-labels"), Cli.values(opts, "add-label"), Cli.values(opts, "remove-label"), (Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label")), Cli.given(opts, "set-labels")), parent, model, actor, now), Cli.value(opts, "agent-context")), now)
+# S4.395 (spec twin) the text of every `--append-notes`, joined by a line feed (round 19: `--append-notes a
+# --append-notes b` appends `a\nb`); none when the flag is absent
+def joined_append(xs: List<&2, String>) -> Maybe<&2, String>:
+  match xs:
+    case Nil{}:
+      None{}
+    case Con{x, rest}:
+      Some{String.join(x <> rest, "\n")}
+
+# S4.395 (spec twin) the appended text of an `update`
+def append_given(+opts: List<&2, Cli.Occ>) -> Maybe<&2, String>:
+  joined_append(Cli.values(opts, "append-notes"))
+
+# S4.262–S4.267 (spec twin) the column flags of one `update` applied to one issue, in a fixed order, through
+# `--claim`; `priority` is the priority's digits when `-p` was given and judged
+def columns(i: Model.Issue, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, was: String) -> Edit:
+  with_claim(with_date(with_date(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_flag(with_append(with_body(with_body(with_body(with_body(with_body(with_compared(with_compared(with_status(start(i), Cli.value(opts, "status")), priority, 2), lowered_kind(Cli.value(opts, "type")), 3), Cli.value(opts, "description"), 0, Cli.given(opts, "force")), Cli.value(opts, "design"), 1, Cli.given(opts, "force")), Cli.value(opts, "acceptance-criteria"), 2, Cli.given(opts, "force")), Cli.value(opts, "prerequisites"), 3, Cli.given(opts, "force")), Cli.value(opts, "notes"), 4, Cli.given(opts, "force")), append_given(opts)), Cli.value(opts, "title"), 0), Cli.value(opts, "assignee"), 1), Cli.value(opts, "owner"), 2), Cli.value(opts, "external-ref"), 3), Cli.value(opts, "source-repo"), 4), Cli.value(opts, "source-repo-path"), 5), Cli.value(opts, "estimate"), 6), Cli.value(opts, "due"), 0, now, "date"), Cli.value(opts, "defer"), 1, now, "date"), Cli.given(opts, "claim"), relation, actor, Cli.given(opts, "force"), was)
+
+# S4.268 S4.270 S4.232 S4.204 (spec twin) the label flags, `--parent` and `--agent-context` after the column flags,
+# then `updated_at` stamped when anything changed
+def edited_rest(cols: Edit, +opts: List<&2, Cli.Occ>, +actor: String, +now: Time.Instant, parent: Maybe<&2, String>, model: List<&2, Model.Issue>) -> Edit:
+  finished(with_context(with_parent(with_labels(cols, Cli.values(opts, "set-labels"), Cli.values(opts, "add-label"), Cli.values(opts, "remove-label"), (Cli.given(opts, "set-labels") || Cli.given(opts, "add-label") || Cli.given(opts, "remove-label")), Cli.given(opts, "set-labels")), parent, model, actor, now), Cli.value(opts, "agent-context")), now)
+
+# S2.46 (data) an edit, and whether its column flags (or the acceptance list) changed a stored column: only such an
+# edit is validated when the batch is written (round 17: labels-only and parent-only edits are not)
+type Flagged is Data:
+  Flagged{edit: Edit, check: Bool}
+
+# S2.46 S4.268 S4.270 (spec twin) the rest of the flags applied to the column edit, the column verdict kept beside it
+def flagged(cols: Edit, +opts: List<&2, Cli.Occ>, +actor: String, +now: Time.Instant, parent: Maybe<&2, String>, model: List<&2, Model.Issue>) -> Flagged:
+  match cols:
+    case EditBad{f}:
+      Flagged{EditBad{f}, False{}}
+    case EditOk{i, +changed}:
+      Flagged{edited_rest(EditOk{i, changed}, opts, actor, now, parent, model), changed}
 
 # S4.396 (spec twin) `--transition-comment` on one edited issue: refused unless `--status` moved it to another
 # status; otherwise a comment by the actor at the invocation instant
@@ -520,10 +588,21 @@ def transition_note(e: Edit, +old: String, comment: Maybe<&2, String>, given: Bo
       transition_noted(e, old, text, given, actor, now, comment_id)
 
 # S4.261 (data) a batch so far: the refusal (sticky), or the model with the edits in it, the plain blocks and the JSON
-# elements (both REVERSED), whether any stored column changed, and the last id acted on
+# elements (both REVERSED), whether any stored column changed, the last id acted on, and the first write-time
+# validation failure (S2.46), which refuses the batch only after every per-id check and the duplicate-id check
 type Batch is Data:
   BatchBad{failure: Failure.Failure}
-  BatchOk{model: List<&2, Model.Issue>, plain: List<&2, String>, json: List<&2, String>, changed: Bool, last: String}
+  BatchOk{model: List<&2, Model.Issue>, plain: List<&2, String>, json: List<&2, String>, changed: Bool, last: String, late: Maybe<&2, Failure.Failure>}
+
+# S2.46 (spec twin) the batch's first validation failure, kept; else this edited record's, when its columns changed
+def late_put(late: Maybe<&2, Failure.Failure>, check: Bool, +new: Model.Issue) -> Maybe<&2, Failure.Failure>:
+  match late check:
+    case Some{f} _:
+      Some{f}
+    case None{} False{}:
+      None{}
+    case None{} True{}:
+      Status.stamp_found(Some{new}, False{}, None{})
 
 # S4.261 (spec twin) the model with one issue replaced by its edited self
 def replaced(model: List<&2, Model.Issue>, +new: Model.Issue) -> List<&2, Model.Issue>:
@@ -534,27 +613,34 @@ def replaced(model: List<&2, Model.Issue>, +new: Model.Issue) -> List<&2, Model.
       Bool.pick(Model.Issue, String.eq(Model.id_of(i), Model.id_of(new)), new, i) <> replaced(rest, new)
 
 # S4.261 (spec twin) one edited issue folded into the batch
-def batch_put(b: Batch, e: Edit, +old: Model.Issue, any_flag: Bool, +appended: Maybe<&2, String>, plain_extra: String, json_extra: String) -> Batch:
+def batch_put(b: Batch, e: Edit, +old: Model.Issue, any_flag: Bool, +appended: Maybe<&2, String>, plain_extra: String, json_extra: String, check: Bool) -> Batch:
   match b e:
     case BatchBad{f} _:
       BatchBad{f}
-    case BatchOk{model, plain, json, changed, last} EditBad{f}:
+    case BatchOk{model, plain, json, changed, last, late} EditBad{f}:
       BatchBad{f}
-    case BatchOk{model, plain, json, changed, last} EditOk{+new, touched}:
-      BatchOk{replaced(model, new), (block_plain(old, new, any_flag, appended) ++ plain_extra) <> plain, block_json(old, new, appended, json_extra) <> json, (changed || touched), Model.id_of(new)}
+    case BatchOk{model, plain, json, changed, last, late} EditOk{+new, touched}:
+      BatchOk{replaced(model, new), (block_plain(old, new, any_flag, appended) ++ plain_extra) <> plain, block_json(old, new, appended, json_extra) <> json, (changed || touched), Model.id_of(new), late_put(late, check, new)}
 
 # S4.261 (spec twin) the current model of a batch; nothing once it was refused
 def batch_model(b: Batch) -> List<&2, Model.Issue>:
   match b:
     case BatchBad{f}:
       Nil{}
-    case BatchOk{model, plain, json, changed, last}:
+    case BatchOk{model, plain, json, changed, last, late}:
       model
 
 # S4.261 S4.396 S4.398 (spec twin) one issue once its acceptance-list run is known: the edit, the checklist, the
 # transition comment, and the blocks, with the acceptance block after the plain one when a list flag was given
+def batch_cols(+b: Batch, +i: Model.Issue, fl: Flagged, +opts: List<&2, Cli.Occ>, +actor: String, +now: Time.Instant, any_flag: Bool, +acc: Acceptance.Done, +given: Bool) -> Batch:
+  match fl:
+    case Flagged{e, check}:
+      batch_put(b, transition_note(e, Model.status_of(i), Cli.value(opts, "transition-comment"), Cli.given(opts, "status"), actor, now, Status.next_comment_id(batch_model(b))), i, any_flag, append_given(opts), Bool.pick(String, given, Acceptance.plain(acc, Model.id_of(i), Cli.given(opts, "check-acceptance"), Cli.given(opts, "uncheck-acceptance"), Cli.given(opts, "add-acceptance")), ""), Bool.pick(String, given, Acceptance.json(acc), ""), check)
+
+# S4.261 (spec twin) one issue once its acceptance-list run is known: its column flags and the acceptance list
+# first (the write-time verdict of S2.46), then the labels, the parent and the context
 def batch_checked(+b: Batch, +i: Model.Issue, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, any_flag: Bool, parent: Maybe<&2, String>, +acc: Acceptance.Done, +given: Bool) -> Batch:
-  batch_put(b, transition_note(with_acceptance(edited(i, opts, priority, relation, actor, now, parent, batch_model(b)), acc, given, now), Model.status_of(i), Cli.value(opts, "transition-comment"), Cli.given(opts, "status"), actor, now, Status.next_comment_id(batch_model(b))), i, any_flag, Cli.value(opts, "append-notes"), Bool.pick(String, given, Acceptance.plain(acc, Model.id_of(i), Cli.given(opts, "check-acceptance"), Cli.given(opts, "uncheck-acceptance"), Cli.given(opts, "add-acceptance")), ""), Bool.pick(String, given, Acceptance.json(acc), ""))
+  batch_cols(b, i, flagged(with_acceptance(columns(i, opts, priority, relation, actor, now, Model.status_of(i)), acc, given, now), opts, actor, now, parent, batch_model(b)), opts, actor, now, any_flag, acc, given)
 
 # S4.261 (spec twin) one resolved id: the issue as the batch holds it NOW (an id named twice is edited twice)
 def batch_id(+b: Batch, found: Maybe<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, +actor: String, +now: Time.Instant, any_flag: Bool, parent: Maybe<&2, String>) -> Batch:
@@ -575,4 +661,4 @@ def batch_go(ids: List<&2, String>, +b: Batch, +opts: List<&2, Cli.Occ>, +priori
 # S4.260–S4.273 S4.270 (spec twin) `update` over resolved ids: `model` is the loaded model, `relation` its BLOCKED
 # relation, `parent` the resolved `--parent` (`""` clears; none when the flag is absent)
 def run(ids: List<&2, String>, model: List<&2, Model.Issue>, opts: List<&2, Cli.Occ>, priority: Maybe<&2, String>, relation: List<&2, Blocked.Entry>, actor: String, now: Time.Instant, any_flag: Bool, parent: Maybe<&2, String>) -> Batch:
-  batch_go(ids, BatchOk{model, Nil{}, Nil{}, False{}, ""}, opts, priority, relation, actor, now, any_flag, parent)
+  batch_go(ids, BatchOk{model, Nil{}, Nil{}, False{}, "", None{}}, opts, priority, relation, actor, now, any_flag, parent)

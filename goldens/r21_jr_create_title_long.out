@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: title: exceeds 500 characters",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "title",
+      "reason": "exceeds 500 characters"
+    }
+  }
+}

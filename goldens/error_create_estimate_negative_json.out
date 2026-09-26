@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: estimated_minutes: cannot be negative",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "estimated_minutes",
+      "reason": "cannot be negative"
+    }
+  }
+}

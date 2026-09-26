@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: BEADS_DIR not found or not a .beads directory: /mnt/nope",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

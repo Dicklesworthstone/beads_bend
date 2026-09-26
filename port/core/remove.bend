@@ -15,11 +15,12 @@ import ./blocked.bend as Blocked
 import ./render.bend as Render
 
 # S4.330 (spec twin) the record as a tombstone: the status, the instant, the actor, the reason and the type the
-# issue had; `issue_type` itself, the title, the priority and the labels are left alone
-def tombstoned(i: Model.Issue, +now: Time.Instant, actor: String, reason: String) -> Model.Issue:
+# issue had; `issue_type` itself, the title, the priority and the labels are left alone; an empty `--reason` stores no
+# `delete_reason` (round 19)
+def tombstoned(i: Model.Issue, +now: Time.Instant, actor: String, +reason: String) -> Model.Issue:
   match i:
     case Model.Issue{Model.Head{id, title, status, priority, +kind}, texts, people, Model.Times{created_at, updated_at, closed_at, due_at, defer_until, deleted_at, compacted_at}, closing, source, deletion, compaction, meta, flags, labels, dependencies, comments}:
-      Model.Issue{Model.Head{id, title, "tombstone", priority, kind}, texts, people, Model.Times{created_at, now, closed_at, due_at, defer_until, Some{now}, compacted_at}, closing, source, Model.Deletion{Some{actor}, Some{reason}, Some{kind}}, compaction, meta, flags, labels, dependencies, comments}
+      Model.Issue{Model.Head{id, title, "tombstone", priority, kind}, texts, people, Model.Times{created_at, now, closed_at, due_at, defer_until, Some{now}, compacted_at}, closing, source, Model.Deletion{Some{actor}, Bool.pick(Maybe<&2, String>, String.is_empty(reason), None{}, Some{reason}), Some{kind}}, compaction, meta, flags, labels, dependencies, comments}
 
 # S4.331 (spec twin) keep an edge whose target survives
 def edge_put(e: Model.Dependency, drop: Bool, rest: List<&2, Model.Dependency>) -> List<&2, Model.Dependency>:
@@ -105,6 +106,59 @@ def labels_removed(issues: List<&2, Model.Issue>, +ids: List<&2, String>, acc: U
       acc
     case Con{+i, rest}:
       labels_removed(rest, ids, (acc + Bool.pick(U32, Blocked.among(ids, Model.id_of(i)), U32.from_nat(List.length(&2, String, Model.labels_of(i))), 0) : U32))
+
+# S4.336 (spec twin) one edge's verdict: when `mine`, is its target not purged earlier; otherwise does it point at `x`
+def edge_hit(mine: Bool, +e: Model.Dependency, +x: String, +before: List<&2, String>) -> Bool:
+  match mine:
+    case True{}:
+      Bool.not(Blocked.among(before, Model.target_of(e)))
+    case False{}:
+      String.eq(Model.target_of(e), x)
+
+# S4.336 (spec twin) does an edge list hold an edge to `x`, or (when `mine`) one whose target was not purged earlier
+def edge_left(edges: List<&2, Model.Dependency>, +x: String, +before: List<&2, String>, +mine: Bool) -> Bool:
+  match edges:
+    case Nil{}:
+      False{}
+    case Con{+e, rest}:
+      (edge_hit(mine, e, x, before) || edge_left(rest, x, before, mine))
+
+# S4.336 (spec twin) one record's verdict: its own edges when it is `x`, else its edges to `x` when it was not purged
+# before `x`
+def record_hit(own: Bool, +i: Model.Issue, +x: String, +before: List<&2, String>) -> Bool:
+  match own:
+    case True{}:
+      edge_left(Model.deps_of(i), x, before, True{})
+    case False{}:
+      (Bool.not(Blocked.among(before, Model.id_of(i))) && edge_left(Model.deps_of(i), x, before, False{}))
+
+# S4.336 (spec twin) does an edge still touch `x` when it is purged: one of its own edges whose target was not purged
+# before it, or an edge of a record not purged before it that points at `x`
+def event_of(issues: List<&2, Model.Issue>, +x: String, +before: List<&2, String>) -> Bool:
+  match issues:
+    case Nil{}:
+      False{}
+    case Con{+i, rest}:
+      (record_hit(String.eq(Model.id_of(i), x), i, x, before) || event_of(rest, x, before))
+
+# S4.336 (spec twin) the count so far, one more when the record had an event
+def event_count(hit: Bool, acc: U32) -> U32:
+  match hit:
+    case True{}:
+      (acc + 1 : U32)
+    case False{}:
+      acc
+
+# S4.336 (spec twin) `events_removed` of `--hard`: one per purged record that an edge still touches when its turn
+# comes, the records taken in `set` order (round 19, measured: two edges of one record are one event; a record with
+# labels or comments only is none; two purged records with their own edges are two). The original takes the records
+# in an order that varies between runs, so a shared edge counts for either end (DISC-011); the port's order is fixed
+def events_go(+issues: List<&2, Model.Issue>, ids: List<&2, String>, +before: List<&2, String>, acc: U32) -> U32:
+  match ids:
+    case Nil{}:
+      acc
+    case Con{+x, rest}:
+      events_go(issues, rest, x <> before, event_count(event_of(issues, x, before), acc))
 
 # ---------------------------------------------------------------- dependents (S4.332)
 
@@ -295,7 +349,7 @@ def any_live(issues: List<&2, Model.Issue>, +ids: List<&2, String>) -> Bool:
 def deleted(+model: List<&2, Model.Issue>, +set: List<&2, String>, +orphans: List<&2, String>, now: Time.Instant, actor: String, reason: String, json: Bool, hard: Bool) -> Done:
   match hard:
     case True{}:
-      DelDone{Bool.pick(String, json, json_text(set, links_removed(model, set, 0), labels_removed(model, set, 0), links_removed(model, set, 0), orphans), plain_text(set, links_removed(model, set, 0), orphans)), purged(model, set, now), set, True{}}
+      DelDone{Bool.pick(String, json, json_text(set, links_removed(model, set, 0), labels_removed(model, set, 0), events_go(model, set, Nil{}, 0), orphans), plain_text(set, links_removed(model, set, 0), orphans)), purged(model, set, now), set, True{}}
     case False{}:
       DelDone{Bool.pick(String, json, json_text(set, links_removed(model, set, 0), 0, 0, orphans), plain_text(set, links_removed(model, set, 0), orphans)), applied(model, set, now, actor, reason), set, (any_live(model, set) || Bool.not(U32.is_eq(links_removed(model, set, 0), 0)))}
 
@@ -340,7 +394,7 @@ def purge_of(+model: List<&2, Model.Issue>, +set: List<&2, String>, now: Time.In
     case True{} False{}:
       DelPreview{purge_text(set, True{})}
     case False{} js:
-      DelDone{Bool.pick(String, js, json_text(set, links_removed(model, set, 0), labels_removed(model, set, 0), links_removed(model, set, 0), Nil{}), purge_text(set, False{})), purged(model, set, now), set, Bool.not(List.is_empty(&2, String, set))}
+      DelDone{Bool.pick(String, js, json_text(set, links_removed(model, set, 0), labels_removed(model, set, 0), events_go(model, set, Nil{}, 0), Nil{}), purge_text(set, False{})), purged(model, set, now), set, Bool.not(List.is_empty(&2, String, set))}
 
 # S4.339 (spec twin) the purge of every tombstone
 def purge(+model: List<&2, Model.Issue>, now: Time.Instant, json: Bool, dry: Bool) -> Done:

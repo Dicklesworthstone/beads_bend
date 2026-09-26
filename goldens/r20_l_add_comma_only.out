@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: label: at least one label required",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "label",
+      "reason": "at least one label required"
+    }
+  }
+}

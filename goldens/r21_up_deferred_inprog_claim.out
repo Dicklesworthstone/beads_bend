@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: claim: cannot claim deferred issue proj-7vm: `--claim` does not cancel deferral. Run `br undefer proj-7vm` first, then claim it",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "claim",
+      "reason": "cannot claim deferred issue proj-7vm: `--claim` does not cancel deferral. Run `br undefer proj-7vm` first, then claim it"
+    }
+  }
+}

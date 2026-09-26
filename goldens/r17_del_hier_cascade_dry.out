@@ -1,0 +1,7 @@
+Dry-run: Would delete 1 issue(s):
+  - proj-ig8: Deep leaf
+Would also cascade delete 4 dependent(s):
+  - proj-0i4
+  - proj-6ja
+  - proj-in9
+  - proj-t11

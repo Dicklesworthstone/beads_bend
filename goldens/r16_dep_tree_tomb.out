@@ -1,0 +1,2 @@
+proj-b1: T b1 [P2] [closed]
+  ├── proj-a1: T a1 [P2] [tombstone]

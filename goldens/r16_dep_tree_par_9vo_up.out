@@ -1,0 +1,5 @@
+proj-9vo: Parent epic [P1] [open]
+  ├── proj-9vo.3: Blocked child [P0] [open]
+  ├── proj-9vo.1: Child one [P2] [open]
+    ├── proj-9vo.1.1: Grandchild [P1] [open]
+  ├── proj-9vo.2: Child two [P3] [open]

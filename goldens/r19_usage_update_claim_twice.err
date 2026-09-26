@@ -1,0 +1,5 @@
+error: the argument '--claim' cannot be used multiple times
+
+Usage: br update [OPTIONS] [IDS]...
+
+For more information, try '--help'.

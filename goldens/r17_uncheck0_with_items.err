@@ -1,0 +1,1 @@
+Error: Validation failed: uncheck-acceptance: proj-mta: acceptance item numbers are 1-based; 0 is not an item

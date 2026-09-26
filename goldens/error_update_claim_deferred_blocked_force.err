@@ -1,0 +1,1 @@
+Error: Validation failed: claim: cannot claim deferred issue proj-a1: `--claim` does not cancel deferral. Run `br undefer proj-a1` first, then claim it

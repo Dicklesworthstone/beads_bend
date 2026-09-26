@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: Validation failed for issue proj-aab at line 2: labels: exceeds 64 labels",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

@@ -1,0 +1,5 @@
+error: the argument '--acceptance-criteria <ACCEPTANCE_CRITERIA>' cannot be used with '--add-acceptance <TEXT>'
+
+Usage: br update --acceptance-criteria <ACCEPTANCE_CRITERIA> --json <IDS>...
+
+For more information, try '--help'.

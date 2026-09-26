@@ -1,0 +1,13 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: update: proj-b75: refusing to overwrite non-empty 'description' (24 chars) with different content (1 chars, 4% of the current length) without --force",
+    "hint": "These fields accumulate context: a write that clears the field or keeps less than half its length needs --force; run `br show <id>` first to read what is there, or use --append-notes / --add-acceptance to extend instead of replace.",
+    "retryable": true,
+    "context": {
+      "field": "update",
+      "reason": "proj-b75: refusing to overwrite non-empty 'description' (24 chars) with different content (1 chars, 4% of the current length) without --force",
+      "hint": "These fields accumulate context: a write that clears the field or keeps less than half its length needs --force; run `br show <id>` first to read what is there, or use --append-notes / --add-acceptance to extend instead of replace."
+    }
+  }
+}

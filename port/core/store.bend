@@ -328,9 +328,24 @@ def closed_msgs(closed: Maybe<&2, Time.Instant>, +created: Time.Instant) -> List
     case Some{at}:
       msg_if(Bool.not(Time.le(created, at)), "closed_at: cannot be before created_at")
 
-# S2.43–S2.54 (spec twin) every message of one record, in the measured order
+# S2.46 (spec twin) `updated_at` earlier than `created_at`: only a write can produce one (a load raises the value
+# first, S2.36)
+def updated_msgs(+i: Model.Issue) -> List<&2, String>:
+  msg_if(Bool.not(Time.le(Model.created_of(i), Model.updated_of(i))), "updated_at: cannot be before created_at")
+
+# S2.43–S2.54 (spec twin) every message of one record, in the measured order; `stamped` is the `updated_at` rule's
+# messages, which come after the priority's (a write, S2.46; nothing on a load)
+def violations_with(+i: Model.Issue, stamped: List<&2, String>) -> List<&2, String>:
+  List.concat(&2, String, [id_msgs(Model.id_of(i)), msg_if(String.is_empty(String.trim(Model.title_of(i))), "title: cannot be empty"), msg_if(Nat.is_gt(String.length(Model.title_of(i)), 500n), "title: exceeds 500 characters"), nul_msg("title", Model.title_of(i)), nul_opt("description", Model.description_of(i)), nul_opt("design", Model.design_of(i)), nul_opt("acceptance_criteria", Model.acceptance_of(i)), nul_opt("prerequisites", Model.prerequisites_of(i)), nul_opt("notes", Model.notes_of(i)), word_msgs("status", "status", Model.status_of(i)), word_msgs("issue_type", "issue type", Model.type_of(i)), person_msgs("assignee", Model.assignee_of(i)), person_msgs("owner", Model.owner_of(i)), person_msgs("created_by", Model.created_by_of(i)), ref_msgs(Model.external_ref_of(i)), person_msgs("source_system", Model.source_system_of(i)), labels_msgs(Model.labels_of(i)), priority_msgs(Model.priority_of(i)), stamped, estimate_msgs(Model.estimate_of(i)), closed_msgs(Model.closed_of(i), Model.created_of(i))])
+
+# S2.43–S2.54 (spec twin) every message of one loaded record, in the measured order
 def violations(+i: Model.Issue) -> List<&2, String>:
-  List.concat(&2, String, [id_msgs(Model.id_of(i)), msg_if(String.is_empty(String.trim(Model.title_of(i))), "title: cannot be empty"), msg_if(Nat.is_gt(String.length(Model.title_of(i)), 500n), "title: exceeds 500 characters"), nul_msg("title", Model.title_of(i)), nul_opt("description", Model.description_of(i)), nul_opt("design", Model.design_of(i)), nul_opt("acceptance_criteria", Model.acceptance_of(i)), nul_opt("prerequisites", Model.prerequisites_of(i)), nul_opt("notes", Model.notes_of(i)), word_msgs("status", "status", Model.status_of(i)), word_msgs("issue_type", "issue type", Model.type_of(i)), person_msgs("assignee", Model.assignee_of(i)), person_msgs("owner", Model.owner_of(i)), person_msgs("created_by", Model.created_by_of(i)), ref_msgs(Model.external_ref_of(i)), person_msgs("source_system", Model.source_system_of(i)), labels_msgs(Model.labels_of(i)), priority_msgs(Model.priority_of(i)), estimate_msgs(Model.estimate_of(i)), closed_msgs(Model.closed_of(i), Model.created_of(i))])
+  violations_with(i, Nil{})
+
+# S2.43–S2.54 S2.46 (spec twin) every message of a record a command writes: the load's rules and `updated_at` (round
+# 17: `update -p` with a clock before `created_at`; round 19: `update --external-ref " x"`, `-e 2147483647`)
+def write_violations(+i: Model.Issue) -> List<&2, String>:
+  violations_with(i, updated_msgs(i))
 
 # S2.30 S9 (spec twin) a record that parses but breaks a rule: CONFIG_ERROR, exit 7 (S2.30's exit 4 was measured
 # wrong: `error_jsonl_bad_id_format`)
@@ -768,9 +783,11 @@ def load_lines(+ls: List<&2, List<&2, U32>>, +path: String, strict: Bool) -> Loa
   guarded(ls, path, markers_go(ls, path, 1, Nil{}), strict)
 
 # S2.38 S2.40 (spec twin) what `show` reads: the file directly, with the duplicate-id refusal but neither the record
-# validation nor the import check (`error_load_bad_id_show`, `edge_empty_optionals_show`, `error_jsonl_duplicate_id_show`)
+# validation nor the import check (`error_load_bad_id_show`, `edge_empty_optionals_show`, `error_jsonl_duplicate_id_show`),
+# and without the conflict-marker scan: a marker line is the first line that is not JSON (round 19: `show` on the
+# `conflict` store is `Invalid JSON at line 2: expected value at line 1 column 1`)
 def load_read(cs: List<&2, U32>, +path: String) -> Loaded:
-  load_lines(lines_go(cs, Nil{}, Nil{}), path, False{})
+  guarded(lines_go(cs, Nil{}, Nil{}), path, "", False{})
 
 # S2.24 S2.26 S2.27 (spec twin) the store from the file's code points; `path` is the absolute store path the messages quote
 def load(cs: List<&2, U32>, path: String) -> Loaded:

@@ -30,13 +30,14 @@ def label_refusal(+label: String) -> Failure.Failure:
 def label_ok(+label: String) -> Bool:
   (Bool.not(String.is_empty(label)) && Bool.not(Nat.is_gt(String.length(label), 50n)) && Create.label_ok(label))
 
-# S4.372 (spec twin) the first label that is not allowed, "" when every one is
-def first_bad(labels: List<&2, String>) -> String:
+# S4.372 (spec twin) the first label that is not allowed, none when every one is (an empty label is one: round 20,
+# `label rename auth ""` is `label: cannot be empty`)
+def first_bad(labels: List<&2, String>) -> Maybe<&2, String>:
   match labels:
     case Nil{}:
-      ""
+      None{}
     case Con{+l, rest}:
-      Bool.pick(String, label_ok(l), first_bad(rest), l)
+      Bool.pick(Maybe<&2, String>, label_ok(l), first_bad(rest), Some{l})
 
 # S4.372 (spec twin) the refusal of a label set past the ceiling
 def ceiling_refusal() -> Failure.Failure:
@@ -185,11 +186,11 @@ def outer(labels: List<&2, String>, b: Batch, +ids: List<&2, String>, +now: Time
       outer(rest, inner(ids, cut_at(b, ids, label, adding), label, now, adding), ids, now, adding)
 
 # S4.372 (spec twin) `label add` or `label remove`: every label is validated before any issue is touched
-def run(model: List<&2, Model.Issue>, +ids: List<&2, String>, +labels: List<&2, String>, now: Time.Instant, adding: Bool, +bad: String) -> Batch:
+def run(model: List<&2, Model.Issue>, +ids: List<&2, String>, +labels: List<&2, String>, now: Time.Instant, adding: Bool, bad: Maybe<&2, String>) -> Batch:
   match bad:
-    case SCon{h, t}:
-      BatchBad{label_refusal(SCon{h, t})}
-    case SNil{}:
+    case Some{l}:
+      BatchBad{label_refusal(l)}
+    case None{}:
       outer(labels, BatchOk{model, Nil{}, Nil{}, "", False{}}, ids, now, adding)
 
 # ---------------------------------------------------------------- rename (S4.377–S4.379)

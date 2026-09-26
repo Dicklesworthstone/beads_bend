@@ -1,0 +1,7 @@
+
+🚫 Blocked issues (2):
+
+[● P0] proj-9vo.3: Blocked child
+  Blocked by 1 open dependencies: [proj-3av]
+[● P1] proj-9vo: Parent epic
+  Blocked by 3 open dependencies: [proj-9vo.1, proj-9vo.2, proj-9vo.3]

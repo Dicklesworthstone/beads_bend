@@ -1,0 +1,8 @@
+{"status":"ok","issue_id":"proj-d1","depends_on_id":"proj-a1","type":"blocks","action":"added"}
+--- .beads/issues.jsonl ---
+{"id":"proj-a1","title":"T a1","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z","source_repo":".","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-a1","depends_on_id":"proj-b1","type":"blocks","created_at":"2026-01-01T10:00:00Z","created_by":"t","metadata":"{}","thread_id":""}]}
+{"id":"proj-b1","title":"T b1","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z","source_repo":".","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-b1","depends_on_id":"proj-c1","type":"blocks","created_at":"2026-01-01T10:00:00Z","created_by":"t","metadata":"{}","thread_id":""}]}
+{"id":"proj-c1","title":"T c1","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z","source_repo":".","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-c1","depends_on_id":"proj-a1","type":"blocks","created_at":"2026-01-01T10:00:00Z","created_by":"t","metadata":"{}","thread_id":""}]}
+{"id":"proj-d1","title":"T d1","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-02T03:04:05Z","source_repo":".","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-d1","depends_on_id":"proj-a1","type":"blocks","created_at":"2026-01-02T03:04:05Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+--- .beads/last-touched ---
+proj-d1

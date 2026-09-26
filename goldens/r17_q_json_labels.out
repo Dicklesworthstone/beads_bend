@@ -1,0 +1,5 @@
+{"id":"proj-nti","title":"Qj"}
+--- .beads/issues.jsonl ---
+{"id":"proj-nti","title":"Qj","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-02T03:04:05Z","created_by":"tester","updated_at":"2026-01-02T03:04:05Z","source_repo":".","compaction_level":0,"original_size":0,"labels":["a","z"]}
+--- .beads/last-touched ---
+proj-nti

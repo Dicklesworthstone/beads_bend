@@ -1,0 +1,7 @@
+error: unexpected argument '--dry-run' found
+
+  tip: to pass '--dry-run' as a value, use '-- --dry-run'
+
+Usage: br q <TITLE>...
+
+For more information, try '--help'.

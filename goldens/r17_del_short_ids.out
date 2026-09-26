@@ -1,0 +1,7 @@
+The following issues depend on issues being deleted:
+  - proj-ah0
+  - proj-kxh
+
+Use --force to orphan these dependents, or --cascade to delete them recursively.
+--cascade would delete 2 total dependent(s).
+No changes made (preview mode).

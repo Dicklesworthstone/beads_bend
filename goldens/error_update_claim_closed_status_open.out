@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: claim: cannot claim closed issue proj-mkh: `--claim` starts work on an open issue and never reopens one, so its close_reason and closed_at are left intact. Reopen it first with `br reopen proj-mkh`, then claim it",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "claim",
+      "reason": "cannot claim closed issue proj-mkh: `--claim` starts work on an open issue and never reopens one, so its close_reason and closed_at are left intact. Reopen it first with `br reopen proj-mkh`, then claim it"
+    }
+  }
+}

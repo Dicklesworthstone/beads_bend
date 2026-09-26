@@ -1,0 +1,16 @@
+
+🚫 Blocked issues (4):
+
+[● P1] proj-6ja: Hierarchy root
+  Blocked by:
+    • proj-0i4: Zeta open branch [P2] [open]
+    • proj-t11: Alpha busy branch [P2] [in_progress]
+[● P2] proj-t11: Alpha busy branch
+  Blocked by:
+    • proj-in9: Shared node with a child [P3] [open]
+[● P2] proj-0i4: Zeta open branch
+  Blocked by:
+    • proj-in9: Shared node with a child [P3] [open]
+[● P3] proj-in9: Shared node with a child
+  Blocked by:
+    • proj-ig8: Deep leaf [P4] [open]

@@ -1,0 +1,7 @@
+proj-aaa: T proj-aaa [P2] [open]
+  ├── external:a:b:c: ⏳ a:b:c [P2] [blocked]
+  ├── external:: ⏳ external: [P2] [blocked]
+  ├── external::y: ⏳ external::y [P2] [blocked]
+  ├── external:plain: ⏳ external:plain [P2] [blocked]
+  ├── external:x:: ⏳ external:x: [P2] [blocked]
+  ├── external:up:blocks: ⏳ up:blocks [P2] [blocked]

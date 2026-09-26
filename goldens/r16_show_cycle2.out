@@ -1,0 +1,9 @@
+○ proj-c02 · T c02   [● P2 · OPEN]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-01
+
+Dependencies:
+  -> proj-c03 (blocks) - T c03
+
+Dependents:
+  <- proj-c01 (blocks) - T c01

@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "INVALID_PRIORITY",
+    "message": "Priority must be 0-4, got: 9",
+    "hint": "Priority must be 0-4 or P0-P4 (0=critical, 4=backlog); list filters also accept ranges and comma lists such as 0-1 or 0,2.",
+    "retryable": true,
+    "context": {
+      "priority": "9",
+      "hint": "Priority must be 0-4 or P0-P4 (0=critical, 4=backlog); list filters also accept ranges and comma lists such as 0-1 or 0,2."
+    }
+  }
+}

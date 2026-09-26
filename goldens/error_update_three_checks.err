@@ -1,0 +1,1 @@
+Error: Validation errors: [ValidationError { field: "title", message: "cannot be empty" }, ValidationError { field: "updated_at", message: "cannot be before created_at" }, ValidationError { field: "estimated_minutes", message: "exceeds maximum (525960 minutes / ~1 year)" }]

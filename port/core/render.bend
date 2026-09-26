@@ -395,6 +395,114 @@ def search_plain(+page: List<&2, Model.Issue>, query: String, +more: Bool, offse
 def search_json(page: List<&2, Model.Issue>, all: List<&2, Model.Issue>, hidden: Nat, limit: Nat, offset: Nat, more: Bool) -> String:
   String.concat(["{\"issues\":[", String.concat(elements(page, all, True{})), "],\"hidden_closed_count\":", Nat.show(hidden), ",\"limit\":", Nat.show(limit), ",\"offset\":", Nat.show(offset), ",\"has_more\":", Failure.bool_text(more), "}\n"])
 
+# ---------------------------------------------------------------- CSV (`list`/`search --format csv`, round 17)
+
+# S1.61 (data) the columns `--format csv` prints when `--fields` is absent or `""`
+def csv_default() -> List<&2, String>:
+  ["id", "title", "status", "priority", "issue_type", "assignee", "created_at", "updated_at"]
+
+# S1.61 (data) the fifteen column names `--fields` knows under CSV; any other name is dropped (`labels`, `foo`)
+def csv_known() -> List<&2, String>:
+  ["id", "title", "description", "notes", "status", "priority", "issue_type", "assignee", "owner", "created_at", "updated_at", "closed_at", "due_at", "defer_until", "external_ref"]
+
+# S1.61 (spec twin) a name in front of the rest when it is kept
+def csv_put(n: String, keep: Bool, rest: List<&2, String>) -> List<&2, String>:
+  match keep:
+    case True{}:
+      n <> rest
+    case False{}:
+      rest
+
+# S1.61 (spec twin) the known names among the given ones, in the given order, repeats kept
+def csv_kept(names: List<&2, String>) -> List<&2, String>:
+  match names:
+    case Nil{}:
+      Nil{}
+    case Con{+n, rest}:
+      csv_put(n, Model.listed_word(csv_known(), n), csv_kept(rest))
+
+# S1.61 (spec twin) the columns: `--fields` split at commas, each piece trimmed, empty pieces skipped, unknown names
+# dropped (`--fields ,` prints an empty header and an empty line per row); absent or `""` is the default eight
+def csv_columns(given: Maybe<&2, String>) -> List<&2, String>:
+  match given:
+    case None{}:
+      csv_default()
+    case Some{+v}:
+      Bool.pick(List<&2, String>, String.is_empty(v), csv_default(), csv_kept(Query.comma_split([v])))
+
+# S1.61 (spec twin) does a value start a spreadsheet formula: `=`, `+`, `-`, `@`, a tab, a carriage return or a newline
+def csv_formula(s: String) -> Bool:
+  match s:
+    case SNil{}:
+      False{}
+    case SCon{Chr{+c}, rest}:
+      (U32.is_eq(c, 61) || U32.is_eq(c, 43) || U32.is_eq(c, 45) || U32.is_eq(c, 64) || U32.is_eq(c, 9) || U32.is_eq(c, 13) || U32.is_eq(c, 10))
+
+# S1.61 (spec twin) does a value hold a comma, a double quote, a newline or a carriage return
+def csv_special(s: String) -> Bool:
+  match s:
+    case SNil{}:
+      False{}
+    case SCon{Chr{+c}, rest}:
+      (U32.is_eq(c, 44) || U32.is_eq(c, 34) || U32.is_eq(c, 10) || U32.is_eq(c, 13) || csv_special(rest))
+
+# S1.61 (spec twin) one character in front of the rest, twice when it is a double quote
+def csv_char(c: U32, quote: Bool, rest: String) -> String:
+  match quote:
+    case True{}:
+      SCon{Chr{34}, SCon{Chr{34}, rest}}
+    case False{}:
+      SCon{Chr{c}, rest}
+
+# S1.61 (spec twin) a value with every double quote doubled
+def csv_doubled(s: String) -> String:
+  match s:
+    case SNil{}:
+      SNil{}
+    case SCon{Chr{+c}, rest}:
+      csv_char(c, U32.is_eq(c, 34), csv_doubled(rest))
+
+# S1.61 (spec twin) one cell: a formula start gets a `'` before it and is always quoted; otherwise a value with a
+# comma, a quote or a line break is quoted; quotes inside are doubled
+def csv_cell(+s: String) -> String:
+  Bool.pick(String, csv_formula(s), "\"'" ++ csv_doubled(s) ++ "\"", Bool.pick(String, csv_special(s), "\"" ++ csv_doubled(s) ++ "\"", s))
+
+# S1.61 (spec twin) an optional text, empty when absent
+def csv_text(m: Maybe<&2, String>) -> String:
+  Maybe.default(&2, String, m, "")
+
+# S1.61 (spec twin) an optional instant with `+00:00`, empty when absent
+def csv_time(m: Maybe<&2, Time.Instant>) -> String:
+  match m:
+    case None{}:
+      ""
+    case Some{t}:
+      Time.print(t, "+00:00")
+
+# S1.61 (spec twin) one issue's value of one column
+def csv_value(+name: String, +i: Model.Issue) -> String:
+  Bool.pick(String, String.eq(name, "id"), Model.id_of(i), Bool.pick(String, String.eq(name, "title"), Model.title_of(i), Bool.pick(String, String.eq(name, "description"), csv_text(Model.description_of(i)), Bool.pick(String, String.eq(name, "notes"), csv_text(Model.notes_of(i)), Bool.pick(String, String.eq(name, "status"), Model.status_of(i), Bool.pick(String, String.eq(name, "priority"), Model.priority_of(i), Bool.pick(String, String.eq(name, "issue_type"), Model.type_of(i), Bool.pick(String, String.eq(name, "assignee"), csv_text(Model.assignee_of(i)), Bool.pick(String, String.eq(name, "owner"), csv_text(Model.owner_of(i)), Bool.pick(String, String.eq(name, "created_at"), Time.print(Model.created_of(i), "+00:00"), Bool.pick(String, String.eq(name, "updated_at"), Time.print(Model.updated_of(i), "+00:00"), Bool.pick(String, String.eq(name, "closed_at"), csv_time(Model.closed_of(i)), Bool.pick(String, String.eq(name, "due_at"), csv_time(Model.due_of(i)), Bool.pick(String, String.eq(name, "defer_until"), csv_time(Model.defer_of(i)), csv_text(Model.external_ref_of(i))))))))))))))))
+
+# S1.61 (spec twin) one row's cells
+def csv_cells(names: List<&2, String>, +i: Model.Issue) -> List<&2, String>:
+  match names:
+    case Nil{}:
+      Nil{}
+    case Con{+n, rest}:
+      csv_cell(csv_value(n, i)) <> csv_cells(rest, i)
+
+# S1.61 (spec twin) the rows, one line each
+def csv_rows(issues: List<&2, Model.Issue>, +names: List<&2, String>) -> List<&2, String>:
+  match issues:
+    case Nil{}:
+      Nil{}
+    case Con{+i, rest}:
+      (String.join(csv_cells(names, i), ",") ++ "\n") <> csv_rows(rest, names)
+
+# S1.61 (spec twin) `list`/`search --format csv`: the header of column names, then one line per row of the page
+def csv_text_of(+page: List<&2, Model.Issue>, +names: List<&2, String>) -> String:
+  String.join(names, ",") ++ "\n" ++ String.concat(csv_rows(page, names))
+
 # ---------------------------------------------------------------- ready (S5.36, S5.130–S5.136)
 
 # S5.131 (spec twin) the rows of `ready`: `{index}. [● P{n}] [{type}] {id}: {title}`, numbered from 1

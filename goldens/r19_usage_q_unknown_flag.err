@@ -1,0 +1,7 @@
+error: unexpected argument '--assignee' found
+
+  tip: to pass '--assignee' as a value, use '-- --assignee'
+
+Usage: br q <TITLE>...
+
+For more information, try '--help'.

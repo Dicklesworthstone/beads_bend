@@ -155,15 +155,25 @@ def shouted(s: String) -> String:
     case SCon{Chr{+c}, rest}:
       SCon{Chr{upper_char(c, ((c >= 97 : U32) && (c <= 122 : U32)))}, shouted(rest)}
 
-# S5.144 (spec twin) the owner line's value: the stored owner, else `USER`, else `unknown`
+# S5.144 (spec twin) the owner line's value: the stored owner, even stored as `""` (round 16: `Owner:  · Type`, no
+# fallback), else `USER`, else `unknown`
 def owner_text(owner: Maybe<&2, String>, user: String) -> String:
   match owner user:
-    case Some{SCon{h, t}} _:
+    case Some{o} _:
+      o
+    case None{} SCon{h, t}:
       SCon{h, t}
-    case _ SCon{h, t}:
-      SCon{h, t}
-    case _ SNil{}:
+    case None{} SNil{}:
       "unknown"
+
+# S5.146 (spec twin) a metadata line for a present text, even stored as `""` (`Assignee: ` with an empty value,
+# round 16)
+def meta_present(label: String, value: Maybe<&2, String>) -> String:
+  match value:
+    case Some{v}:
+      label ++ Render.inline(v) ++ "\n"
+    case None{}:
+      ""
 
 # S5.146 (spec twin) a metadata line for a present, non-empty text
 def meta_text(label: String, value: Maybe<&2, String>) -> String:
@@ -368,6 +378,15 @@ def width_of(+columns: String, no_wrap: Bool) -> Nat:
     case False{}:
       Bool.pick(Nat, Nat.is_ge(Maybe.default(&2, Nat, Nat.read(columns), 0n), 20n), Maybe.default(&2, Nat, Nat.read(columns), 0n), 100n)
 
+# S5.150 S5.115 (spec twin) the description's section: present even when stored as `""`, then only its blank line and
+# the line end (round 16: `description:""` prints an empty block; `design`, `notes` and the others stay hidden)
+def description_section(value: Maybe<&2, String>, +width: Nat) -> String:
+  match value:
+    case Some{v}:
+      "\n" ++ wrapped(body(v), width) ++ "\n"
+    case None{}:
+      ""
+
 # S5.150 S5.115 (spec twin) a body section: one blank line, the heading line when it has one, the body wrapped
 def section(heading: String, value: Maybe<&2, String>, +width: Nat) -> String:
   match value:
@@ -471,7 +490,7 @@ def countdown(until: Maybe<&2, Time.Instant>, now: Maybe<&2, Time.Instant>) -> S
 # S5.143–S5.153 (spec twin) one issue in plain text: the header, the owner line, the dates, the optional metadata
 # in S5.146's order, the bodies, the edges, the comments
 def plain_one(+i: Model.Issue, +all: List<&2, Model.Issue>, user: String, now: Maybe<&2, Time.Instant>, +width: Nat) -> String:
-  String.concat([Render.icon(Model.status_of(i)), " ", Render.inline(Model.id_of(i)), " · ", Render.inline(Model.title_of(i)), "   [● P", Model.priority_of(i), " · ", shouted(Render.inline(Model.status_of(i))), "]\nOwner: ", Render.inline(owner_text(Model.owner_of(i), user)), " · Type: ", Render.inline(Model.type_of(i)), "\nCreated: ", Render.date(Model.created_of(i)), " · Updated: ", Render.date(Model.updated_of(i)), "\n", meta_text("Assignee: ", Model.assignee_of(i)), labels_line(Model.labels_of(i)), meta_text("Ref: ", Model.external_ref_of(i)), meta_date("Due: ", Model.due_of(i), ""), meta_date("Deferred until: ", Model.defer_of(i), countdown(Model.defer_of(i), now)), estimate_line(Model.estimate_of(i)), closed_line(Model.closed_of(i), Model.close_reason_of(i)), section("", Model.description_of(i), width), section("Design:\n", Model.design_of(i), width), section("Prerequisites:\n", Model.prerequisites_of(i), width), section("Acceptance Criteria:\n", Model.acceptance_of(i), width), section("Notes:\n", Model.notes_of(i), width), edge_section("Dependencies:", List.sort(~Related, ~related_le, dependencies(Model.deps_of(i), all)), "->"), edge_section("Dependents:", List.sort(~Related, ~related_le, dependents(all, Model.id_of(i))), "<-"), comment_section(Model.comments_of(i), width)])
+  String.concat([Render.icon(Model.status_of(i)), " ", Render.inline(Model.id_of(i)), " · ", Render.inline(Model.title_of(i)), "   [● P", Model.priority_of(i), " · ", shouted(Render.inline(Model.status_of(i))), "]\nOwner: ", Render.inline(owner_text(Model.owner_of(i), user)), " · Type: ", Render.inline(Model.type_of(i)), "\nCreated: ", Render.date(Model.created_of(i)), " · Updated: ", Render.date(Model.updated_of(i)), "\n", meta_present("Assignee: ", Model.assignee_of(i)), labels_line(Model.labels_of(i)), meta_text("Ref: ", Model.external_ref_of(i)), meta_date("Due: ", Model.due_of(i), ""), meta_date("Deferred until: ", Model.defer_of(i), countdown(Model.defer_of(i), now)), estimate_line(Model.estimate_of(i)), closed_line(Model.closed_of(i), Model.close_reason_of(i)), description_section(Model.description_of(i), width), section("Design:\n", Model.design_of(i), width), section("Prerequisites:\n", Model.prerequisites_of(i), width), section("Acceptance Criteria:\n", Model.acceptance_of(i), width), section("Notes:\n", Model.notes_of(i), width), edge_section("Dependencies:", List.sort(~Related, ~related_le, dependencies(Model.deps_of(i), all)), "->"), edge_section("Dependents:", List.sort(~Related, ~related_le, dependents(all, Model.id_of(i))), "<-"), comment_section(Model.comments_of(i), width)])
 
 # ---------------------------------------------------------------- JSON (S5.30, S5.31)
 

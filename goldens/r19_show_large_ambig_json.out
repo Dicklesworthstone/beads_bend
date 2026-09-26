@@ -1,0 +1,21 @@
+{
+  "error": {
+    "code": "AMBIGUOUS_ID",
+    "message": "Ambiguous ID 'proj-x0e': matches [\"proj-x0e0\", \"proj-x0e1\", \"proj-x0e2\", \"proj-x0e3\", \"proj-x0e4\", \"proj-x0e5\", \"proj-x0e6\", \"proj-x0e7\"]",
+    "hint": "Provide more characters of the ID",
+    "retryable": true,
+    "context": {
+      "partial_id": "proj-x0e",
+      "matches": [
+        "proj-x0e0",
+        "proj-x0e1",
+        "proj-x0e2",
+        "proj-x0e3",
+        "proj-x0e4",
+        "proj-x0e5",
+        "proj-x0e6",
+        "proj-x0e7"
+      ]
+    }
+  }
+}

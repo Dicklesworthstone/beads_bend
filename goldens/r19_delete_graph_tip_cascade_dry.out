@@ -1,0 +1,6 @@
+Dry-run: Would delete 1 issue(s):
+  - proj-tip: Shared leaf
+Would also cascade delete 3 dependent(s):
+  - proj-697
+  - proj-ah0
+  - proj-kxh

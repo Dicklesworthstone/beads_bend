@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: label: cannot be empty",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "label",
+      "reason": "cannot be empty"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+[{"issue_id":"proj-9vw","depends_on_id":"proj-wjh","type":"blocks","title":"Chain middle","status":"open","priority":2},{"issue_id":"proj-a14","depends_on_id":"proj-9vw","type":"parent-child","title":"Chain tail","status":"open","priority":3}]

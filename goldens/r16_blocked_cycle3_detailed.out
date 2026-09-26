@@ -1,0 +1,12 @@
+
+🚫 Blocked issues (3):
+
+[● P2] proj-a1: T a1
+  Blocked by:
+    • proj-b1: T b1 [P2] [open]
+[● P2] proj-b1: T b1
+  Blocked by:
+    • proj-c1: T c1 [P2] [open]
+[● P2] proj-c1: T c1
+  Blocked by:
+    • proj-a1: T a1 [P2] [open]

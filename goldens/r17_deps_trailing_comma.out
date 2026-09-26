@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "INVALID_ID",
+    "message": "Invalid issue ID format: ",
+    "hint": null,
+    "retryable": false,
+    "context": {
+      "id": ""
+    }
+  }
+}

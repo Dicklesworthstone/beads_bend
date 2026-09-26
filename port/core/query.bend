@@ -117,9 +117,37 @@ def all_digits(s: String) -> Bool:
     case SCon{Chr{+c}, +rest}:
       ((c >= 48 : U32) && (c <= 57 : U32) && (String.is_empty(rest) || all_digits(rest)))
 
-# S9.15 (spec twin) the value as the refusal quotes it: a `P` in front of digits is dropped (`P9` → `9`)
+# S4.107 (spec twin) digits without their leading zeros
+def zeros_dropped(s: String) -> String:
+  match s:
+    case SCon{Chr{48}, rest}:
+      zeros_dropped(rest)
+    case other:
+      other
+
+# S4.107 (spec twin) the canonical text of a number: `0` for no digits, a `-` only in front of a non-zero value
+def number_text(+digits: String, neg: Bool) -> String:
+  Bool.pick(String, String.is_empty(digits), "0", Bool.pick(String, neg, "-" ++ digits, digits))
+
+# S4.107 (spec twin) digits read as an integer: its canonical text, "" when they are not all digits
+def unsigned_text(+d: String, neg: Bool) -> String:
+  Bool.pick(String, all_digits(d), number_text(zeros_dropped(d), neg), "")
+
+# S4.107 S9.15 (spec twin) a word read as a signed integer (an optional `+` or `-`, then digits; leading zeros allowed):
+# its canonical text (`+05` → `5`, `-1` → `-1`), "" when it is not one (round 19: `-p 01` is priority 1)
+def signed_number(s: String) -> String:
+  match s:
+    case SCon{Chr{43}, rest}:
+      unsigned_text(rest, False{})
+    case SCon{Chr{45}, rest}:
+      unsigned_text(rest, True{})
+    case other:
+      unsigned_text(other, False{})
+
+# S9.15 (spec twin) the value as the refusal quotes it: after an optional `P`, a signed integer is quoted as the number
+# it reads (`P9` → `9`, `05` → `5`, `p-1` → `-1`); anything else as it was given, in upper case
 def quoted_priority(+shown: String) -> String:
-  Bool.pick(String, (String.starts_with(shown, "P") && all_digits(String.drop(shown, 1n))), String.drop(shown, 1n), shown)
+  Bool.pick(String, String.is_empty(signed_number(Bool.pick(String, String.starts_with(shown, "P"), String.drop(shown, 1n), shown))), shown, signed_number(Bool.pick(String, String.starts_with(shown, "P"), String.drop(shown, 1n), shown)))
 
 # S9.15 (spec twin) the generic hint of a priority refusal
 def priority_hint() -> String:
@@ -135,8 +163,8 @@ def word_hint(+rank: String) -> String:
   Bool.pick(String, String.is_empty(rank), priority_hint(), "Did you mean --priority " ++ rank ++ "?")
 
 
-# S4.107 (spec twin) one priority's digit after the optional `P`: exactly one of `0`..`4`; 9 means "not a priority"
-def priority_digit(cs: String) -> U32:
+# S4.107 (spec twin) a canonical number that is a priority: exactly one of `0`..`4`; 9 means "not a priority"
+def priority_exact(cs: String) -> U32:
   match cs:
     case SCon{Chr{48}, SNil{}}:
       0
@@ -150,6 +178,10 @@ def priority_digit(cs: String) -> U32:
       4
     case other:
       9
+
+# S4.107 (spec twin) one priority after the optional `P`: the integer it reads, when that is `0`..`4`; 9 otherwise
+def priority_digit(cs: String) -> U32:
+  priority_exact(signed_number(cs))
 
 # S4.107 (spec twin) a priority word, already trimmed and in upper case: an optional leading `P`, then the digit
 def priority_word(s: String) -> U32:
@@ -199,6 +231,19 @@ def range_hint(c: Cut, +fallback: String) -> String:
 # says so in the top-level hint only (the context keeps the generic hint)
 def bad_priority(+shown: String) -> Failure.Failure:
   Failure.Failure{"INVALID_PRIORITY", "Priority must be 0-4, got: " ++ quoted_priority(shown), Some{range_hint(cut_at_dash(shown, Nil{}), word_hint(word_rank(shown)))}, True{}, [Failure.CtxMember{"priority", Failure.CStr{quoted_priority(shown)}}, Failure.CtxMember{"hint", Failure.CStr{word_hint(word_rank(shown))}}], 4}
+
+# S4.140 S9.15 (spec twin) `search`'s priority refusal: as `bad_priority`, with the plain hint (no range hint)
+def search_bad_priority(+shown: String) -> Failure.Failure:
+  Failure.Failure{"INVALID_PRIORITY", "Priority must be 0-4, got: " ++ quoted_priority(shown), Some{word_hint(word_rank(shown))}, True{}, [Failure.CtxMember{"priority", Failure.CStr{quoted_priority(shown)}}, Failure.CtxMember{"hint", Failure.CStr{word_hint(word_rank(shown))}}], 4}
+
+# S4.140 (spec twin) the first `search --priority` value that is not ONE priority (trimmed, in upper case; no comma
+# lists and no ranges, round 20: `search e -p 0,1` is `got: 0,1`), "" when every value is one
+def single_bad(values: List<&2, String>) -> String:
+  match values:
+    case Nil{}:
+      ""
+    case Con{+v, rest}:
+      Bool.pick(String, U32.is_eq(priority_word(shouted(String.trim(v))), 9), shouted(String.trim(v)), single_bad(rest))
 
 # S4.107 (spec twin) keep priority `p` when both ends are priorities and lo <= p <= hi
 def span_keep(+p: U32, lo: U32, +hi: U32, +rest: List<&2, U32>) -> List<&2, U32>:
@@ -357,9 +402,10 @@ def status_values(+opts: List<&2, Cli.Occ>, split: Bool) -> List<&2, String>:
       Cli.values(opts, "status")
 
 # S4.100–S4.108 (spec twin) the filter of `list` (`lists_deferred` true, no comma splitting of statuses and
-# types) or of `count` (false, split), or the first refusal: statuses, then priorities, then the bounds
+# types) or of `count` (false, split), or the first refusal: statuses, then priorities, then the bounds; `count` does
+# not refuse an unknown status, which then matches nothing (round 18: `count --status bogus` prints `0`)
 def build(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, lists_deferred: Bool, +split: Bool) -> Built:
-  status_gate(unknown_status(status_values(opts, split), issues), opts, status_values(opts, split), lists_deferred, split)
+  status_gate(Bool.pick(String, split, "", unknown_status(status_values(opts, split), issues)), opts, status_values(opts, split), lists_deferred, split)
 
 # ---------------------------------------------------------------- judging one issue
 

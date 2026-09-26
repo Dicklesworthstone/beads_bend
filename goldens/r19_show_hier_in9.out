@@ -1,0 +1,10 @@
+○ proj-in9 · Shared node with a child   [● P3 · OPEN]
+Owner: tester · Type: task
+Created: 2026-06-01 · Updated: 2026-06-01
+
+Dependencies:
+  -> proj-ig8 (blocks) - Deep leaf
+
+Dependents:
+  <- proj-t11 (blocks) - Alpha busy branch
+  <- proj-0i4 (blocks) - Zeta open branch

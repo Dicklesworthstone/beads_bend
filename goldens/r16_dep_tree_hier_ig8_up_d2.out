@@ -1,0 +1,4 @@
+proj-ig8: Deep leaf [P4] [open]
+  ├── proj-in9: Shared node with a child [P3] [open]
+    ├── (truncated) proj-0i4: Zeta open branch [P2] [open]
+    ├── (truncated) proj-t11: Alpha busy branch [P2] [in_progress]

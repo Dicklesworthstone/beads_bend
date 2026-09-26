@@ -1,0 +1,21 @@
+{
+  "error": {
+    "code": "AMBIGUOUS_ID",
+    "message": "Ambiguous ID 'aa': matches [\"proj-aaa\", \"proj-aab\", \"proj-aac\", \"proj-aad\", \"proj-aae\", \"proj-aaf\", \"proj-aag\", \"proj-aah\"]",
+    "hint": "Provide more characters of the ID",
+    "retryable": true,
+    "context": {
+      "partial_id": "aa",
+      "matches": [
+        "proj-aaa",
+        "proj-aab",
+        "proj-aac",
+        "proj-aad",
+        "proj-aae",
+        "proj-aaf",
+        "proj-aag",
+        "proj-aah"
+      ]
+    }
+  }
+}

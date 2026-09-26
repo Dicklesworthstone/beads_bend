@@ -1,0 +1,2 @@
+Error: Validation failed: update: proj-mta: refusing to overwrite non-empty 'description' (26 chars) with different content (2 chars, 7% of the current length) without --force
+Hint: These fields accumulate context: a write that clears the field or keeps less than half its length needs --force; run `br show <id>` first to read what is there, or use --append-notes / --add-acceptance to extend instead of replace.

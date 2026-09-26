@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: Invalid JSON at line 2: expected value at line 1 column 1",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

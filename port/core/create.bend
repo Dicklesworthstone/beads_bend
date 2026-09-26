@@ -16,6 +16,7 @@ import ./when.bend as When
 import ./render.bend as Render
 import ./json.bend as Json
 import ./decode.bend as Decode
+import ./status.bend as Status
 
 # S4.200 S4.220 S4.221 (data) what a mutation knows of the world: every stored id (the raw file's, tombstones
 # included: S4.10, S4.13), the acting actor, the invocation instant and its nanoseconds since the epoch as digits
@@ -258,11 +259,17 @@ type Edges is Data:
 def bad_dep_type(t: String) -> Failure.Failure:
   invalid("deps", "Unknown dependency type: '" ++ t ++ "'. Allowed types: blocks, blocked-by, parent-child, conditional-blocks, waits-for, related, discovered-from, replies-to, relates-to, duplicates, supersedes, caused-by")
 
-# S4.229 (spec twin) an element cut at its first `:`: with one, the type and the target; without one, `blocks` and the element
+# S4.229 (spec twin) the type of a `--deps` element as it is stored: trimmed, lower case, `blocked-by` written `blocks`
+def dep_kind(+t: String) -> String:
+  Bool.pick(String, String.eq(Model.lowered(String.trim(t)), "blocked-by"), "blocks", Model.lowered(String.trim(t)))
+
+# S4.229 (spec twin) an element cut at its first `:`: when the part before it is a known type (trimmed, any case), the
+# type and the target; otherwise `blocks` and the whole element, which is then resolved as an id (round 17:
+# `frob:proj-mta` is `Issue not found: frob:proj-mta`, exit 3)
 def dep_cut_typed(c: Resolve.Cut, whole: String) -> Resolve.Cut:
   match c:
-    case Resolve.Cut{left, right, True{}}:
-      Resolve.Cut{left, right, True{}}
+    case Resolve.Cut{+left, right, True{}}:
+      Bool.pick(Resolve.Cut, Model.listed_word(Model.known_dep_types(), dep_kind(left)), Resolve.Cut{left, right, True{}}, Resolve.Cut{"blocks", whole, True{}})
     case Resolve.Cut{left, right, False{}}:
       Resolve.Cut{"blocks", whole, True{}}
 
@@ -276,10 +283,6 @@ def edge_of(+id: String, target: String, kind: String, +w: World) -> Model.Depen
   match w:
     case World{ids, actor, now, nanos, prefix, repo_path}:
       Model.Dependency{id, target, kind, now, Some{actor}, Some{"{}"}, Some{""}}
-
-# S4.229 (spec twin) the type of a `--deps` element as it is stored: trimmed, lower case, `blocked-by` written `blocks`
-def dep_kind(+t: String) -> String:
-  Bool.pick(String, String.eq(Model.lowered(String.trim(t)), "blocked-by"), "blocks", Model.lowered(String.trim(t)))
 
 # S4.229 S4.49 (spec twin) the target of a `--deps` element: `external:…` verbatim, anything else resolved like any id
 def dep_target(+target: String, +w: World) -> Resolve.Found:
@@ -305,6 +308,23 @@ def edge_cut(sofar: Edges, c: Resolve.Cut, +id: String, +w: World) -> Edges:
     case Resolve.Cut{+t, target, found}:
       edge_step(sofar, Model.listed_word(Model.known_dep_types(), dep_kind(t)), dep_target(String.trim(target), w), dep_kind(t), id, w)
 
+# S4.229 (spec twin) the pieces of one `--deps` value, each trimmed, empty ones kept
+def dep_pieces(parts: List<&2, String>) -> List<&2, String>:
+  match parts:
+    case Nil{}:
+      Nil{}
+    case Con{p, rest}:
+      String.trim(p) <> dep_pieces(rest)
+
+# S4.229 (spec twin) the elements of every `--deps` value, split at commas; an empty element is kept and is refused as
+# an id (round 17: `--deps ""` and `--deps proj-mta,` are `Invalid issue ID format: `, exit 3)
+def dep_elements(values: List<&2, String>) -> List<&2, String>:
+  match values:
+    case Nil{}:
+      Nil{}
+    case Con{v, rest}:
+      List.append(&2, String, dep_pieces(String.split(v, Chr{44})), dep_elements(rest))
+
 # S4.229 (spec twin) every `--deps` element, in order
 def edges_go(elements: List<&2, String>, sofar: Edges, +id: String, +w: World) -> Edges:
   match elements:
@@ -323,13 +343,16 @@ def when_status(+status: String, +word: String, now: Time.Instant) -> Maybe<&2, 
 def who_deleted(status: String, actor: String) -> Maybe<&2, String>:
   Bool.pick(Maybe<&2, String>, String.eq(Model.lowered(status), "tombstone"), Some{actor}, None{})
 
-# S4.230 (spec twin) `-e` as the record holds it: the digits the argument parser accepted, without `+` or leading zeros
+# S4.230 S2.47 (spec twin) `-e` as the record holds it: the digits the argument parser accepted, without `+` or
+# leading zeros; a negative value keeps its `-` so that the write is refused (S2.47; `-0` is `0`)
 def minutes(given: Maybe<&2, String>) -> Maybe<&2, String>:
   match given:
     case None{}:
       None{}
     case Some{SCon{Chr{43}, digits}}:
       Some{U32.show(Maybe.default(&2, U32, U32.read(digits), 0))}
+    case Some{SCon{Chr{45}, +digits}}:
+      Some{Query.number_text(U32.show(Maybe.default(&2, U32, U32.read(digits), 0)), (Maybe.default(&2, U32, U32.read(digits), 0) > 0 : U32))}
     case Some{digits}:
       Some{U32.show(Maybe.default(&2, U32, U32.read(digits), 0))}
 
@@ -394,9 +417,51 @@ def new_id(p: Parent, +w: World, slug: String, title: String, seed_description: 
     case other whole:
       hashed_id(whole, slug, title, seed_description, seed_creator)
 
+# S4.221 S4.231 (spec twin) a new record keeps what it was built with where the load repair would change it: an empty
+# `--external-ref` is written as `""`, and a record created `tombstone` gets no `closed_at` (round 19)
+def as_built(i: Model.Issue, ref: Maybe<&2, String>, closed: Maybe<&2, Time.Instant>) -> Model.Issue:
+  match i:
+    case Model.Issue{head, texts, people, Model.Times{created_at, updated_at, c, due_at, defer_until, deleted_at, compacted_at}, closing, Model.Source{e, system, repo, repo_path, context}, deletion, compaction, meta, flags, labels, dependencies, comments}:
+      Model.Issue{head, texts, people, Model.Times{created_at, updated_at, closed, due_at, defer_until, deleted_at, compacted_at}, closing, Model.Source{ref, system, repo, repo_path, context}, deletion, compaction, meta, flags, labels, dependencies, comments}
+
+# S4.235 (spec twin) an edge as the in-memory record holds it before the write: no `metadata`, no `thread_id`
+def bare_edges(es: List<&2, Model.Dependency>) -> List<&2, Model.Dependency>:
+  match es:
+    case Nil{}:
+      Nil{}
+    case Con{Model.Dependency{issue_id, depends_on_id, dep_type, created_at, created_by, metadata, thread_id}, rest}:
+      Model.Dependency{issue_id, depends_on_id, dep_type, created_at, created_by, None{}, None{}} <> bare_edges(rest)
+
+# S4.235 (spec twin) the record `create --dry-run --json` prints: as built, its edges bare (round 19:
+# `create Kid --parent proj-uly --dry-run --json` ends `"created_by":"tester"}]}`)
+def dry_record(i: Model.Issue) -> Model.Issue:
+  match i:
+    case Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, dependencies, comments}:
+      Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, bare_edges(dependencies), comments}
+
+# S4.235 S5.37 (spec twin) the repaired record beside the built one, the built one's `external_ref` and `closed_at`
+# kept (one destructuring of the built record: the C emitter's arity wall, 255 live values, is near)
+def pair_of(repaired: Model.Issue, built: Model.Issue) -> Made:
+  match built:
+    case Model.Issue{head, texts, people, Model.Times{created_at, updated_at, +c, due_at, defer_until, deleted_at, compacted_at}, closing, Model.Source{+e, system, repo, repo_path, context}, deletion, compaction, meta, flags, labels, dependencies, comments}:
+      MadeOk{as_built(repaired, e, c), Model.Issue{head, texts, people, Model.Times{created_at, updated_at, c, due_at, defer_until, deleted_at, compacted_at}, closing, Model.Source{e, system, repo, repo_path, context}, deletion, compaction, meta, flags, labels, dependencies, comments}}
+
 # S4.235 S5.37 (spec twin) the built record with its repaired spelling beside it
 def made_pair(+built: Model.Issue) -> Made:
-  MadeOk{Model.repaired(built), built}
+  pair_of(Model.repaired(built), built)
+
+# S2.47 (spec twin) a record's write-time verdict: its first refusal, or the pair
+def made_checked(+built: Model.Issue, errs: List<&2, String>) -> Made:
+  match errs:
+    case Nil{}:
+      made_pair(built)
+    case Con{+x, rest}:
+      MadeBad{Status.stamp_failure(x <> rest)}
+
+# S2.47 (spec twin) a new record is validated as it will be written: an estimate below 0 or above 525960 minutes
+# refuses the create (round 19: `create X -e 2147483647`, `create X --estimate=-5`)
+def made_valid(+built: Model.Issue) -> Made:
+  made_checked(built, Status.stamp_errors(built, False{}))
 
 # S4.229 S4.238 (spec twin) the last step: the relations; then the record, as built and as the write-back spells it
 def made(e: Edges, r: Request, w: World, id: String, priority: String, due: Maybe<&2, Time.Instant>, defer: Maybe<&2, Time.Instant>) -> Made:
@@ -404,7 +469,7 @@ def made(e: Edges, r: Request, w: World, id: String, priority: String, due: Mayb
     case EdgesBad{f}:
       MadeBad{f}
     case EdgesOk{edges}:
-      made_pair(record(r, w, id, priority, due, defer, List.reverse(&2, Model.Dependency, edges)))
+      made_valid(record(r, w, id, priority, due, defer, List.reverse(&2, Model.Dependency, edges)))
 
 # S4.12 S4.26 (spec twin) an id that could not be found free refuses the create
 def with_id(+id: String, p: Parent, +r: Request, +w: World, priority: String, due: Maybe<&2, Time.Instant>, defer: Maybe<&2, Time.Instant>, deps: List<&2, String>) -> Made:
@@ -412,7 +477,7 @@ def with_id(+id: String, p: Parent, +r: Request, +w: World, priority: String, du
     case SNil{}:
       MadeBad{invalid("parent", "could not find available child ID")}
     case SCon{h, t}:
-      made(edges_go(Query.comma_split(deps), parent_edges(p, id, w), id, w), r, w, id, priority, due, defer)
+      made(edges_go(dep_elements(deps), parent_edges(p, id, w), id, w), r, w, id, priority, due, defer)
 
 # ---------------------------------------------------------------- `--agent-context` (S4.232)
 

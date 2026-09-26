@@ -1,0 +1,9 @@
+Found 8 issue(s) matching 'e'
+✓ proj-mkh [● P2] [task] - Already finished work
+○ proj-uly [● P2] [epic] - Auth epic
+◐ proj-ptp [● P0] [bug] - Fix login timeout
+○ proj-170 [● P1] [feature] - Implement user auth
+❄ proj-7vm [● P4] [chore] - Refactor config loader
+○ proj-mta [● P1] [task] - Set up database schema
+○ proj-5u2 [● P3] [docs] - Write API docs
+○ proj-b75 [● P2] [task] - Ünïcödé title — “quotes” & <tags> \ backslash

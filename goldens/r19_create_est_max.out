@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: estimated_minutes: exceeds maximum (525960 minutes / ~1 year)",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "estimated_minutes",
+      "reason": "exceeds maximum (525960 minutes / ~1 year)"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: suggest-next: --suggest-next only works with a single issue ID",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "suggest-next",
+      "reason": "--suggest-next only works with a single issue ID"
+    }
+  }
+}

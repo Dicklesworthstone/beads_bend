@@ -1,0 +1,14 @@
+graph TD
+    n0["proj-f1: t proj-f1 [P2]"]
+    n1["proj-d1: t proj-d1 [P2]"]
+    n2["proj-b1: t proj-b1 [P2]"]
+    n3["proj-a1: t proj-a1 [P2]"]
+    n4["proj-c1: t proj-c1 [P2]"]
+    n5["proj-a1: t proj-a1 [P2]"]
+    n6["proj-e1: t proj-e1 [P2]"]
+    n0 --> n1
+    n1 --> n2
+    n2 --> n3
+    n1 --> n4
+    n4 --> n5
+    n0 --> n6

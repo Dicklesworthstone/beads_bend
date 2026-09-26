@@ -1,0 +1,16 @@
+○ proj-9vo · Parent epic   [● P1 · OPEN]
+Owner: tester · Type: epic
+Created: 2026-04-05 · Updated: 2026-04-05
+
+Dependents:
+  <- proj-9vo.3 (parent-child) - Blocked child
+  <- proj-9vo.1 (parent-child) - Child one
+  <- proj-9vo.2 (parent-child) - Child two
+
+○ proj-9vo.3 · Blocked child   [● P0 · OPEN]
+Owner: tester · Type: task
+Created: 2026-04-05 · Updated: 2026-04-05
+
+Dependencies:
+  -> proj-9vo (parent-child) - Parent epic
+  -> proj-3av (blocks) - Loose task

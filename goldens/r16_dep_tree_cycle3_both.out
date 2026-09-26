@@ -1,0 +1,4 @@
+proj-b1: T b1 [P2] [open]
+  ├── proj-a1: T a1 [P2] [open]
+    ├── proj-c1: T c1 [P2] [open]
+  ├── (truncated) proj-c1: T c1 [P2] [open]

@@ -1,0 +1,10 @@
+graph TD
+    n0["proj-9vo: Parent epic [P1]"]
+    n1["proj-9vo.3: Blocked child [P0]"]
+    n2["proj-9vo.1: Child one [P2]"]
+    n3["proj-9vo.1.1: Grandchild [P1]"]
+    n4["proj-9vo.2: Child two [P3]"]
+    n0 --> n1
+    n0 --> n2
+    n2 --> n3
+    n0 --> n4

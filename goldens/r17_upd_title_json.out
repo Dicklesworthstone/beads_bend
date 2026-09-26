@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: updated_at: cannot be before created_at",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "updated_at",
+      "reason": "cannot be before created_at"
+    }
+  }
+}

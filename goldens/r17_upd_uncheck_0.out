@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: uncheck-acceptance: proj-mta: acceptance item numbers are 1-based; 0 is not an item",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "uncheck-acceptance",
+      "reason": "proj-mta: acceptance item numbers are 1-based; 0 is not an item"
+    }
+  }
+}

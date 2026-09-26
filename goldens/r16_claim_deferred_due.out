@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: claim: cannot claim deferred issue proj-84a: `--claim` does not cancel deferral. Run `br undefer proj-84a` first, then claim it",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "claim",
+      "reason": "cannot claim deferred issue proj-84a: `--claim` does not cancel deferral. Run `br undefer proj-84a` first, then claim it"
+    }
+  }
+}

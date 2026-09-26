@@ -1,0 +1,13 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: type: Unknown dependency type: 'my-type'. Allowed types: blocks, parent-child, conditional-blocks, waits-for, related, discovered-from, replies-to, relates-to, duplicates, supersedes, caused-by",
+    "hint": "Use --type with one of: blocks, parent-child, conditional-blocks, waits-for, related, discovered-from, replies-to, relates-to, duplicates, supersedes, caused-by.",
+    "retryable": true,
+    "context": {
+      "field": "type",
+      "reason": "Unknown dependency type: 'my-type'. Allowed types: blocks, parent-child, conditional-blocks, waits-for, related, discovered-from, replies-to, relates-to, duplicates, supersedes, caused-by",
+      "hint": "Use --type with one of: blocks, parent-child, conditional-blocks, waits-for, related, discovered-from, replies-to, relates-to, duplicates, supersedes, caused-by."
+    }
+  }
+}

@@ -326,7 +326,7 @@ def redirect_read(args: List<&2, String>, +cwd: String, +env: List<&2, Run.Var>,
 # S2.1 S2.2 (shell) test the directories discovery names, then run in the first that opened
 def discover(args: List<&2, String>, +cwd: String, +env: List<&2, Run.Var>) -> IO(Unit):
   do IO<Unit>:
-    oks : List<&2, Bool> <- probe_all(Run.discovery(cwd, Run.env_of(env, "BEADS_DIR")))
+    oks : List<&2, Bool> <- probe_all(Run.probed(Run.discovery(cwd, Run.env_of(env, "BEADS_DIR"))))
     redirect_read(args, cwd, env, Run.found(Run.discovery(cwd, Run.env_of(env, "BEADS_DIR")), oks))
 
 # S1.2 S8.1 (shell) the arguments as the core takes them, their validity flags handed over as `BEADS_BEND_ARGV_OK`

@@ -1,0 +1,3 @@
+id,title,status,priority,issue_type,assignee,created_at,updated_at
+proj-mta,Set up database schema,open,1,task,,2026-01-01T10:00:00+00:00,2026-01-01T10:00:00+00:00
+proj-b75,Ünïcödé title — “quotes” & <tags> \ backslash,open,2,task,,2026-01-01T10:00:06+00:00,2026-01-01T10:00:06+00:00

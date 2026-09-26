@@ -1,0 +1,2 @@
+Error: Priority must be 0-4, got: 5
+Hint: Priority must be 0-4 or P0-P4 (0=critical, 4=backlog); list filters also accept ranges and comma lists such as 0-1 or 0,2.

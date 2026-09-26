@@ -1,0 +1,11 @@
+○ proj-aaa · T proj-aaa   [● P2 · OPEN]
+Owner: tester · Type: task
+Created: 2026-01-01 · Updated: 2026-01-01
+
+Dependencies:
+  -> external: (related) - ⏳ external:
+  -> external::y (related) - ⏳ external::y
+  -> external:a:b:c (related) - ⏳ a:b:c
+  -> external:plain (blocks) - ⏳ external:plain
+  -> external:up:blocks (blocks) - ⏳ up:blocks
+  -> external:x: (blocks) - ⏳ external:x:

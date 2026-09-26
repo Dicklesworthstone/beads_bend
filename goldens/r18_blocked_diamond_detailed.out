@@ -1,0 +1,19 @@
+
+🚫 Blocked issues (5):
+
+[● P2] proj-d1: t proj-d1
+  Blocked by:
+    • proj-b1: t proj-b1 [P2] [open]
+    • proj-c1: t proj-c1 [P2] [open]
+[● P2] proj-f1: t proj-f1
+  Blocked by:
+    • proj-d1: t proj-d1 [P2] [open]
+[● P2] proj-e1: t proj-e1
+  Blocked by:
+    • proj-f1: t proj-f1 [P2] [open]
+[● P2] proj-c1: t proj-c1
+  Blocked by:
+    • proj-a1: t proj-a1 [P2] [open]
+[● P2] proj-b1: t proj-b1
+  Blocked by:
+    • proj-a1: t proj-a1 [P2] [open]

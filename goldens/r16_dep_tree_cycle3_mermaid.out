@@ -1,0 +1,6 @@
+graph TD
+    n0["proj-a1: T a1 [P2]"]
+    n1["proj-b1: T b1 [P2]"]
+    n2["proj-c1: T c1 [P2]"]
+    n0 --> n1
+    n1 --> n2

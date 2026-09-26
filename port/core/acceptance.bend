@@ -370,9 +370,26 @@ def selected(+old: String, +count: U32, c: Picks, u: Picks, +adds: List<&2, Stri
 def no_items(+id: String) -> Failure.Failure:
   Create.invalid("check-acceptance", id ++ ": acceptance_criteria has no checklist items to tick; append items first (--add-acceptance / add_acceptance) or set the whole field (--acceptance-criteria)")
 
-# S4.398 (spec twin) the run over the entries of the criteria before it
-def judged(+id: String, +old: String, +es: List<&2, Entry>, +checks: List<&2, String>, +unchecks: List<&2, String>, +adds: List<&2, String>) -> Done:
+# S4.398 (spec twin) is any selector the number 0
+def zero_given(xs: List<&2, String>) -> Bool:
+  match xs:
+    case Nil{}:
+      False{}
+    case Con{+x, rest}:
+      (String.eq(String.trim(x), "0") || zero_given(rest))
+
+# S4.398 (spec twin) the refusal of item number 0 under the flag that named it
+def zero_refusal(+flag: String, +id: String) -> Failure.Failure:
+  Create.invalid(flag, id ++ ": acceptance item numbers are 1-based; 0 is not an item")
+
+# S4.398 (spec twin) the run once no selector is 0
+def judged_items(+id: String, +old: String, +es: List<&2, Entry>, +checks: List<&2, String>, +unchecks: List<&2, String>, +adds: List<&2, String>) -> Done:
   Bool.pick(Done, (List.is_empty(&2, Entry, es) && Bool.not((List.is_empty(&2, String, checks) && List.is_empty(&2, String, unchecks)))), AccBad{no_items(id)}, selected(old, U32.from_nat(List.length(&2, Entry, es)), picks(checks, es, "check-acceptance", id), picks(unchecks, es, "uncheck-acceptance", id), adds))
+
+# S4.398 (spec twin) the run over the entries of the criteria before it: an item number 0 (`--check-acceptance`
+# first) is refused before the no-items check (round 17: `r17_check0`, `r17_uncheck0_with_items`)
+def judged(+id: String, +old: String, +es: List<&2, Entry>, +checks: List<&2, String>, +unchecks: List<&2, String>, +adds: List<&2, String>) -> Done:
+  Bool.pick(Done, zero_given(checks), AccBad{zero_refusal("check-acceptance", id)}, Bool.pick(Done, zero_given(unchecks), AccBad{zero_refusal("uncheck-acceptance", id)}, judged_items(id, old, es, checks, unchecks, adds)))
 
 # S4.398 (spec twin, entry) the three flags on one issue's criteria (`""` when it has none)
 def run(+id: String, +old: String, +checks: List<&2, String>, +unchecks: List<&2, String>, +adds: List<&2, String>) -> Done:

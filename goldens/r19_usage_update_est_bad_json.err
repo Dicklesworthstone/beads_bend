@@ -1,0 +1,3 @@
+error: invalid value '1e3' for '--estimate <ESTIMATE>': invalid digit found in string
+
+For more information, try '--help'.

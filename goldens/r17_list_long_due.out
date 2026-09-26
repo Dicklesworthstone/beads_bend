@@ -1,0 +1,47 @@
+◐ proj-vuy [● P0] [task] - Past due busy
+  Status: in_progress
+  Priority: P0
+  Type: task
+  Due: 2026-05-01
+  Created: 2026-03-01
+  Updated: 2026-03-01
+
+❄ proj-84a [● P2] [task] - Past due deferred
+  Status: deferred
+  Priority: P2
+  Type: task
+  Due: 2026-04-01
+  Deferred Until: 2026-12-01
+  Created: 2026-03-01
+  Updated: 2026-03-01
+
+○ proj-cxc [● P2] [task] - Future due
+  Status: open
+  Priority: P2
+  Type: task
+  Due: 2026-09-01
+  Created: 2026-03-01
+  Updated: 2026-03-01
+
+○ proj-dil [● P2] [task] - No due date
+  Status: open
+  Priority: P2
+  Type: task
+  Created: 2026-03-01
+  Updated: 2026-03-01
+
+○ proj-j1m [● P2] [task] - Past due open
+  Status: open
+  Priority: P2
+  Type: task
+  Due: 2026-04-01
+  Created: 2026-03-01
+  Updated: 2026-03-01
+
+✓ proj-upa [● P2] [task] - Past due closed
+  Status: closed
+  Priority: P2
+  Type: task
+  Due: 2026-04-01
+  Created: 2026-03-01
+  Updated: 2026-03-01

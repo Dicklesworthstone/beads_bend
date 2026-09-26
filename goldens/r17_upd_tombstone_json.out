@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: status: refusing to tombstone via `br update --status tombstone`: use `br delete <id>` instead so dependency rewiring and tombstone metadata are applied correctly.",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "status",
+      "reason": "refusing to tombstone via `br update --status tombstone`: use `br delete <id>` instead so dependency rewiring and tombstone metadata are applied correctly."
+    }
+  }
+}

@@ -13,6 +13,7 @@ import ./failure.bend as Failure
 import ./blocked.bend as Blocked
 import ./work.bend as Work
 import ./render.bend as Render
+import ./store.bend as Store
 
 # S4.213 (data) one skipped id and its reason
 type Skip is Data:
@@ -64,9 +65,10 @@ def children_reason(epic: Bool, +total: U32, done: U32) -> String:
 def blocked_reason(blockers: List<&2, String>) -> String:
   "blocked by: " ++ String.join(blockers, ", ") ++ " — close the open blocker(s) first, or use --force to close anyway"
 
-# S4.291 S4.298 (spec twin) a closed issue with its success line and its JSON element (`closed_at` with `+00:00`)
+# S4.291 S4.298 (spec twin) a closed issue with its success line and its JSON element (`closed_at` with `+00:00`);
+# an empty `--reason` is echoed as `""` but stores no `close_reason` member (round 17)
 def closed_verdict(+i: Model.Issue, +now: Time.Instant, +reason: String) -> Verdict:
-  Acted{moved(i, "closed", now, Some{now}, Some{reason}, Model.defer_of(i), True{}), "✓ Closed " ++ Render.inline(Model.id_of(i)) ++ ": " ++ Render.inline(Model.title_of(i)) ++ " (" ++ Render.inline(reason) ++ ")\n", String.concat(["{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"status\":\"closed\",\"closed_at\":", Failure.quoted(offset_text(now)), ",\"close_reason\":", Failure.quoted(reason), "}"])}
+  Acted{moved(i, "closed", now, Some{now}, Bool.pick(Maybe<&2, String>, String.is_empty(reason), None{}, Some{reason}), Model.defer_of(i), True{}), "✓ Closed " ++ Render.inline(Model.id_of(i)) ++ ": " ++ Render.inline(Model.title_of(i)) ++ " (" ++ Render.inline(reason) ++ ")\n", String.concat(["{\"id\":", Failure.quoted(Model.id_of(i)), ",\"title\":", Failure.quoted(Model.title_of(i)), ",\"status\":\"closed\",\"closed_at\":", Failure.quoted(offset_text(now)), ",\"close_reason\":", Failure.quoted(reason), "}"])}
 
 # S4.292 (spec twin) the open-children reason from the child counts
 def children_words(epic: Bool, c: Work.Children) -> String:
@@ -140,13 +142,14 @@ def with_comment(i: Model.Issue, c: Model.Comment) -> Model.Issue:
     case Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, dependencies, comments}:
       Model.Issue{head, texts, people, times, closing, source, deletion, compaction, meta, flags, labels, dependencies, List.append(&2, Model.Comment, comments, c <> Nil{})}
 
-# S4.312 (spec twin) `--reason` is stored as a COMMENT `Reopened: <reason>` by the actor at the invocation instant
+# S4.312 (spec twin) `--reason` is stored as a COMMENT `Reopened: <reason>` by the actor at the invocation instant;
+# an empty reason is `Reopened:` with no trailing space (round 17)
 def reopen_noted(+i: Model.Issue, reason: Maybe<&2, String>, actor: String, now: Time.Instant, comment_id: String) -> Model.Issue:
   match reason:
     case None{}:
       i
-    case Some{text}:
-      with_comment(i, Model.Comment{comment_id, Model.id_of(i), actor, "Reopened: " ++ text, now})
+    case Some{+text}:
+      with_comment(i, Model.Comment{comment_id, Model.id_of(i), actor, Bool.pick(String, String.is_empty(text), "Reopened:", "Reopened: " ++ text), now})
 
 # S4.314 (spec twin) the suffix of the success line: ` (<reason>)` when a reason was given
 def reason_suffix(reason: Maybe<&2, String>) -> String:
@@ -248,6 +251,86 @@ def batch_dup(b: Batch) -> String:
   match b:
     case Batch{model, plain, json, skips, last, acted}:
       first_dup(List.reverse(&2, String, acted), Nil{})
+
+# S2.43–S2.54 S2.46 (spec twin) the checks a write applies to a record it changes: every rule of the load's
+# validation, and `updated_at` before `created_at`, in the measured order, as `<field>: <message>` texts (round 17:
+# a clock before the record's `created_at` refuses `update -p`, `close`, `reopen`, `defer`, `undefer`; `update
+# --title ""`; round 19: `create -e 2147483647`, `update --estimate=-5`, `update --external-ref " x"`). `closing` is
+# kept for the callers: `closed_at` is judged on every write, as it is on every load
+def stamp_errors(+i: Model.Issue, closing: Bool) -> List<&2, String>:
+  Store.write_violations(i)
+
+# S2.43–S2.54 (spec twin) the field of a `<field>: <message>` text: everything before the first `:`
+def stamp_field(s: String) -> String:
+  match s:
+    case SNil{}:
+      ""
+    case SCon{Chr{58}, rest}:
+      ""
+    case SCon{c, rest}:
+      SCon{c, stamp_field(rest)}
+
+# S2.43–S2.54 (spec twin) the message of a `<field>: <message>` text: everything after the first `: `
+def stamp_message(s: String) -> String:
+  match s:
+    case SNil{}:
+      ""
+    case SCon{Chr{58}, SCon{Chr{32}, rest}}:
+      rest
+    case SCon{c, rest}:
+      stamp_message(rest)
+
+# S2.46 S2.48 (spec twin) the Debug items, in order
+def stamp_debug_go(fields: List<&2, String>, acc: List<&2, String>) -> List<&2, String>:
+  match fields:
+    case Nil{}:
+      List.reverse(&2, String, acc)
+    case Con{+f, rest}:
+      stamp_debug_go(rest, ("ValidationError { field: \"" ++ stamp_field(f) ++ "\", message: \"" ++ stamp_message(f) ++ "\" }") <> acc)
+
+# S2.46 S2.48 (spec twin) the failed checks as Rust's Debug list `ValidationError { field: "…", message: "…" }`; the
+# JSON `errors` array is pre-rendered at the envelope's indentation (objects at eight spaces, members at ten)
+def stamp_debug(+fields: List<&2, String>) -> String:
+  "[" ++ String.join(stamp_debug_go(fields, Nil{}), ", ") ++ "]"
+
+# S2.46 S2.48 (spec twin) the JSON objects of the failed checks
+def stamp_objects(fields: List<&2, String>, acc: List<&2, String>) -> List<&2, String>:
+  match fields:
+    case Nil{}:
+      List.reverse(&2, String, acc)
+    case Con{+f, rest}:
+      stamp_objects(rest, ("        {\n          \"field\": " ++ Failure.quoted(stamp_field(f)) ++ ",\n          \"message\": " ++ Failure.quoted(stamp_message(f)) ++ "\n        }") <> acc)
+
+# S2.46 S2.48 (spec twin) the refusal: one failed check is `Validation failed: <field>: <message>`; several are
+# `Validation errors: [ValidationError { … }, …]` with `context.errors` (both VALIDATION_FAILED, exit 4, retryable)
+def stamp_failure(fields: List<&2, String>) -> Failure.Failure:
+  match fields:
+    case Con{+f, Nil{}}:
+      Failure.Failure{"VALIDATION_FAILED", "Validation failed: " ++ stamp_field(f) ++ ": " ++ stamp_message(f), None{}, True{}, [Failure.CtxMember{"field", Failure.CStr{stamp_field(f)}}, Failure.CtxMember{"reason", Failure.CStr{stamp_message(f)}}], 4}
+    case +more:
+      Failure.Failure{"VALIDATION_FAILED", "Validation errors: " ++ stamp_debug(more), None{}, True{}, [Failure.CtxMember{"errors", Failure.CBare{"[\n" ++ String.join(stamp_objects(more, Nil{}), ",\n") ++ "\n      ]"}}], 4}
+
+# S2.46 S2.48 (spec twin) one record's verdict, else the rest's
+def stamp_found(found: Maybe<&2, Model.Issue>, +closing: Bool, rest: Maybe<&2, Failure.Failure>) -> Maybe<&2, Failure.Failure>:
+  match found:
+    case None{}:
+      rest
+    case Some{+i}:
+      Bool.pick(Maybe<&2, Failure.Failure>, List.is_empty(&2, String, stamp_errors(i, closing)), rest, Some{stamp_failure(stamp_errors(i, closing))})
+
+# S2.46 S2.48 (spec twin) the first acted-on record, in command-line order, that a write would refuse
+def first_stamp_bad(ids: List<&2, String>, +model: List<&2, Model.Issue>, +closing: Bool) -> Maybe<&2, Failure.Failure>:
+  match ids:
+    case Nil{}:
+      None{}
+    case Con{+id, rest}:
+      stamp_found(Blocked.lookup(model, id), closing, first_stamp_bad(rest, model, closing))
+
+# S2.46 S2.48 (spec twin) a batch's write check over the ids it acted on
+def batch_stamp(b: Batch, +closing: Bool) -> Maybe<&2, Failure.Failure>:
+  match b:
+    case Batch{model, plain, json, skips, last, acted}:
+      first_stamp_bad(List.reverse(&2, String, acted), model, closing)
 
 # S4.327 (spec twin) an id twice in one atomic update batch (`close`, `reopen`, `update`, `defer`, `undefer`):
 # VALIDATION_FAILED, exit 4, nothing printed but the refusal, nothing written (round 15: `close proj-mta proj-mta`,

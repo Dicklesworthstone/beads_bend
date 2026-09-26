@@ -1,0 +1,10 @@
+graph TD
+    n0["proj-tip: Shared leaf [P3]"]
+    n1["proj-kxh: Left middle [P2]"]
+    n2["proj-697: Root of the diamond [P1]"]
+    n3["proj-ah0: Right middle [P2]"]
+    n4["proj-697: Root of the diamond [P1]"]
+    n0 --> n1
+    n1 --> n2
+    n0 --> n3
+    n3 --> n4

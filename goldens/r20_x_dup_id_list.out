@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "CONFIG_ERROR",
+    "message": "Configuration error: Duplicate issue id 'proj-aaa' in /mnt/proj/.beads/issues.jsonl at line 3",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}

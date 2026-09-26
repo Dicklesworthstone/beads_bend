@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "SELF_DEPENDENCY",
+    "message": "Issue cannot depend on itself: proj-tmb",
+    "hint": "An issue cannot depend on itself",
+    "retryable": false,
+    "context": {
+      "id": "proj-tmb"
+    }
+  }
+}

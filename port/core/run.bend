@@ -118,29 +118,31 @@ def outside_query(+opts: List<&2, Cli.Occ>) -> Bool:
   (Cli.given(opts, "id") || Cli.given(opts, "priority-min") || Cli.given(opts, "priority-max") || Cli.given(opts, "desc-contains") || Cli.given(opts, "notes-contains") || Cli.given(opts, "deferred") || Cli.given(opts, "overdue"))
 
 # S4.114 S4.119 S4.120 S5.32 S5.120–S5.125 (spec twin) `list` once its rows are ordered: cut the page, then print it
-# as JSON (the envelope), or as plain lines with the truncation note on stderr
-def list_page(+rows: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, +limit: Nat, +offset: Nat, json: Bool, quiet: Bool) -> Outcome:
-  match json:
-    case True{}:
+# as JSON (the envelope), as CSV (round 17), or as plain lines; CSV and plain put the truncation note on stderr
+def list_page(+rows: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, +opts: List<&2, Cli.Occ>, +limit: Nat, +offset: Nat, json: Bool, csv: Bool, quiet: Bool) -> Outcome:
+  match json csv:
+    case True{} _:
       printed(Render.list_json(Query.page(rows, offset, limit), all, List.length(&2, Model.Issue, rows), limit, offset, Query.has_more(List.length(&2, Model.Issue, rows), offset, limit)), "", quiet)
-    case False{}:
+    case False{} True{}:
+      printed(Render.csv_text_of(Query.page(rows, offset, limit), Render.csv_columns(Cli.value(opts, "fields"))), Render.truncation_note(Query.has_more(List.length(&2, Model.Issue, rows), offset, limit), outside_query(opts), List.length(&2, Model.Issue, Query.page(rows, offset, limit)), List.length(&2, Model.Issue, rows)), quiet)
+    case False{} False{}:
       printed(Render.list_plain(Query.page(rows, offset, limit), Cli.given(opts, "long"), Cli.given(opts, "pretty"), Cli.given(opts, "tree")), Render.truncation_note(Query.has_more(List.length(&2, Model.Issue, rows), offset, limit), outside_query(opts), List.length(&2, Model.Issue, Query.page(rows, offset, limit)), List.length(&2, Model.Issue, rows)), quiet)
 
 # S4.118 (spec twin) `list` once its filter is built: the sort key is judged next (9 is a key nobody knows)
-def list_sorted(+key: U32, f: Query.Filter, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, bad: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
+def list_sorted(+key: U32, f: Query.Filter, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, csv: Bool, quiet: Bool, bad: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
   match bad:
     case True{}:
       failed(Query.bad_sort(Maybe.default(&2, String, Cli.value(opts, "sort"), "")), json)
     case False{}:
-      list_page(Query.ordered(Work.overdue_only(Cli.given(opts, "overdue"), now, Query.kept(issues, f)), key, Cli.given(opts, "reverse")), issues, opts, Query.count_of(Cli.value(opts, "limit")), Query.count_of(Cli.value(opts, "offset")), json, quiet)
+      list_page(Query.ordered(Work.overdue_only(Cli.given(opts, "overdue"), now, Query.kept(issues, f)), key, Cli.given(opts, "reverse")), issues, opts, Query.count_of(Cli.value(opts, "limit")), Query.count_of(Cli.value(opts, "offset")), json, csv, quiet)
 
 # S4.105 S4.107 S4.108 (spec twin) `list` once its options were judged
-def list_built(b: Query.Built, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
+def list_built(b: Query.Built, +opts: List<&2, Cli.Occ>, issues: List<&2, Model.Issue>, json: Bool, csv: Bool, quiet: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
   match b:
     case Query.BuildBad{f}:
       failed(f, json)
     case Query.BuildOk{f}:
-      list_sorted(Query.sort_key(Cli.value(opts, "sort")), f, opts, issues, json, quiet, U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9), now)
+      list_sorted(Query.sort_key(Cli.value(opts, "sort")), f, opts, issues, json, csv, quiet, U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9), now)
 
 # S4.147 (spec twin) the grouping selectors that were given, in the fixed order of the refusal
 def selectors(+opts: List<&2, Cli.Occ>) -> List<&2, String>:
@@ -192,39 +194,42 @@ def count_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bo
 
 # S4.132 S5.127 S5.128 (spec twin) `list`; `--overdue` also hides deferred records unless a status, `--deferred` or
 # `--all` asks for them (S4.132); `later` refuses a form the port does not carry (the dispatcher passes none today)
-def list_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, quiet: Bool, later: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
+def list_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, json: Bool, csv: Bool, quiet: Bool, later: Bool, now: Maybe<&2, Time.Instant>) -> Outcome:
   match later:
     case True{}:
       failed(Failure.unported(), json)
     case False{}:
-      list_built(Query.build(opts, issues, Bool.not(Cli.given(opts, "overdue")), False{}), opts, issues, json, quiet, now)
+      list_built(Query.build(opts, issues, Bool.not(Cli.given(opts, "overdue")), False{}), opts, issues, json, csv, quiet, now)
 
 # S4.141 S4.142 S5.34 S5.156–S5.159 (spec twin) `search` once its rows are ordered: the page, the `has_more` verdict,
-# the hidden closed matches, as JSON or as plain text
-def search_page(+rows: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, query: String, +hidden: Nat, +limit: Nat, +offset: Nat, json: Bool, quiet: Bool) -> Outcome:
-  match json:
-    case True{}:
+# the hidden closed matches, as JSON, as CSV (the more-matches note on stderr, no hidden-closed note: round 17) or as
+# plain text
+def search_page(+rows: List<&2, Model.Issue>, +all: List<&2, Model.Issue>, query: String, +hidden: Nat, +limit: Nat, +offset: Nat, json: Bool, csv: Bool, fields: Maybe<&2, String>, quiet: Bool) -> Outcome:
+  match json csv:
+    case True{} _:
       printed(Render.search_json(Query.page(rows, offset, limit), all, hidden, limit, offset, Query.has_more(List.length(&2, Model.Issue, rows), offset, limit)), "", quiet)
-    case False{}:
+    case False{} True{}:
+      printed(Render.csv_text_of(Query.page(rows, offset, limit), Render.csv_columns(fields)), Render.more_note(Query.has_more(List.length(&2, Model.Issue, rows), offset, limit), List.length(&2, Model.Issue, Query.page(rows, offset, limit)), offset, limit), quiet)
+    case False{} False{}:
       printed(Render.search_plain(Query.page(rows, offset, limit), query, Query.has_more(List.length(&2, Model.Issue, rows), offset, limit), offset, limit, hidden), "", quiet)
 
 # S4.139 S4.140 (spec twin) `search` once its filter is built: the matches of the kept records, ordered as `list` orders
-def search_built(b: Query.Built, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +query: String, json: Bool, quiet: Bool) -> Outcome:
+def search_built(b: Query.Built, +opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +query: String, json: Bool, csv: Bool, quiet: Bool) -> Outcome:
   match b:
     case Query.BuildBad{f}:
       failed(f, json)
     case Query.BuildOk{+f}:
-      search_page(Query.ordered(Query.matching(Query.kept(issues, f), Query.folded(query)), Query.sort_key(Cli.value(opts, "sort")), Cli.given(opts, "reverse")), issues, query, Query.hidden_closed(issues, f, Query.folded(query)), Query.search_limit(Cli.value(opts, "limit")), Query.count_of(Cli.value(opts, "offset")), json, quiet)
+      search_page(Query.ordered(Query.matching(Query.kept(issues, f), Query.folded(query)), Query.sort_key(Cli.value(opts, "sort")), Cli.given(opts, "reverse")), issues, query, Query.hidden_closed(issues, f, Query.folded(query)), Query.search_limit(Cli.value(opts, "limit")), Query.count_of(Cli.value(opts, "offset")), json, csv, Cli.value(opts, "fields"), quiet)
 
 # S4.118 S4.143 (spec twin) `search`: an empty query is refused, then an unknown sort key, then the filter is built
-def search_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +query: String, json: Bool, quiet: Bool, empty: Bool, bad_sort: Bool) -> Outcome:
+def search_cmd(+opts: List<&2, Cli.Occ>, +issues: List<&2, Model.Issue>, +query: String, +json: Bool, csv: Bool, quiet: Bool, empty: Bool, bad_sort: Bool) -> Outcome:
   match empty bad_sort:
     case True{} _:
       failed(Query.empty_query(), json)
     case False{} True{}:
       failed(Query.bad_sort(Maybe.default(&2, String, Cli.value(opts, "sort"), "")), json)
     case False{} False{}:
-      search_built(Query.build(opts, issues, True{}, False{}), opts, issues, query, json, quiet)
+      Bool.pick(Outcome, String.is_empty(Query.single_bad(Cli.values(opts, "priority"))), search_built(Query.build(opts, issues, True{}, False{}), opts, issues, query, json, csv, quiet), failed(Query.search_bad_priority(Query.single_bad(Cli.values(opts, "priority"))), json))
 
 # S4.119 (spec twin) at most `limit` rows of any list; 0 keeps them all
 def limited_rows(+rows: List<&2, Work.Row>, +limit: Nat) -> List<&2, Work.Row>:
@@ -604,14 +609,15 @@ def wrote(out: String, writes: List<&2, Write>, quiet: Bool) -> Outcome:
       Outcome{out, "", 0, writes}
 
 # S4.234 S4.235 S5.1 (spec twin) a made issue as an outcome. `--dry-run` writes nothing and prints the preview (JSON:
-# the record as built, which has no `original_size`); `--ephemeral` leaves the store alone and still writes the
+# the record as built, which has no `original_size` and bare edges), or under `--silent` the bare id, which wins over
+# `--json` and `--quiet` (round 19); `--ephemeral` leaves the store alone and still writes the
 # sidecar; anything else re-renders the whole model with the new record in it
 def created(m: Create.Made, +opts: List<&2, Cli.Occ>, model: List<&2, Model.Issue>, +json: Bool, quiet: Bool, dry: Bool, ephemeral: Bool) -> Outcome:
   match m dry ephemeral:
     case Create.MadeBad{f} _ _:
       failed(f, json)
     case Create.MadeOk{issue, +built} True{} _:
-      printed(Bool.pick(String, json, "{" ++ Model.members_raw(built) ++ "}\n", preview(built, opts)), "", quiet)
+      Bool.pick(Outcome, Cli.given(opts, "silent"), Outcome{Model.id_of(built) ++ "\n", "", 0, Nil{}}, printed(Bool.pick(String, json, "{" ++ Model.members_raw(Create.dry_record(built)) ++ "}\n", preview(built, opts)), "", quiet))
     case Create.MadeOk{+issue, built} False{} True{}:
       wrote(created_text(issue, Cli.given(opts, "silent"), json), changes(None{}, Model.id_of(issue)), (quiet && Bool.not(Cli.given(opts, "silent"))))
     case Create.MadeOk{+issue, built} False{} False{}:
@@ -761,6 +767,14 @@ def terminal_word(+word: String) -> Bool:
 def close_via_update() -> Failure.Failure:
   Create.invalid("status", "refusing to close via `br update --status closed`: terminal-state transitions must go through `br close` so close-policy (close-reason / AC / attribution) is enforced. Use `br close <id> --reason \"...\"` instead, or `br close <id> --bypass-policy --bypass-reason \"...\"` to opt out explicitly. See https://github.com/Dicklesworthstone/beads_rust/issues/301.")
 
+# S4.269 (spec twin) `update --status tombstone` (any case) is refused with its own words (round 17)
+def tombstone_via_update() -> Failure.Failure:
+  Create.invalid("status", "refusing to tombstone via `br update --status tombstone`: use `br delete <id>` instead so dependency rewiring and tombstone metadata are applied correctly.")
+
+# S4.269 (spec twin) the refusal of a terminal `--status` word
+def terminal_refusal(+word: String) -> Failure.Failure:
+  Bool.pick(Failure.Failure, String.eq(word, "tombstone"), tombstone_via_update(), close_via_update())
+
 # S4.203 S4.209 S5.18 (spec twin) the file changes of a batch: the store only when a stored column changed, the sidecar
 # whenever an id was acted on
 def batch_changes(model: List<&2, Model.Issue>, changed: Bool, last: String) -> List<&2, Write>:
@@ -772,14 +786,17 @@ def batch_changes(model: List<&2, Model.Issue>, changed: Bool, last: String) -> 
     case False{} SCon{h, t}:
       changes(None{}, SCon{h, t})
 
-# S4.261 S4.273 S5.39 (spec twin) what `update` answered: the blocks in order (JSON: one array), and the file changes
+# S4.261 S4.273 S5.39 S2.46 (spec twin) what `update` answered: the blocks in order (JSON: one array), and the file
+# changes; a record that fails write-time validation refuses the whole batch (round 17)
 def updated(b: Update.Batch, json: Bool, quiet: Bool) -> Outcome:
   match b json:
     case Update.BatchBad{f} mode:
       failed(f, mode)
-    case Update.BatchOk{model, plain, elements, changed, last} True{}:
+    case Update.BatchOk{model, plain, elements, changed, last, Some{f}} mode:
+      failed(f, mode)
+    case Update.BatchOk{model, plain, elements, changed, last, None{}} True{}:
       wrote("[" ++ String.join(List.reverse(&2, String, elements), ",") ++ "]\n", batch_changes(model, changed, last), quiet)
-    case Update.BatchOk{model, plain, elements, changed, last} False{}:
+    case Update.BatchOk{model, plain, elements, changed, last, None{}} False{}:
       wrote(String.concat(List.reverse(&2, String, plain)), batch_changes(model, changed, last), quiet)
 
 # S4.260 S4.264 (spec twin) was any field flag given: without one, `update` reports `No updates specified`
@@ -790,12 +807,20 @@ def any_update_flag(+opts: List<&2, Cli.Occ>) -> Bool:
 def dup_refused(+dup: String, json: Bool) -> Outcome:
   failed(Status.dup_failure(dup), json)
 
+# S2.46 S2.48 (spec twin) a status batch whose written records fail validation is refused whole (round 17)
+def stamp_refused(check: Maybe<&2, Failure.Failure>, ok: Outcome, json: Bool) -> Outcome:
+  match check:
+    case None{}:
+      ok
+    case Some{f}:
+      failed(f, json)
+
 # S4.327 (spec twin) did the per-id checks refuse the batch
 def batch_bad(b: Update.Batch) -> Bool:
   match b:
     case Update.BatchBad{f}:
       True{}
-    case Update.BatchOk{model, plain, elements, changed, last}:
+    case Update.BatchOk{model, plain, elements, changed, last, late}:
       False{}
 
 # S4.327 (spec twin) an `update` batch changes each id once: after every per-id check (a claim of a closed issue is
@@ -827,13 +852,22 @@ def new_parent(given: Maybe<&2, String>, +ids: List<&2, String>, +prefix: String
 def session_via_update() -> Failure.Failure:
   Create.invalid("session", "--session can only be used when closing with --status closed")
 
-# S4.212 S4.260 S4.396 (spec twin) `update` once every id is resolved, then its `--session`, then its `--parent`
+# S4.232 (spec twin) an `--agent-context` that is not one JSON value refuses the update, else it goes on
+def ctx_checked(c: Create.Context, ok: Outcome, json: Bool) -> Outcome:
+  match c:
+    case Create.CtxBad{f}:
+      failed(f, json)
+    case other:
+      ok
+
+# S4.212 S4.260 S4.396 S4.232 (spec twin) `update` once every id is resolved, then its `--session`, then its
+# `--agent-context` (round 21: `--agent-context ctx --session s1` names the session), then its `--parent`
 def update_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool, +prefix: String) -> Outcome:
   match m:
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{ids}:
-      Bool.pick(Outcome, Cli.given(opts, "session"), failed(session_via_update(), json), update_parented(new_parent(Cli.value(opts, "parent"), Show.ids_of(model), prefix), Cli.given(opts, "parent"), ids, opts, model, priority, actor, now, json, quiet))
+      Bool.pick(Outcome, Cli.given(opts, "session"), failed(session_via_update(), json), ctx_checked(Create.context_of(Cli.value(opts, "agent-context")), update_parented(new_parent(Cli.value(opts, "parent"), Show.ids_of(model), prefix), Cli.given(opts, "parent"), ids, opts, model, priority, actor, now, json, quiet), json))
 
 # S4.260 (spec twin) `update` once its ids are known: none at all (no positional, no last-touched issue) is refused
 def update_ids(ids: List<&2, String>, +opts: List<&2, Cli.Occ>, +raw: List<&2, Model.Issue>, priority: Maybe<&2, String>, actor: String, now: Time.Instant, +prefix: String, +json: Bool, quiet: Bool) -> Outcome:
@@ -864,17 +898,15 @@ def update_ranked(r: Create.Rank, given: Bool, ids: List<&2, String>, opts: List
     case Create.RankOk{digits} False{}:
       update_described(file, ids, opts, raw, None{}, actor, now, prefix, json, quiet)
 
-# S4.269 S4.275 S4.232 (spec twin) `update`: the missing clock, a terminal `--status`, and an `--agent-context` that
-# is not one JSON value are answered before anything else
+# S4.269 S4.275 (spec twin) `update`: the missing clock and a terminal `--status` are answered before anything else;
+# an `--agent-context` that is not one JSON value is judged after the ids and `--session` (`update_many`, round 21)
 def update_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, ids: List<&2, String>, raw: List<&2, Model.Issue>, actor: String, prefix: String, +json: Bool, quiet: Bool, ctx: Create.Context, terminal: Bool, file: Maybe<&2, Read>) -> Outcome:
-  match now ctx terminal:
-    case None{} _ _:
+  match now terminal:
+    case None{} _:
       failed(no_clock(), json)
-    case Some{at} _ True{}:
-      failed(close_via_update(), json)
-    case Some{at} Create.CtxBad{f} False{}:
-      failed(f, json)
-    case Some{at} good False{}:
+    case Some{at} True{}:
+      failed(terminal_refusal(Model.lowered(String.trim(Maybe.default(&2, String, Cli.value(opts, "status"), "")))), json)
+    case Some{at} False{}:
       update_ranked(Create.rank_of(Cli.value(opts, "priority")), Cli.given(opts, "priority"), ids, opts, raw, actor, at, prefix, json, quiet, file)
 
 # S5.1 S5.18 (spec twin) the file changes of a transition batch: nothing when no id was acted on
@@ -893,7 +925,9 @@ def unblocked_put(found: Maybe<&2, Model.Issue>, freed: Bool, +rest: List<&2, Mo
     case _ _:
       rest
 
-# S4.297 (spec twin) the issues a close unblocked: the blocked ids before the write minus the blocked ids after it
+# S4.297 (spec twin) the issues a close unblocked: the blocked ids before the write minus the blocked ids after it;
+# the caller lists them in `list`'s default order, priority then newest first (round 21: `r12_diamond` `close proj-a1
+# --suggest-next` lists `proj-c1` before `proj-b1`)
 def unblocked(before: List<&2, String>, +after: List<&2, String>, +model: List<&2, Model.Issue>) -> List<&2, Model.Issue>:
   match before:
     case Nil{}:
@@ -944,11 +978,11 @@ def close_done(out: String, skips: List<&2, Status.Skip>, closed: Nat, writes: L
 def closed_ok(b: Status.Batch, before: List<&2, String>, suggest: Bool, +json: Bool, quiet: Bool) -> Outcome:
   match b:
     case Status.Batch{+model, +plain, elements, +skips, last, acted}:
-      close_done(close_text(List.reverse(&2, String, elements), List.reverse(&2, String, plain), List.reverse(&2, Status.Skip, skips), unblocked(before, Blocked.keys(Blocked.relation(model)), model), suggest, json), List.reverse(&2, Status.Skip, skips), List.length(&2, String, plain), batch_writes(model, last), json, quiet)
+      close_done(close_text(List.reverse(&2, String, elements), List.reverse(&2, String, plain), List.reverse(&2, Status.Skip, skips), Query.ordered(unblocked(before, Blocked.keys(Blocked.relation(model)), model), 0, False{}), suggest, json), List.reverse(&2, Status.Skip, skips), List.length(&2, String, plain), batch_writes(model, last), json, quiet)
 
 # S4.290–S4.299 S4.327 (spec twin) a `close` batch: refused when an id repeats among those it acted on
 def closed_batch(+b: Status.Batch, before: List<&2, String>, suggest: Bool, +json: Bool, quiet: Bool) -> Outcome:
-  Bool.pick(Outcome, String.is_empty(Status.batch_dup(b)), closed_ok(b, before, suggest, json, quiet), dup_refused(Status.batch_dup(b), json))
+  Bool.pick(Outcome, String.is_empty(Status.batch_dup(b)), stamp_refused(Status.batch_stamp(b, True{}), closed_ok(b, before, suggest, json, quiet), json), dup_refused(Status.batch_dup(b), json))
 
 # S4.290 S4.297 (spec twin) `close` once every id is resolved: `--suggest-next` works with a single id only
 def close_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
@@ -973,7 +1007,7 @@ def gated_ok(b: Status.Batch, name: String, nothing: String, json: Bool, hush: B
 # S4.314 S4.326 S4.327 (spec twin) a `reopen`, `defer` or `undefer` batch: refused when an id repeats among those it
 # acted on (ids it skipped do not count: `undefer proj-mta proj-mta` of an issue that is not deferred skips twice)
 def gated_batch(+b: Status.Batch, name: String, nothing: String, +json: Bool, hush: Bool) -> Outcome:
-  Bool.pick(Outcome, String.is_empty(Status.batch_dup(b)), gated_ok(b, name, nothing, json, hush), dup_refused(Status.batch_dup(b), json))
+  Bool.pick(Outcome, String.is_empty(Status.batch_dup(b)), stamp_refused(Status.batch_stamp(b, False{}), gated_ok(b, name, nothing, json, hush), json), dup_refused(Status.batch_dup(b), json))
 
 # S4.310–S4.315 (spec twin) `reopen` once every id is resolved
 def reopen_many(m: Resolve.Many, +opts: List<&2, Cli.Occ>, +model: List<&2, Model.Issue>, actor: String, now: Time.Instant, +json: Bool, quiet: Bool) -> Outcome:
@@ -1138,11 +1172,14 @@ def dep_add_found(found: Maybe<&2, Model.Issue>, +model: List<&2, Model.Issue>, 
 
 # S4.350 S4.353 (spec twin) `dep add` once its type is canonical: `--metadata` that is not one JSON value is refused
 # (after the self-dependency, which is refused later in the chain, so its metadata is not judged), then the refusals
-# of `edge_refusal`
+# of `edge_refusal`; a self-dependency is named before a tombstone (round 16: `dep add proj-tmb proj-tmb` on a
+# tombstoned issue is `Issue cannot depend on itself`, exit 5)
 def dep_add_meta(m: Edges.Meta, itself: Bool, pre: Maybe<&2, Failure.Failure>, +model: List<&2, Model.Issue>, +dependent: String, +target: String, +kind: String, now: Time.Instant, actor: String, +json: Bool, quiet: Bool) -> Outcome:
   match m itself pre:
     case Edges.MetaBad{f} False{} _:
       failed(f, json)
+    case _ True{} Some{g}:
+      dep_add_found(Blocked.lookup(model, dependent), model, dependent, target, kind, "{}", now, actor, json, quiet)
     case _ _ Some{f}:
       failed(f, json)
     case Edges.MetaOk{text} _ None{}:
@@ -1317,7 +1354,7 @@ def label_pairs(m: Resolve.Many, model: List<&2, Model.Issue>, labels: List<&2, 
     case Resolve.ManyBad{f}:
       failed(f, json)
     case Resolve.ManyOk{ids}:
-      labelled(Labels.run(model, ids, labels, now, adding, ""), json, quiet)
+      labelled(Labels.run(model, ids, labels, now, adding, None{}), json, quiet)
 
 # S4.370 (spec twin) a label batch: an issue word that resolves to nothing refuses the whole command first
 def label_resolved(r: Maybe<&2, Failure.Failure>, +issues: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, labels: List<&2, String>, now: Time.Instant, adding: Bool, +json: Bool, quiet: Bool) -> Outcome:
@@ -1327,13 +1364,18 @@ def label_resolved(r: Maybe<&2, Failure.Failure>, +issues: List<&2, String>, +ra
     case None{}:
       label_pairs(Resolve.many(issues, Show.ids_of(raw), prefix), Store.model(raw), labels, now, adding, json, quiet)
 
-# S4.372 (spec twin) every named label is validated before any issue is touched
-def label_checked(+adding: Bool, at: Time.Instant, +opts: List<&2, Cli.Occ>, +words: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, +json: Bool, quiet: Bool, +bad: String) -> Outcome:
+# S4.372 (spec twin) `-l` values that split to no label at all (round 20: `label add proj-ptp -l ""` and `-l ","`)
+def no_label() -> Failure.Failure:
+  Create.invalid("label", "at least one label required")
+
+# S4.372 (spec twin) every named label is validated before any issue is touched: none at all is refused first, then
+# the first one that is not allowed
+def label_checked(+adding: Bool, at: Time.Instant, +opts: List<&2, Cli.Occ>, +words: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, +json: Bool, quiet: Bool, bad: Maybe<&2, String>) -> Outcome:
   match bad:
-    case SCon{h, t}:
-      failed(Labels.label_refusal(SCon{h, t}), json)
-    case SNil{}:
-      label_resolved(issue_refusal(label_issues(words, Cli.given(opts, "label")), Show.ids_of(raw), prefix, Bool.pick(String, adding, "add", "remove")), label_issues(words, Cli.given(opts, "label")), raw, prefix, label_words(words, Cli.given(opts, "label"), Query.comma_split(Cli.values(opts, "label"))), at, adding, json, quiet)
+    case Some{l}:
+      failed(Labels.label_refusal(l), json)
+    case None{}:
+      Bool.pick(Outcome, List.is_empty(&2, String, label_words(words, Cli.given(opts, "label"), Query.comma_split(Cli.values(opts, "label")))), failed(no_label(), json), label_resolved(issue_refusal(label_issues(words, Cli.given(opts, "label")), Show.ids_of(raw), prefix, Bool.pick(String, adding, "add", "remove")), label_issues(words, Cli.given(opts, "label")), raw, prefix, label_words(words, Cli.given(opts, "label"), Query.comma_split(Cli.values(opts, "label"))), at, adding, json, quiet))
 
 # S4.370 (spec twin) a label command once its positionals were counted
 def label_shaped(+adding: Bool, at: Time.Instant, +opts: List<&2, Cli.Occ>, +words: List<&2, String>, +raw: List<&2, Model.Issue>, +prefix: String, +json: Bool, quiet: Bool, shape: U32) -> Outcome:
@@ -1370,11 +1412,11 @@ def renamed(d: Labels.Done, json: Bool, quiet: Bool) -> Outcome:
       wrote(plain, store_only(model, changed), quiet)
 
 # S4.372 S4.377 (spec twin) `label rename` once both names were validated
-def rename_checked(at: Time.Instant, +model: List<&2, Model.Issue>, +old: String, +new: String, json: Bool, quiet: Bool, +bad: String) -> Outcome:
+def rename_checked(at: Time.Instant, +model: List<&2, Model.Issue>, +old: String, +new: String, json: Bool, quiet: Bool, bad: Maybe<&2, String>) -> Outcome:
   match bad:
-    case SCon{h, t}:
-      failed(Labels.label_refusal(SCon{h, t}), json)
-    case SNil{}:
+    case Some{l}:
+      failed(Labels.label_refusal(l), json)
+    case None{}:
       renamed(Labels.rename(model, old, new, at, String.eq(old, new), Labels.affected(model, old, 0)), json, quiet)
 
 # S4.377–S4.379 (spec twin) `label rename <old> <new>`; the parser requires both positionals
@@ -1595,19 +1637,37 @@ def delete_cmd(now: Maybe<&2, Time.Instant>, +opts: List<&2, Cli.Occ>, words: Li
 def beads_dir_of(+env: List<&2, Var>, +cwd: String) -> String:
   Bool.pick(String, String.is_empty(env_of(env, "BEADS_BEND_DIR")), cwd ++ "/.beads", env_of(env, "BEADS_BEND_DIR"))
 
+# S1.61 (spec twin) an output-format variable's word, trimmed and lowercased, when it is one of the five the original
+# recognizes; "" otherwise (an unrecognized value is ignored entirely)
+def format_word(+raw: String) -> String:
+  Bool.pick(String, Model.listed_word(["text", "plain", "json", "csv", "toon"], Model.lowered(String.trim(raw))), Model.lowered(String.trim(raw)), "")
+
+# S1.61 (spec twin) `BR_OUTPUT_FORMAT` first, `TOON_DEFAULT_FORMAT` second
+def format_first(+first: String, second: String) -> String:
+  Bool.pick(String, String.is_empty(first), second, first)
+
+# S1.61 (spec twin) the `--format` word, "" when absent
+def format_flag(+opts: List<&2, Cli.Occ>) -> String:
+  Maybe.default(&2, String, Cli.value(opts, "format"), "")
+
+# S1.61 (spec twin) CSV mode of `list` and `search` (round 17): not JSON, and `--format csv`, or no `--format` and an
+# environment format of `csv` (`BR_OUTPUT_FORMAT=csv`)
+def csv_mode(+opts: List<&2, Cli.Occ>, +env: List<&2, Var>, json: Bool) -> Bool:
+  (Bool.not(json) && (String.eq(format_flag(opts), "csv") || (String.is_empty(format_flag(opts)) && String.eq(format_first(format_word(env_of(env, "BR_OUTPUT_FORMAT")), format_word(env_of(env, "TOON_DEFAULT_FORMAT"))), "csv"))))
+
 # S1 S4 S5 (spec twin) one ported command on a loaded store. `show` reads the file's records as they are
 # (S2.38, S2.39); every other command reads the loaded model (Store.model). `n` is the command's number
 # (`command_number`); 0 is a command that is not ported, which answers the port's own failure
 def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) -> Outcome:
   match n c:
-    case 1 Call{path, +opts, words, json, quiet, touched, env, cwd}:
-      list_cmd(opts, Store.model(issues), json, quiet, False{}, Show.pinned(now_of(env)))
+    case 1 Call{path, +opts, words, +json, quiet, touched, +env, cwd}:
+      list_cmd(opts, Store.model(issues), json, csv_mode(opts, env, json), quiet, False{}, Show.pinned(now_of(env)))
     case 2 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       count_cmd(opts, Store.model(issues), json, quiet, Nat.is_gt(List.length(&2, String, selectors(opts)), 1n))
     case 3 Call{path, opts, words, +json, quiet, touched, +env, cwd}:
       shown(Show.run(words, issues, touched_text(Bytes.decode(touched)), env_of(env, "USER"), now_of(env), Show.width_of(env_of(env, "COLUMNS"), Cli.given(opts, "no-wrap")), prefix, json), json, quiet)
-    case 4 Call{path, +opts, +words, json, quiet, touched, env, cwd}:
-      search_cmd(opts, Store.model(issues), first_word(words), json, quiet, String.is_empty(first_word(words)), U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9))
+    case 4 Call{path, +opts, +words, +json, quiet, touched, +env, cwd}:
+      search_cmd(opts, Store.model(issues), first_word(words), json, csv_mode(opts, env, json), quiet, String.is_empty(first_word(words)), U32.is_eq(Query.sort_key(Cli.value(opts, "sort")), 9))
     case 5 Call{path, +opts, words, json, quiet, touched, env, cwd}:
       ready_cmd(opts, Store.model(issues), env, json, quiet, prefix)
     case 6 Call{path, +opts, words, json, quiet, touched, env, cwd}:
@@ -1629,7 +1689,7 @@ def command_at(n: U32, c: Call, issues: List<&2, Model.Issue>, +prefix: String) 
     case 14 Call{path, opts, words, +json, quiet, touched, env, cwd}:
       viewed(Views.epic_status(Store.model(issues), Cli.given(opts, "eligible-only"), json, spec_of(env)), json, quiet)
     case 15 Call{path, opts, words, +json, quiet, touched, +env, +cwd}:
-      viewed(Views.whereabouts(beads_dir_of(env, cwd), Prefix.reported(Prefix.configured(env_of(env, ".beads/config.yaml")), issues), json), json, quiet)
+      viewed(Views.whereabouts(beads_dir_of(env, cwd), Prefix.reported(Prefix.configured(env_of(env, ".beads/config.yaml")), issues), json, (Bool.not(String.is_empty(String.trim(env_of(env, "BEADS_DIR")))) && Bool.not(String.starts_with(env_of(env, "BEADS_DIR"), "/")))), json, quiet)
     case 16 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
       create_cmd(Show.pinned(now_of(env)), opts, words, issues, env, cwd, json, quiet, Cli.given(opts, "file"), False{})
     case 17 Call{path, +opts, words, json, quiet, touched, +env, cwd}:
@@ -1740,11 +1800,40 @@ def beads_names(dirs: List<&2, String>) -> List<&2, String>:
 def absolute(+path: String, +cwd: String) -> String:
   Bool.pick(String, String.starts_with(path, "/"), path, cwd ++ "/" ++ path)
 
+# S2.4 (spec twin) the components of a path without the empty ones and the `.` ones (`..` is kept)
+def kept_parts(xs: List<&2, String>) -> List<&2, String>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, rest}:
+      Query.piece_keep(x, (String.is_empty(x) || String.eq(x, ".")), kept_parts(rest))
+
+# S2.4 (spec twin) an absolute path read component by component: no trailing `/`, no doubled `/`, no `.` component;
+# `..` is left for the file system (round 21: `BEADS_DIR=/mnt/proj/.beads/` and `/mnt/proj/./.beads` are
+# `/mnt/proj/.beads`; `/mnt/proj/x/../.beads` is not found when `x` does not exist)
+def components_kept(+path: String) -> String:
+  "/" ++ String.join(kept_parts(String.split(path, Chr{47})), "/")
+
+# S2.4 (spec twin) the `BEADS_DIR` directory: its value as given (never trimmed: `" /mnt/proj/.beads "` is not
+# found), made absolute against the working directory, then read component by component
+def beads_dir_path(+beads_dir: String, +cwd: String) -> String:
+  components_kept(absolute(beads_dir, cwd))
+
 # S2.1 S2.2 S2.4 (spec twin) the directories the shell tests, in order: `BEADS_DIR` alone when it does not trim to
 # empty (it short-circuits the walk), else `.beads` and `_beads` at the working directory and at every ancestor. The
-# `--db` and `BD_DB`-family overrides name a database, which `--no-db` never opens, and are not read
+# `--db` and `BD_DB`-family overrides name a database, which `--no-db` never opens, and are not read (OQ-137)
 def discovery(+cwd: String, +beads_dir: String) -> List<&2, String>:
-  Bool.pick(List<&2, String>, String.is_empty(String.trim(beads_dir)), beads_names(ancestors((String.length(cwd) + 1n : Nat), cwd)), absolute(String.trim(beads_dir), cwd) <> Nil{})
+  Bool.pick(List<&2, String>, String.is_empty(String.trim(beads_dir)), beads_names(ancestors((String.length(cwd) + 1n : Nat), cwd)), beads_dir_path(beads_dir, cwd) <> Nil{})
+
+# S2.2 S2.4 (spec twin) what the shell opens to test a directory: `<dir>/.`, which opens on a directory and fails on
+# a missing path and on a regular file, on every engine (round 21: `BEADS_DIR=/mnt/proj/.beads/issues.jsonl` is
+# not a workspace)
+def probed(dirs: List<&2, String>) -> List<&2, String>:
+  match dirs:
+    case Nil{}:
+      Nil{}
+    case Con{d, rest}:
+      (d ++ "/.") <> probed(rest)
 
 # S2.2 (spec twin) the first tested directory that opened; the empty text when none did (NOT_INITIALIZED, S2.8).
 # Bend 2.0.20 has no directory test: the shell opens each path for reading, which succeeds on a directory and fails
@@ -1871,11 +1960,12 @@ def redir_error(+dir: String, r: Redir) -> String:
     case Redir{+bytes, oks}:
       redirect_problem(redirect_oversize(bytes), dir, bytes, oks)
 
-# S2.5 S9.8 (spec twin) a refused redirect: CONFIG_ERROR exit 7; under `BEADS_DIR` a MISSING target's message is
-# wrapped and the context names the wrapper (`redirect_missing_beads_dir_json`); an oversize file is not
+# S2.5 S9.8 (spec twin) a refused redirect: CONFIG_ERROR exit 7; under `BEADS_DIR` a MISSING target's message, and
+# a `BEADS_DIR` whose name is not `.beads`/`_beads`, are wrapped and the context names the wrapper
+# (`redirect_missing_beads_dir_json`), except for `where` (`wrap` false, round 21); an oversize file is not
 # (`redirect_oversize_beads_dir`)
-def redirect_failure(+reason: String, +beads_dir: String) -> Failure.Failure:
-  Bool.pick(Failure.Failure, (String.is_empty(String.trim(beads_dir)) || Bool.not(String.starts_with(reason, "Redirect target not found"))), Failure.Failure{"CONFIG_ERROR", "Configuration error: " ++ reason, None{}, False{}, Nil{}, 7}, Failure.Failure{"CONFIG_ERROR", "BEADS_DIR is invalid: Configuration error: " ++ reason, None{}, False{}, [Failure.CtxMember{"wrapper_context", Failure.CStr{"BEADS_DIR is invalid"}}], 7})
+def redirect_failure(+reason: String, +beads_dir: String, wrap: Bool) -> Failure.Failure:
+  Bool.pick(Failure.Failure, (Bool.not(wrap) || String.is_empty(String.trim(beads_dir)) || Bool.not((String.starts_with(reason, "Redirect target not found") || String.starts_with(reason, "Redirect target must be")))), Failure.Failure{"CONFIG_ERROR", "Configuration error: " ++ reason, None{}, False{}, Nil{}, 7}, Failure.Failure{"CONFIG_ERROR", "BEADS_DIR is invalid: Configuration error: " ++ reason, None{}, False{}, [Failure.CtxMember{"wrapper_context", Failure.CStr{"BEADS_DIR is invalid"}}], 7})
 
 # S5.1 S8.30 (spec twin) where a file change lands: the core names `.beads/<file>`, the shell writes it inside the
 # directory discovery found (which may be `_beads`, or `BEADS_DIR`)
@@ -1919,9 +2009,13 @@ def call_env(c: Call) -> List<&2, Var>:
       env
 
 # S1.57 S2.8 S9.8 (spec twin) no workspace: NOT_INITIALIZED, or, when `BEADS_DIR` is set and not blank, CONFIG_ERROR
-# exit 7 naming it (`env_beads_dir_missing`)
+# exit 7 naming it as given (`env_beads_dir_missing`; round 21: `" /mnt/proj/.beads "` keeps its spaces)
 def no_workspace(+beads_dir: String) -> Failure.Failure:
-  Bool.pick(Failure.Failure, String.is_empty(String.trim(beads_dir)), Failure.not_initialized(), Failure.Failure{"CONFIG_ERROR", "Configuration error: BEADS_DIR not found or not a .beads directory: " ++ String.trim(beads_dir), None{}, False{}, Nil{}, 7})
+  Bool.pick(Failure.Failure, String.is_empty(String.trim(beads_dir)), Failure.not_initialized(), Failure.Failure{"CONFIG_ERROR", "Configuration error: BEADS_DIR not found or not a .beads directory: " ++ beads_dir, None{}, False{}, Nil{}, 7})
+
+# S2.4 (spec twin) is a `BEADS_DIR` directory named `.beads` or `_beads`
+def beads_named(+dir: String) -> Bool:
+  (String.ends_with(dir, "/.beads") || String.ends_with(dir, "/_beads"))
 
 # S2.1 S9.8 (spec twin) route on the workspace verdict; the store path the messages quote is absolute
 def workspace_routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
@@ -1936,13 +2030,23 @@ def workspace_routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32
 def redirect_routed(clear: Bool, workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
   match clear:
     case False{}:
-      failed(redirect_failure(env_of(call_env(c), "BEADS_BEND_REDIRECT_ERROR"), env_of(call_env(c), "BEADS_DIR")), wants_json(c))
+      failed(redirect_failure(env_of(call_env(c), "BEADS_BEND_REDIRECT_ERROR"), env_of(call_env(c), "BEADS_DIR"), Bool.not(String.eq(path_of(c), "where"))), wants_json(c))
     case True{}:
       workspace_routed(workspace, c, cwd, store)
 
-# S2.1 S2.5 S9.8 (spec twin) route on the redirect, then on the workspace verdict
-def routed(workspace: Bool, +c: Call, cwd: String, store: List<&2, U32>) -> Outcome:
-  redirect_routed(String.is_empty(env_of(call_env(c), "BEADS_BEND_REDIRECT_ERROR")), workspace, c, cwd, store)
+# S2.4 S2.5 (spec twin) a `BEADS_DIR` that is a directory but not named `.beads` or `_beads` is refused as a redirect
+# target is (round 21: `BEADS_DIR=/mnt/proj count` is `BEADS_DIR is invalid: Configuration error: Redirect target must
+# be a .beads or _beads directory: /mnt/proj`, unwrapped under `where`)
+def named_routed(bad: Bool, workspace: Bool, +c: Call, +cwd: String, store: List<&2, U32>) -> Outcome:
+  match bad:
+    case True{}:
+      failed(redirect_failure("Redirect target must be a .beads or _beads directory: " ++ beads_dir_path(env_of(call_env(c), "BEADS_DIR"), cwd), env_of(call_env(c), "BEADS_DIR"), Bool.not(String.eq(path_of(c), "where"))), wants_json(c))
+    case False{}:
+      redirect_routed(String.is_empty(env_of(call_env(c), "BEADS_BEND_REDIRECT_ERROR")), workspace, c, cwd, store)
+
+# S2.1 S2.4 S2.5 S9.8 (spec twin) route on the `BEADS_DIR` name, then the redirect, then on the workspace verdict
+def routed(+workspace: Bool, +c: Call, +cwd: String, store: List<&2, U32>) -> Outcome:
+  named_routed((workspace && Bool.not(String.is_empty(String.trim(env_of(call_env(c), "BEADS_DIR")))) && Bool.not(beads_named(beads_dir_path(env_of(call_env(c), "BEADS_DIR"), cwd)))), workspace, c, cwd, store)
 
 # S1.29 S1.89 (spec twin) a help request: the text on stdout, exit 0. A level whose help text the port does
 # not carry answers with the port's own refusal (PLAN §3: help texts beyond the captured ones are excluded)
@@ -1976,9 +2080,10 @@ def version_plain() -> String:
 def version_json() -> String:
   String.concat(["{\"version\":", Failure.quoted(port_version()), ",\"build\":\"bend\",\"bend_version\":", Failure.quoted(port_bend()), ",\"port_of\":\"br 0.6.0\",\"oracle_commit\":\"b1cfebe05437463e91a353cf2bedafac27266f5b\",\"features\":[]}\n"])
 
-# S5.107 DISC-006 (spec twin) `version` needs no workspace and no store; Quiet prints nothing
-def version_out(json: Bool, quiet: Bool) -> Outcome:
-  printed(Bool.pick(String, json, version_json(), version_plain()), "", quiet)
+# S5.107 S9.33 DISC-006 (spec twin) `version` needs no workspace and no store; Quiet prints nothing; `--short` prints
+# the bare version and wins over JSON (round 18: `version -s --json` is `0.6.0` on the original)
+def version_out(json: Bool, quiet: Bool, short: Bool) -> Outcome:
+  printed(Bool.pick(String, short, port_version() ++ "\n", Bool.pick(String, json, version_json(), version_plain())), "", quiet)
 
 # S1.28 DISC-006 (spec twin) the top-level `--version` / `-V` flag: the name and the version alone
 def version_flag() -> Outcome:
@@ -1988,23 +2093,25 @@ def version_flag() -> Outcome:
 def outside(word: String) -> Outcome:
   Outcome{"", "Error: `" ++ word ++ "` is outside beads_bend's --no-db surface (docs/PLAN_TO_PORT_BEADS_RUST_TO_BEND2.md §3)\n", 1, Nil{}}
 
-# S1.61 (spec twin) an output-format variable's word, trimmed and lowercased, when it is one of the five the original
-# recognizes; "" otherwise (an unrecognized value is ignored entirely)
-def format_word(+raw: String) -> String:
-  Bool.pick(String, Model.listed_word(["text", "plain", "json", "csv", "toon"], Model.lowered(String.trim(raw))), Model.lowered(String.trim(raw)), "")
-
-# S1.61 (spec twin) `BR_OUTPUT_FORMAT` first, `TOON_DEFAULT_FORMAT` second
-def format_first(+first: String, second: String) -> String:
-  Bool.pick(String, String.is_empty(first), second, first)
-
 # S1.6 S1.61 (spec twin) does the environment ask for JSON
 def env_json(+env: List<&2, Var>) -> Bool:
   String.eq(format_first(format_word(env_of(env, "BR_OUTPUT_FORMAT")), format_word(env_of(env, "TOON_DEFAULT_FORMAT"))), "json")
 
-# S1.6 (spec twin) JSON mode: `--json` or a command's `--robot`; else, unless `--quiet`, the environment's format
+# S1.6 S1.61 (spec twin) JSON asked for on the command line: `--json`, a command's `--robot`, or `--format json`
+# (round 17: `list --format json` is the `list --json` envelope, and outranks `--quiet`)
+def explicit_json(+opts: List<&2, Cli.Occ>) -> Bool:
+  (Cli.given(opts, "json") || Cli.given(opts, "robot") || String.eq(format_flag(opts), "json"))
+
+# S1.61 S5.101 (spec twin) is TOON output asked for (`--format toon`, or no `--format` and an environment format of
+# `toon`) without JSON: TOON is excluded (PLAN §3), so the port answers its own not-ported failure instead of Plain
+# text (round 18: `ready --format toon`)
+def toon_mode(+opts: List<&2, Cli.Occ>, +env: List<&2, Var>) -> Bool:
+  (Bool.not(explicit_json(opts)) && (String.eq(format_flag(opts), "toon") || (String.is_empty(format_flag(opts)) && String.eq(format_first(format_word(env_of(env, "BR_OUTPUT_FORMAT")), format_word(env_of(env, "TOON_DEFAULT_FORMAT"))), "toon"))))
+
+# S1.6 (spec twin) JSON mode: asked for on the command line; else, unless `--quiet`, the environment's format
 # (`env_output_format_count`, `env_output_format_where`, `env_output_format_error`)
 def json_mode(+opts: List<&2, Cli.Occ>, +env: List<&2, Var>) -> Bool:
-  (Cli.given(opts, "json") || Cli.given(opts, "robot") || (Bool.not(Cli.given(opts, "quiet")) && env_json(env)))
+  (explicit_json(opts) || (Bool.not(Cli.given(opts, "quiet")) && env_json(env)))
 
 # S1.30 S1.6 (spec twin) the argument parser's answer decides first: its refusals never reach the
 # workspace (exit 2, stderr only, whatever the output mode, `usage_limit_bad_env_json`). JSON mode is `json_mode`
@@ -2021,7 +2128,7 @@ def ran(p: Cli.Parsed, workspace: Bool, +cwd: String, store: List<&2, U32>, touc
     case Cli.Outside{word}:
       outside(word)
     case Cli.Command{+path, +opts, words}:
-      Bool.pick(Outcome, String.eq(path, "version"), version_out(json_mode(opts, env), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot"))))), routed(workspace, Call{path, opts, words, json_mode(opts, env), (Cli.given(opts, "quiet") && Bool.not((Cli.given(opts, "json") || Cli.given(opts, "robot")))), touched, env, cwd}, cwd, store))
+      Bool.pick(Outcome, String.eq(path, "version"), version_out(json_mode(opts, env), (Cli.given(opts, "quiet") && Bool.not(explicit_json(opts))), Cli.given(opts, "short")), Bool.pick(Outcome, toon_mode(opts, env), failed(Failure.unported(), False{}), routed(workspace, Call{path, opts, words, json_mode(opts, env), (Cli.given(opts, "quiet") && Bool.not(explicit_json(opts))), touched, env, cwd}, cwd, store)))
 
 # S1 S4 S5 S9 (spec twin, dispatcher) the single entry the shell calls
 def outcome(inputs: Inputs) -> Outcome:

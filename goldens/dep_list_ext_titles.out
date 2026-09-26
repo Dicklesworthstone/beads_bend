@@ -1,0 +1,7 @@
+Dependencies of proj-aaa (6):
+  -> external: (related): ⏳ external: [P2] [blocked]
+  -> external::y (related): ⏳ external::y [P2] [blocked]
+  -> external:a:b:c (related): ⏳ a:b:c [P2] [blocked]
+  -> external:plain (blocks): ⏳ external:plain [P2] [blocked]
+  -> external:up:blocks (blocks): ⏳ up:blocks [P2] [blocked]
+  -> external:x: (blocks): ⏳ external:x: [P2] [blocked]
