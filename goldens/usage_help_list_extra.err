@@ -1,0 +1,5 @@
+error: unrecognized subcommand 'extra'
+
+Usage: br list [OPTIONS]
+
+For more information, try '--help'.

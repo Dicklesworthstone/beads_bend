@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed: title: cannot be empty",
+    "hint": null,
+    "retryable": true,
+    "context": {
+      "field": "title",
+      "reason": "cannot be empty"
+    }
+  }
+}

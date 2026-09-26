@@ -1,0 +1,6 @@
+[{"id":"proj-aaa","title":"renamed","status":"triage","priority":2,"assignee":null,"owner":null,"updated_at":"2026-01-02T03:04:05Z"}]
+--- .beads/issues.jsonl ---
+{"id":"proj-aaa","title":"renamed","status":"triage","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-02T03:04:05Z","source_repo":".","compaction_level":0,"original_size":0}
+{"id":"proj-aab","title":"plain","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z","source_repo":".","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-aaa

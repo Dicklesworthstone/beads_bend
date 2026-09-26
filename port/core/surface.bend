@@ -205,7 +205,7 @@ def edge() -> List<&2, Pos>:
 # S1.16 (data) the 52 top-level words, in the order the original lists them; aliases follow their
 # command; a word outside the port's surface keeps its place because the similarity tip ranks over all of them
 def top_names() -> List<&2, Name>:
-  Name{"agents", 0, 1} <> Name{"audit", 0, 1} <> Name{"blocked", 15, 0} <> Name{"capabilities", 0, 1} <> Name{"capacity", 0, 1} <> Name{"changelog", 0, 1} <> Name{"close", 4, 0} <> Name{"comments", 30, 0} <> Name{"comment", 30, 0} <> Name{"completions", 0, 1} <> Name{"completion", 0, 1} <> Name{"config", 0, 1} <> Name{"coordination", 0, 1} <> Name{"coord", 0, 1} <> Name{"count", 12, 0} <> Name{"create", 1, 0} <> Name{"defer", 6, 0} <> Name{"delete", 8, 0} <> Name{"dep", 18, 0} <> Name{"doctor", 0, 1} <> Name{"epic", 33, 0} <> Name{"gate", 0, 1} <> Name{"graph", 0, 1} <> Name{"history", 0, 1} <> Name{"info", 0, 1} <> Name{"init", 0, 1} <> Name{"label", 24, 0} <> Name{"lint", 0, 1} <> Name{"list", 10, 0} <> Name{"orphans", 0, 1} <> Name{"q", 2, 0} <> Name{"query", 0, 1} <> Name{"ready", 14, 0} <> Name{"reopen", 5, 0} <> Name{"robot-docs", 0, 1} <> Name{"robot_docs", 0, 1} <> Name{"scheduler", 0, 1} <> Name{"schedule", 0, 1} <> Name{"schema", 0, 1} <> Name{"search", 11, 0} <> Name{"show", 9, 0} <> Name{"stale", 0, 1} <> Name{"stats", 13, 0} <> Name{"status", 13, 0} <> Name{"sync", 0, 1} <> Name{"undefer", 7, 0} <> Name{"update", 3, 0} <> Name{"vcs-status", 0, 1} <> Name{"upgrade", 0, 1} <> Name{"version", 17, 0} <> Name{"where", 16, 0} <> Name{"help", 0, 2} <> Nil{}
+  Name{"agents", 0, 1} <> Name{"audit", 0, 1} <> Name{"blocked", 15, 0} <> Name{"capabilities", 0, 1} <> Name{"capacity", 0, 1} <> Name{"changelog", 0, 1} <> Name{"close", 4, 0} <> Name{"comments", 30, 0} <> Name{"comment", 30, 0} <> Name{"completions", 0, 1} <> Name{"completion", 0, 1} <> Name{"config", 0, 1} <> Name{"coordination", 0, 1} <> Name{"coord", 0, 1} <> Name{"count", 12, 0} <> Name{"create", 1, 0} <> Name{"defer", 6, 0} <> Name{"delete", 8, 0} <> Name{"dep", 18, 0} <> Name{"doctor", 0, 1} <> Name{"epic", 33, 0} <> Name{"gate", 0, 1} <> Name{"graph", 0, 1} <> Name{"history", 0, 1} <> Name{"info", 0, 1} <> Name{"init", 0, 1} <> Name{"label", 24, 0} <> Name{"lint", 0, 1} <> Name{"list", 10, 0} <> Name{"orphans", 0, 1} <> Name{"q", 2, 0} <> Name{"query", 0, 1} <> Name{"ready", 14, 0} <> Name{"reopen", 5, 0} <> Name{"robot-docs", 0, 1} <> Name{"robot_docs", 0, 1} <> Name{"scheduler", 0, 1} <> Name{"schedule", 0, 1} <> Name{"schema", 0, 1} <> Name{"search", 11, 0} <> Name{"show", 9, 0} <> Name{"stale", 0, 1} <> Name{"stats", 13, 0} <> Name{"status", 36, 0} <> Name{"sync", 0, 1} <> Name{"undefer", 7, 0} <> Name{"update", 3, 0} <> Name{"vcs-status", 0, 1} <> Name{"upgrade", 0, 1} <> Name{"version", 17, 0} <> Name{"where", 16, 0} <> Name{"help", 0, 2} <> Nil{}
 
 # S1.51 (data) the words under `dep`
 def dep_names() -> List<&2, Name>:
@@ -297,5 +297,7 @@ def cmd_at(n: U32) -> Cmd:
       Cmd{"epic status", flag("eligible-only") <> Nil{}, Nil{}, Nil{}, Nil{}, False{}}
     case 35:
       Cmd{"epic close-eligible", flag("dry-run") <> named_dashed("transition-comment", 0, "COMMENT", False{}) <> Nil{}, Nil{}, Nil{}, Nil{}, False{}}
+    case 36:
+      Cmd{"status", stats_opts(), Nil{}, Nil{}, Nil{}, False{}}
     case _:
       Cmd{"", Nil{}, Nil{}, Nil{}, top_names(), True{}}

@@ -1,0 +1,7 @@
+error: unexpected argument '--version' found
+
+  tip: a similar argument exists: '--verbose'
+
+Usage: br list --verbose...
+
+For more information, try '--help'.

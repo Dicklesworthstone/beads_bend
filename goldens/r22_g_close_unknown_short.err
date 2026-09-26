@@ -1,0 +1,7 @@
+error: unexpected argument '-z' found
+
+  tip: to pass '-z' as a value, use '-- -z'
+
+Usage: br close [OPTIONS] [IDS]...
+
+For more information, try '--help'.

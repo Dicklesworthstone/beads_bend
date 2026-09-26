@@ -1,0 +1,6 @@
+✓ Added dependency: proj-aab -> proj-aaa (blocks)
+--- .beads/issues.jsonl ---
+{"id":"proj-aaa","title":"a template","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-01T10:00:00Z","source_repo":".","compaction_level":0,"original_size":0,"is_template":true}
+{"id":"proj-aab","title":"ordinary","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:00Z","updated_at":"2026-01-02T03:04:05Z","source_repo":".","compaction_level":0,"original_size":0,"dependencies":[{"issue_id":"proj-aab","depends_on_id":"proj-aaa","type":"blocks","created_at":"2026-01-02T03:04:05Z","created_by":"tester","metadata":"{}","thread_id":""}]}
+--- .beads/last-touched ---
+proj-aab

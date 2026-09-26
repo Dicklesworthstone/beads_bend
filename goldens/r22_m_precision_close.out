@@ -1,0 +1,12 @@
+✓ Closed proj-aac: nanos (done)
+--- .beads/issues.jsonl ---
+{"id":"proj-aaa","title":"whole second","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:05Z","updated_at":"2026-01-01T10:00:05Z","source_repo":".","compaction_level":0,"original_size":0}
+{"id":"proj-aab","title":"millis","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:05.100Z","updated_at":"2026-01-01T10:00:05.100Z","source_repo":".","compaction_level":0,"original_size":0}
+{"id":"proj-aac","title":"nanos","status":"closed","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:05.000000001Z","updated_at":"2026-01-02T03:04:05Z","closed_at":"2026-01-02T03:04:05Z","close_reason":"done","source_repo":".","compaction_level":0,"original_size":0}
+{"id":"proj-aad","title":"one tenth short form","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:05.100Z","updated_at":"2026-01-01T10:00:05.100Z","source_repo":".","compaction_level":0,"original_size":0}
+{"id":"proj-aae","title":"offset zone","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:04Z","updated_at":"2026-01-01T10:00:04Z","source_repo":".","compaction_level":0,"original_size":0}
+{"id":"proj-aaf","title":"empty strings kept","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:06Z","updated_at":"2026-01-01T10:00:06Z","source_repo":".","compaction_level":0,"compacted_at_commit":"","original_size":0,"labels":["alpha","zeta"]}
+{"id":"proj-aag","title":"UPPER case title","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:07Z","updated_at":"2026-01-01T10:00:07Z","source_repo":".","compaction_level":0,"original_size":0}
+{"id":"proj-aah","title":"apple lower title","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T10:00:08Z","updated_at":"2026-01-01T10:00:08Z","source_repo":".","compaction_level":0,"original_size":0}
+--- .beads/last-touched ---
+proj-aac

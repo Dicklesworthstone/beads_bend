@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "INVALID_PRIORITY",
+    "message": "Priority must be 0-4, got: HIGH",
+    "hint": "Did you mean --priority 1?",
+    "retryable": true,
+    "context": {
+      "priority": "HIGH",
+      "hint": "Did you mean --priority 1?"
+    }
+  }
+}

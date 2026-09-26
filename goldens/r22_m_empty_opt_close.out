@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "SYNC_CONFLICT",
+    "message": "Sync conflict: Import semantic verification failed: issue proj-aaa does not match its normalized JSONL payload (differing fields: agent_context, bypass_reason, source_repo, source_repo_path); rolling back the import",
+    "hint": null,
+    "retryable": false,
+    "context": {
+      "message": "Import semantic verification failed: issue proj-aaa does not match its normalized JSONL payload (differing fields: agent_context, bypass_reason, source_repo, source_repo_path); rolling back the import"
+    }
+  }
+}

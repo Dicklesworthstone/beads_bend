@@ -1,0 +1,5 @@
+error: unexpected argument '--zzz' found
+
+Usage: br list --limit <LIMIT>
+
+For more information, try '--help'.

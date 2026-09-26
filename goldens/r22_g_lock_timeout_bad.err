@@ -1,0 +1,3 @@
+error: invalid value 'x' for '--lock-timeout <LOCK_TIMEOUT>': invalid digit found in string
+
+For more information, try '--help'.

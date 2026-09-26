@@ -1,0 +1,5 @@
+error: the argument '--by <BY>' cannot be used multiple times
+
+Usage: br count [OPTIONS]
+
+For more information, try '--help'.

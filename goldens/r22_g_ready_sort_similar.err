@@ -1,0 +1,6 @@
+error: invalid value 'olde' for '--sort <SORT>'
+  [possible values: hybrid, priority, oldest]
+
+  tip: a similar value exists: 'oldest'
+
+For more information, try '--help'.

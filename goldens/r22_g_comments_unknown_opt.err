@@ -1,0 +1,7 @@
+error: unexpected argument '--zz' found
+
+  tip: to pass '--zz' as a value, use '-- --zz'
+
+Usage: br comments list <ID>
+
+For more information, try '--help'.

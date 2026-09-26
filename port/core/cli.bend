@@ -133,11 +133,20 @@ def shown_pick(key: String, value: String, plain: Bool, optional: Bool) -> Strin
     case False{} True{}:
       "--" ++ key ++ " [<" ++ value ++ ">]"
 
+# S1.72 (spec twin) a counting flag (no value, repeatable: `--verbose`) is spelled with `...` (round 22: `list
+# --version` prints `Usage: br list --verbose...`)
+def counted(+text: String, count: Bool) -> String:
+  match count:
+    case True{}:
+      text ++ "..."
+    case False{}:
+      text
+
 # S1.20 (spec twin) an option as the messages print it
 def shown(o: Surface.Opt) -> String:
   match o:
     case Surface.Opt{key, short, alias, +value, repeat, optional, hyphen, check}:
-      shown_pick(key, value, String.is_empty(value), optional)
+      counted(shown_pick(key, value, String.is_empty(value), optional), (String.is_empty(value) && repeat))
 
 # S1.3 S1.29 (spec twin) a level's fields
 def path_of(c: Surface.Cmd) -> String:
@@ -910,27 +919,36 @@ def help_into(st: St, target: U32) -> St:
     case St{cmd, outer, seen, used, words, pending, held, trailing, fresh, skip, halt}:
       St{Surface.cmd_at(target), outer, seen, used, words, pending, held, trailing, fresh, skip, Helping{}}
 
-# S1.89 (spec twin) only a word of the port's surface is followed
-def help_down(st: St, target: U32, scope: U32) -> St:
+# S1.89 (spec twin) stop the parse with this answer, whatever stopped it before (the `help` subcommand's own stops)
+def stop_now(st: St, p: Parsed) -> St:
+  match st:
+    case St{cmd, outer, seen, used, words, pending, held, trailing, fresh, skip, halt}:
+      St{cmd, outer, seen, used, words, pending, held, trailing, fresh, skip, Halted{p}}
+
+# S1.89 (spec twin) the level `help help` names: `help` at the top, `<level> help` below it
+def help_help_path(+path: String) -> String:
+  Bool.pick(String, String.is_empty(path), "help", path ++ " help")
+
+# S1.89 (spec twin) only a word of the port's surface is followed; `help` names the `help` subcommand's own help
+# (round 22: `help help` prints `Print this message or the help of the given subcommand(s)`)
+def help_down(+st: St, target: U32, scope: U32) -> St:
   match scope:
     case 0:
       help_into(st, target)
+    case 2:
+      stop_now(st, Helped{help_help_path(path_of(cmd_of(st))), True{}})
     case _:
       st
 
-# S1.89 (spec twin) a word after `help`: a subcommand word of the level is followed, anything else is passed over
-def help_word(st: St, found: Maybe<&2, Surface.Name>) -> St:
+# S1.89 (spec twin) a word after `help`: a subcommand word of the level is followed; any other word (an option
+# included) is refused as an unrecognized subcommand of the level, with no tip (round 22: `help frob`, `help --json`,
+# `help list extra`, `dep help frob`)
+def help_word(+st: St, found: Maybe<&2, Surface.Name>, +arg: String) -> St:
   match found:
     case None{}:
-      st
+      stop_now(st, Refused{unknown_sub(cmd_of(st), arg, Nil{})})
     case Some{Surface.Name{w, target, scope}}:
       help_down(st, target, scope)
-
-# S1.84 (spec twin) hold a refusal until the next argument settles it; nothing waits any more
-def hold(st: St, err: String) -> St:
-  match st:
-    case St{cmd, outer, seen, used, words, pending, held, trailing, fresh, skip, halt}:
-      St{cmd, outer, seen, used, words, Idle{}, err, trailing, fresh, skip, halt}
 
 # S1.20 (spec twin) an option now waits for its value
 def await(st: St, o: Surface.Opt) -> St:
@@ -949,6 +967,13 @@ def add_used_pick(used: List<&2, String>, id: String, known: Bool) -> List<&2, S
 # S1.70 (spec twin) remember an argument as present
 def add_used(+used: List<&2, String>, +id: String) -> List<&2, String>:
   add_used_pick(used, id, has(used, id))
+
+# S1.84 S1.70 (spec twin) hold a refusal until the next argument settles it; nothing waits any more. The option
+# counts as named for a later usage line (round 22: `list --limit x --zzz` prints `Usage: br list --limit <LIMIT>`)
+def hold(st: St, +key: String, err: String) -> St:
+  match st:
+    case St{cmd, outer, seen, used, words, pending, held, trailing, fresh, skip, halt}:
+      St{cmd, outer, seen, add_used(used, key), words, Idle{}, err, trailing, fresh, skip, halt}
 
 # S1.13 (spec twin) record one occurrence; nothing waits any more
 def record(st: St, +key: String, value: String) -> St:
@@ -1047,7 +1072,7 @@ def take_value_pick(st: St, o: Surface.Opt, v: String, err: String, now: Bool) -
     case SCon{h, t} True{}:
       halted(st, Refused{SCon{h, t}})
     case SCon{h, t} False{}:
-      hold(st, SCon{h, t})
+      hold(st, key_of(o), SCon{h, t})
 
 # S1.10 S1.84 (spec twin) give an option its value
 def take_value(+st: St, +o: Surface.Opt, +v: String, now: Bool) -> St:
@@ -1339,10 +1364,10 @@ def step_pending(+st: St, +arg: String, p: Pending, sh: Shape) -> St:
 
 # S1.30 S1.89 (spec twin) a stopped parse passes every later argument through, except that the `help`
 # subcommand follows the words that name a level
-def step_stopped(+st: St, arg: String, h: Halt) -> St:
+def step_stopped(+st: St, +arg: String, h: Halt) -> St:
   match h:
     case Helping{}:
-      help_word(st, sub_named(subs_of(cmd_of(st)), arg))
+      help_word(st, sub_named(subs_of(cmd_of(st)), arg), arg)
     case other:
       st
 

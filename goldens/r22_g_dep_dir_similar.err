@@ -1,0 +1,6 @@
+error: invalid value 'bot' for '--direction <DIRECTION>'
+  [possible values: down, up, both]
+
+  tip: a similar value exists: 'both'
+
+For more information, try '--help'.

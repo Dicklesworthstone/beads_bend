@@ -1,0 +1,5 @@
+error: unexpected argument '--json' found
+
+Usage: br create [OPTIONS] [TITLE]
+
+For more information, try '--help'.

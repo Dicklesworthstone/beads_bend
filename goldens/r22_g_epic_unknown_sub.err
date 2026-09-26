@@ -1,0 +1,7 @@
+error: unrecognized subcommand 'stat'
+
+  tip: a similar subcommand exists: 'status'
+
+Usage: br epic [OPTIONS] <COMMAND>
+
+For more information, try '--help'.
